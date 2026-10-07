@@ -1,4 +1,4 @@
-# Lemma
+# lemma
 
 Lemma is a lightweight, distraction-free Wikipedia client built with SvelteKit. It strips out Wikipedia's default interface clutter to deliver a clean reading experience with customizable typography, article metrics, and streamlined navigation.
 
@@ -10,31 +10,6 @@ All requests are handled directly on the client side without intermediate proxie
 * **Build Tool:** [Vite](https://vite.dev/)
 * **Language:** [TypeScript](https://www.typescriptlang.org/)
 * **Package Manager / Runtime:** [Bun](https://bun.sh/)
-
-## Project Structure
-
-```text
-src/
-├── components/
-│   ├── navbar.svelte         # Header and primary navigation
-│   └── searchbar.svelte        # Search input component
-├── lib/
-│   └── api/
-│       ├── schemas.ts        # Wikipedia API URL templates
-│       └── wikipedia.ts      # Fetch wrapper and response types
-└── routes/
-    ├── +layout.svelte        # Root layout, base styles, and font imports
-    ├── +page.svelte          # Home page
-    ├── +error.svelte         # Error boundary & 404 page
-    ├── search/
-    │   └── +page.svelte      # Search results page
-    └── wiki/[title]/
-        └── +page.svelte      # Article renderer
-static/
-├── font/                     # Self-hosted typography files
-└── icon/                     # UI icons (search, navigation)
-
-```
 
 ## Getting Started
 
