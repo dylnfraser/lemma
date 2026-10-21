@@ -6,7 +6,8 @@
         | "arrow-down"
         | "arrow-up-right"
         | "corner-down-left"
-        | "chevron-right";
+        | "chevron-right"
+        | "x";
 </script>
 
 <script lang="ts">

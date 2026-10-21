@@ -159,9 +159,7 @@
                 onmousedown={preventMouseFocus}
                 onclick={clearQuery}
             >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
-                </svg>
+                <Icon name="x" size="0.75rem" />
             </button>
         {/if}
     </div>
@@ -333,26 +331,30 @@
         }
     }
 
+    /* drawn like the palette's keycaps (same border, radius and fill), a touch larger as a click target */
     .clear {
         display: grid;
         place-items: center;
         flex: none;
-        width: 22px;
-        height: 22px;
+        box-sizing: border-box;
+        width: 1.5rem;
+        height: 1.5rem;
         padding: 0;
-        border: none;
-        border-radius: 50%;
-        background: color-mix(in oklch, var(--secondary) 55%, transparent);
+        border: 1px solid color-mix(in oklch, var(--rule) 80%, transparent);
+        border-radius: 6px;
+        background: var(--bg-color);
         color: var(--muted);
         cursor: pointer;
         animation: clear-in var(--dur-fast) var(--ease-out) both;
         transition:
             background-color var(--dur-fast),
+            border-color var(--dur-fast),
             color var(--dur-fast),
             scale var(--dur-instant) var(--ease-out);
 
         &:hover {
-            background: var(--secondary);
+            border-color: var(--secondary);
+            background: color-mix(in oklch, var(--secondary) 25%, var(--bg-color));
             color: var(--text-color);
         }
     }
