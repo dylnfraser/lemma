@@ -1,104 +1,29 @@
 <script lang="ts">
-    import "../app.css";
-    import Navbar from "../components/Navbar.svelte";
-    import GlobalSearch from "../components/search/GlobalSearch.svelte";
+    import { page } from "$app/state";
+    import ErrorState from "../components/ErrorState.svelte";
 
-    const homeMessages = ["Go back home", "Return to ground zero", "Take me back", "Home sweet home"];
-
-    const homeText = homeMessages[Math.floor(Math.random() * homeMessages.length)];
-
-    let words =
-        `We couldn’t find what you were looking for. The page may have been moved, renamed, or no longer exists. Try going back or heading to the homepage.`.split(
-            " ",
-        );
+    let isNotFound = $derived(page.status === 404);
+    let heading = $derived(isNotFound ? "404" : String(page.status));
+    let message = $derived(
+        isNotFound
+            ? "We couldn’t find what you were looking for. The page may have been moved, renamed, or no longer exists. Try going back or heading to the homepage."
+            : (page.error?.message ?? "Something went wrong."),
+    );
 </script>
 
-<div id="container">
-    <title>404</title>
-    <Navbar></Navbar>
-    <GlobalSearch />
+<svelte:head>
+    <title>{heading} • Lemma</title>
+    <meta name="robots" content="noindex" />
+</svelte:head>
 
-    <h1>404</h1>
-    <p aria-label={words.join(" ")}>
-        {#each words as w, i}
-            <span style="animation-delay: {i * 0.005}s">{w}{i < words.length - 1 ? " " : ""}</span>
-        {/each}
-    </p>
-
-    <br />
-    <a href="/" aria-label="Go to home page">{homeText}</a>
-</div>
+<main id="main">
+    <ErrorState {heading} {message} onRetry={isNotFound ? undefined : () => location.reload()} />
+</main>
 
 <style>
-    #container {
-        position: fixed;
-        overflow: none;
-
-        width: 55%;
-
-        top: 15%;
-        left: 22.5%;
-
-        h1 {
-            font-size: 3rem;
-            text-align: center;
-            margin-bottom: 0.35rem;
-            font-weight: 350;
-
-            animation: popup 0.5s forwards;
-            @media (prefers-reduced-motion: reduce) {
-                animation: none;
-            }
-        }
-
-        p {
-            text-align: justify;
-            max-width: 50ch;
-            margin: 0 auto;
-
-            span {
-                opacity: 0;
-
-                animation: appear 1.5s forwards;
-                @media (prefers-reduced-motion: reduce) {
-                    animation: none;
-                }
-            }
-        }
-
-        a {
-            opacity: 0;
-
-            animation: popup 0.5s forwards;
-            animation-delay: 0.75s;
-            @media (prefers-reduced-motion: reduce) {
-                animation: none;
-            }
-        }
-
-        text-align: center;
-    }
-
-    @keyframes appear {
-        0% {
-            opacity: 0;
-            filter: blur(1px);
-        }
-
-        100% {
-            opacity: 1;
-        }
-    }
-
-    @keyframes popup {
-        0% {
-            opacity: 0;
-            filter: blur(1px);
-            transform: translateY(6px);
-        }
-
-        100% {
-            opacity: 1;
-        }
+    main {
+        width: min(55ch, calc(100% - 2.5rem));
+        margin: 0 auto;
+        padding-top: max(calc(var(--nav-height) + 2rem), 15vh);
     }
 </style>

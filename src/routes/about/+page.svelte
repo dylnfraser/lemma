@@ -1,170 +1,81 @@
 <script lang="ts">
-    import "../../app.css";
-    import Navbar from "../../components/Navbar.svelte";
-    import GlobalSearch from "../../components/search/GlobalSearch.svelte";
+    import ReaderLayout from "../../components/ReaderLayout.svelte";
 </script>
 
-<Navbar />
-<GlobalSearch />
-
-<div id="pageContainer">
+<svelte:head>
     <title>About • Lemma</title>
-    <div id="contentContainer">
-        <h1 id="title">About Lemma</h1>
-        <div class="article-meta">
-            <mini>Why was Lemma made?</mini>
-        </div>
-        <hr />
+</svelte:head>
 
-        <p style="--i: 0">
-            Lemma is a private, fast Wikipedia reader built for calm, focused browsing. It strips away visual clutter
-            and presents articles in a clean custom layout with strong typography and lightweight navigation.
-        </p>
+<ReaderLayout>
+    <h1 id="title">About Lemma</h1>
+    <p class="article-meta">Why was Lemma made?</p>
+    <hr />
 
-        <br />
-        <h3 style="--i: 1">Why it exists</h3>
-        <p style="--i: 1">
-            Lemma is designed for quick lookups, deeper reading, and browsing Wikipedia without the usual noise. It’s
-            meant to feel private, fast, and pleasant enough that reading becomes the default.
-        </p>
+    <p style:--i={0}>
+        Lemma is a private, fast Wikipedia reader built for calm, focused browsing. It strips away visual clutter and
+        presents articles in a clean custom layout with strong typography and lightweight navigation.
+    </p>
 
-        <h5 style="--i: 2">What does it do?</h5>
-        <p style="--i: 2">
-            Lemma fetches Wikipedia articles directly from public endpoints, extracts readable content, and renders it
-            in a distraction-free reader. It includes article stats, images, headings, links, and section navigation for
-            longer pages.
-        </p>
+    <h2 style:--i={1}>Why it exists</h2>
+    <p style:--i={1}>
+        Lemma is designed for quick lookups, deeper reading, and browsing Wikipedia without the usual noise. It’s meant
+        to feel private, fast, and pleasant enough that reading becomes the default.
+    </p>
 
-        <h5 style="--i: 3">Built for reading</h5>
-        <p style="--i: 3">
-            The interface uses a soft neutral background, local fonts, subtle shadows, and a centered reading width to
-            keep the experience quiet and easy on the eyes. The goal is simple: make exploring knowledge feel
-            effortless.
-        </p>
+    <h3 style:--i={2}>What does it do?</h3>
+    <p style:--i={2}>
+        Lemma fetches Wikipedia articles directly from public endpoints, extracts readable content, and renders it in a
+        distraction-free reader. It includes article stats, images, headings, links, and section navigation for longer
+        pages.
+    </p>
 
-        <br />
-        <h3 style="--i: 4">The Stack</h3>
-        <p style="--i: 4">
-            Lemma is built with SvelteKit, Svelte 5, Vite, TypeScript, and Bun. It uses client-side Wikipedia requests,
-            so there’s no API key, backend proxy, or server-side cache.
-        </p>
-        <p style="--i: 4">
-            The app is organized around reusable UI components and route-based pages for the landing screen, search,
-            errors, and article readers.
-        </p>
+    <h3 style:--i={3}>Built for reading</h3>
+    <p style:--i={3}>
+        The interface uses a soft neutral background, local fonts, subtle shadows, and a centered reading width to keep
+        the experience quiet and easy on the eyes. The goal is simple: make exploring knowledge feel effortless.
+    </p>
 
-        {#each { length: 12 }}
-            <br />
-        {/each}
-    </div>
-</div>
+    <h2 style:--i={4}>The Stack</h2>
+    <p style:--i={4}>
+        Lemma is built with SvelteKit, Svelte 5, Vite, TypeScript, and Bun. It uses client-side Wikipedia requests, so
+        there’s no API key, backend proxy, or server-side cache.
+    </p>
+    <p style:--i={4}>
+        The app is organized around reusable UI components and route-based pages for the landing screen, search, errors,
+        and article readers.
+    </p>
+</ReaderLayout>
 
 <style>
-    #pageContainer {
-        position: fixed;
-        font-family: default-sans;
-        width: 100%;
-        height: 100%;
-
-        left: 0;
-        top: 0;
-        overflow-x: hidden;
-    }
-
-    #contentContainer {
-        position: absolute;
-
-        width: min(50ch, calc(100vw - 4rem));
-        max-width: 50ch;
-
-        top: 2.5%;
-        height: 100%;
-        padding: 5%;
-        left: calc(25% - 5ch);
-        line-height: 2rem;
-    }
-
-    h3,
-    h5 {
-        opacity: 0;
-
-        animation: text-appear 0.4s ease-out forwards;
-        animation-delay: calc(var(--i) * 0.1s);
-        @media (prefers-reduced-motion: reduce) {
-            animation: none;
-        }
-    }
-
-    p {
-        opacity: 0;
-
-        animation: text-appear 0.4s ease-out forwards;
-        animation-delay: calc(var(--i) * 0.1s);
-        @media (prefers-reduced-motion: reduce) {
-            animation: none;
-        }
-    }
-
     #title {
-        width: calc(110% - 5vw);
+        margin: 1.25rem 0 0;
+        line-height: 1.2;
     }
 
     .article-meta {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 1rem;
+        margin: 0.75rem 0 0;
+        font-size: 0.85rem;
+        font-style: italic;
+        font-weight: 450;
     }
 
-    @keyframes appear {
-        0% {
-            opacity: 0;
-        }
-
-        100% {
-            opacity: 1;
-        }
+    hr {
+        width: 100%;
+        margin: 1rem 0 0.5rem;
     }
 
-    @keyframes text-appear {
-        0% {
-            opacity: 0;
-            filter: blur(4px);
-            transform: translateY(12px);
-        }
-
-        100% {
-            opacity: 1;
-            filter: blur(0);
-            transform: translateY(0);
+    h2,
+    h3,
+    p:not(.article-meta) {
+        animation: text-appear 0.4s ease-out both;
+        animation-delay: calc(var(--i) * 0.1s);
+        @media (prefers-reduced-motion: reduce) {
+            animation: none;
         }
     }
 
-    #contentContainer {
-        h1 {
-            min-height: 2rem;
-            margin-bottom: -0.25rem;
-        }
-
-        mini {
-            font-size: 0.85rem;
-            font-style: italic;
-            font-weight: 450;
-        }
-    }
-
-    @media (max-width: 1050px) {
-        #contentContainer {
-            left: 50%;
-            transform: translateX(-50%);
-            width: min(82vw, 50ch);
-        }
-    }
-
-    @media (max-width: 640px) {
-        #contentContainer {
-            width: min(88vw, 50ch);
-            padding: 7% 0 5%;
-        }
+    h3 {
+        font-size: 1.15rem;
+        margin-top: 1.75rem;
     }
 </style>

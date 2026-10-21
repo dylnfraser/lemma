@@ -1,117 +1,99 @@
 <script lang="ts">
-    import "../app.css";
+    import { isSearchShortcut } from "$lib/search/searchOverlay.svelte";
     import Searchbar from "../components/search/Searchbar.svelte";
-    import Navbar from "../components/Navbar.svelte";
-    import GlobalSearch from "../components/search/GlobalSearch.svelte";
 
-    let description =
-        `Lemma is a private, fast, and beautifully designed Wikipedia wrapper that makes exploring knowledge feel effortless. Lemma provides a clean, focused reading experience with instant access to the information you want, without noise or distractions.`.split(
-            " ",
-        );
+    const wordmark = [..."Lemma"];
+    const description =
+        "Lemma is a private, fast, and beautifully designed Wikipedia wrapper that makes exploring knowledge feel effortless. Lemma provides a clean, focused reading experience with instant access to the information you want, without noise or distractions.";
+    const words = description.split(" ");
+
+    let searchbar: ReturnType<typeof Searchbar>;
+
+    function handleWindowKeydown(event: KeyboardEvent) {
+        if (!isSearchShortcut(event)) return;
+        event.preventDefault();
+        searchbar.focus();
+    }
 </script>
 
-<div id="hero">
-    <!-- navigation -->
-    <title>Lemma</title>
-    <Navbar />
+<svelte:head>
+    <title>Lemma — A better way to read Wikipedia</title>
+</svelte:head>
 
-    <!-- heading and information -->
-    <h1 aria-label="Lemma" id="header">
-        <span class="char" style="--i: 0" aria-hidden="true">L</span>
-        <span class="char" style="--i: 1" aria-hidden="true">e</span>
-        <span class="char" style="--i: 2" aria-hidden="true">m</span>
-        <span class="char" style="--i: 3" aria-hidden="true">m</span>
-        <span class="char" style="--i: 4" aria-hidden="true">a</span>
+<svelte:window onkeydown={handleWindowKeydown} />
+
+<main id="main">
+    <h1 id="header">
+        <span class="sr-only">Lemma</span>
+        <span aria-hidden="true">
+            {#each wordmark as char, i}
+                <span class="char" style:--i={i}>{char}</span>
+            {/each}
+        </span>
     </h1>
 
-    <p aria-label={description.join(" ")}>
-        {#each description as w, i}
-            <span style="animation-delay: {i * 0.0075}s">{w}</span>{i < description.length - 1 ? " " : ""}
-        {/each}
+    <p>
+        <span class="sr-only">{description}</span>
+        <span aria-hidden="true">
+            {#each words as word, i}
+                <span class="word" style:animation-delay="{i * 0.0075}s">{word}</span>{" "}
+            {/each}
+        </span>
     </p>
 
-    <!-- spacing and search -->
-    <br />
-    <br />
-    <Searchbar />
-</div>
+    <div class="search-slot">
+        <Searchbar bind:this={searchbar} />
+    </div>
+</main>
 
 <style>
-    #hero {
-        position: fixed;
-        overflow: none;
+    main {
+        width: min(55ch, calc(100% - 2.5rem));
+        margin: 0 auto;
+        padding-top: max(calc(var(--nav-height) + 2rem), 15vh);
+    }
 
-        width: 55%;
+    #header {
+        font-size: 3rem;
+        font-family: default-serif;
+        text-align: center;
+        margin: 0 0 0.35rem;
+        user-select: none;
 
-        top: 15%;
-        left: 22.5%;
+        .char {
+            display: inline-block;
+            font-weight: 300;
 
-        br {
-            user-select: none;
-        }
-
-        #header {
-            font-size: 3rem;
-            font-family: default-serif;
-            text-align: center;
-            margin-bottom: 0.35rem;
-            user-select: none;
-
-            @media (max-width: 600px) {
-                text-align: left;
-                margin-top: -2rem;
-                margin-left: calc(-20% + 4px);
-            }
-
-            .char {
-                animation: font-weight-wave 0.8s ease-in-out;
-                animation-delay: calc(var(--i) * 0.075s + 2s);
-                @media (prefers-reduced-motion: reduce) {
-                    animation: none;
-                }
-
-                display: inline-block;
-                margin-left: -0.3rem;
-                margin-right: -0.3rem;
-                font-weight: 250;
-            }
-        }
-
-        p {
-            text-align: justify;
-            text-wrap: pretty;
-            max-width: 50ch;
-            margin: 0 auto;
-            font-size: 16px;
-            @media (max-width: 600px) {
-                margin-left: -20%;
-                min-width: 75vw;
-                text-align: left;
-            }
-
-            span {
-                display: inline-block;
-                opacity: 0;
-
-                animation: text-appear 0.2s ease-out forwards;
-                @media (prefers-reduced-motion: reduce) {
-                    animation: none;
-                }
+            animation: font-weight-wave 0.8s ease-in-out;
+            animation-delay: calc(var(--i) * 0.075s + 2s);
+            @media (prefers-reduced-motion: reduce) {
+                animation: none;
             }
         }
     }
 
-    @keyframes text-appear {
-        0% {
-            opacity: 0;
-            filter: blur(4px);
-            transform: translateY(12px);
-        }
+    p {
+        text-align: justify;
+        text-wrap: pretty;
+        max-width: 50ch;
+        margin: 0 auto;
+        line-height: 1.6;
 
-        100% {
-            opacity: 1;
-            filter: blur(0);
-            transform: translateY(0);
+        @media (max-width: 600px) {
+            text-align: left;
         }
+    }
+
+    .word {
+        display: inline-block;
+
+        animation: text-appear 0.2s ease-out both;
+        @media (prefers-reduced-motion: reduce) {
+            animation: none;
+        }
+    }
+
+    .search-slot {
+        margin-top: 2.5rem;
     }
 </style>
