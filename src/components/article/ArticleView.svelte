@@ -27,6 +27,8 @@
 
     // A heading counts as "current" once its top passes this far below the viewport top (under the navbar).
     const ACTIVE_OFFSET = 140;
+    // Right after loading, the outline's highlight only says "you're at the start", so it shows briefly and then fades.
+    const LOAD_HIGHLIGHT_MS = 1500;
 
     // This component is re-created for every article ({#key} in the route), so per-article state is set up once.
     // svelte-ignore state_referenced_locally
@@ -37,6 +39,9 @@
     const autoExpandedOutline = new Set<string>();
 
     let activeHeadingId = $state(headings[0]?.id ?? "");
+    let highlightActive = $state(true);
+    // True while the page is still settling after load (initial scroll, hash or snapshot restore).
+    let settling = true;
     let articleElement: HTMLElement;
     let frame = 0;
     let restoredFrom: ArticleViewState | null = null;
@@ -84,6 +89,7 @@
         if (id === activeHeadingId) return;
         activeHeadingId = id;
         syncOutlineToActive(id);
+        if (!settling) highlightActive = true;
     }
 
     function updateActiveHeading() {
@@ -131,7 +137,12 @@
             location.hash = id;
         }
 
-        if (headingsById.has(id)) setActiveHeading(id);
+        if (headingsById.has(id)) {
+            // A deliberate jump always shows where the reader landed, even during the load fade.
+            settling = false;
+            highlightActive = true;
+            setActiveHeading(id);
+        }
     }
 
     function openFromOutline(id: string, event: MouseEvent, close: () => void) {
@@ -192,7 +203,16 @@
             scheduleActiveUpdate();
         }
 
-        return () => cancelAnimationFrame(frame);
+        const fadeTimer = setTimeout(() => {
+            if (!settling) return;
+            settling = false;
+            highlightActive = false;
+        }, LOAD_HIGHLIGHT_MS);
+
+        return () => {
+            cancelAnimationFrame(frame);
+            clearTimeout(fadeTimer);
+        };
     });
 </script>
 
@@ -208,6 +228,7 @@
             <ArticleBreadcrumbs
                 {headings}
                 activeId={activeHeadingId}
+                {highlightActive}
                 collapsedIds={collapsedOutline}
                 onToggle={toggleOutline}
                 onOpen={(id, event) => openFromOutline(id, event, close)}

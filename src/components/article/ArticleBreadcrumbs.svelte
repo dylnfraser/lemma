@@ -6,12 +6,14 @@
     interface Props {
         headings: ArticleHeading[];
         activeId: string;
+        /** Whether the active entry is visually highlighted; it stays marked as current for assistive tech either way. */
+        highlightActive: boolean;
         collapsedIds: ReadonlySet<string>;
         onToggle: (id: string) => void;
         onOpen: (id: string, event: MouseEvent) => void;
     }
 
-    let { headings, activeId, collapsedIds, onToggle, onOpen }: Props = $props();
+    let { headings, activeId, highlightActive, collapsedIds, onToggle, onOpen }: Props = $props();
 
     let list: HTMLElement;
 
@@ -55,7 +57,8 @@
                     {/if}
                     <a
                         class="breadcrumb breadcrumb-{heading.tag.toLowerCase()}"
-                        class:active={activeId === heading.id}
+                        class:active={activeId === heading.id && highlightActive}
+                        class:faded={activeId === heading.id && !highlightActive}
                         aria-current={activeId === heading.id ? "location" : undefined}
                         href="#{encodeURIComponent(heading.id)}"
                         onclick={(event) => onOpen(heading.id, event)}>{heading.text}</a
@@ -132,10 +135,23 @@
         text-overflow: ellipsis;
         white-space: nowrap;
         text-decoration: none;
+        transition:
+            color 0.15s ease,
+            font-weight 0.15s ease,
+            opacity 0.15s ease;
 
         &:hover {
             opacity: 1;
             text-decoration: underline;
+        }
+
+        /* the post-load highlight eases out slowly rather than snapping off */
+        &.faded {
+            transition-duration: 0.9s;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            transition: none;
         }
     }
 
