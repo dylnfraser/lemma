@@ -1,5 +1,7 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
+    import { fade } from "svelte/transition";
+    import { DURATION, motion } from "$lib/motion";
 
     interface Props {
         children: Snippet;
@@ -30,7 +32,13 @@
         </aside>
 
         {#if outlineOpen}
-            <button type="button" class="outline-backdrop" aria-label="Close sections" tabindex="-1" onclick={close}
+            <button
+                type="button"
+                class="outline-backdrop"
+                aria-label="Close sections"
+                tabindex="-1"
+                onclick={close}
+                transition:fade={{ duration: motion(DURATION.fast) }}
             ></button>
         {/if}
         <button
@@ -112,18 +120,15 @@
 
             visibility: hidden;
             transform: translateX(-100%);
+            /* closes a little quicker than it opens; visibility flips once it's off-screen */
             transition:
-                transform 0.2s ease,
-                visibility 0s linear 0.2s;
+                transform var(--dur-fast) ease-in,
+                visibility 0s linear var(--dur-fast);
 
             &.open {
                 visibility: visible;
                 transform: none;
-                transition: transform 0.2s ease;
-            }
-
-            @media (prefers-reduced-motion: reduce) {
-                transition: none !important;
+                transition: transform var(--dur-base) var(--ease-out);
             }
         }
 
@@ -133,7 +138,12 @@
             inset: 0;
             z-index: 24;
             border: none;
-            background: transparent;
+            background: rgb(0 0 0 / 14%);
+
+            /* a full-screen layer shouldn't take part in the global press-scale */
+            &:active {
+                scale: 1;
+            }
         }
 
         .outline-toggle {
