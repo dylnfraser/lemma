@@ -374,7 +374,32 @@
         }
     }
 
+    let captionMore = $state(false);
+
+    /** Fade the caption's bottom edge while there's more of it to scroll to. */
+    function updateCaptionFade(caption: HTMLElement) {
+        captionMore = caption.scrollHeight - caption.scrollTop - caption.clientHeight > 2;
+    }
+
+    function captionOverflow(caption: HTMLElement) {
+        const update = () => updateCaptionFade(caption);
+        const observer = new ResizeObserver(update);
+        observer.observe(caption);
+        caption.addEventListener("scroll", update, { passive: true });
+        update();
+        return {
+            destroy: () => {
+                observer.disconnect();
+                caption.removeEventListener("scroll", update);
+            },
+        };
+    }
+
     function handleWheel(event: WheelEvent) {
+        // a long caption scrolls on its own; only pinch / ctrl+wheel there still zooms the picture
+        const caption = (event.target as Element).closest?.("figcaption");
+        if (caption && !event.ctrlKey && !event.metaKey && caption.scrollHeight > caption.clientHeight + 1) return;
+
         event.preventDefault();
         gesturing = true;
         clearTimeout(wheelTimer);
@@ -434,7 +459,7 @@
         transition:fade={{ duration: zoomingBack ? 0 : motion(closing ? DURATION.fast : DURATION.base) }}
     >
         <div class="backdrop" class:closing aria-hidden="true"></div>
-        <figure>
+        <figure style:--ar={aspect}>
             <div
                 class="stage"
                 bind:this={stage}
@@ -466,7 +491,7 @@
                 </div>
             </div>
             {#if image.caption || count > 1 || image.fileName}
-                <figcaption class:closing class:hidden={zoomed}>
+                <figcaption class:closing class:hidden={zoomed} class:more={captionMore} use:captionOverflow>
                     {#if count > 1}<span class="counter">{lightbox.index + 1} / {count}</span>{/if}
                     {#if image.caption}{@html image.caption}{/if}
                     {#if image.fileName}
@@ -628,6 +653,15 @@
 
     figcaption {
         max-width: 60ch;
+        /*
+         * Long captions (e.g. a map's full key) scroll instead of running off the screen. They get whatever height is
+         * left under the picture (viewport − padding 6rem − gap 1rem − picture), between 3rem and 9rem.
+         */
+        --picture-height: min(calc(92vw / var(--ar, 1.5)), calc(1400px / var(--ar, 1.5)), calc(100dvh - 11rem));
+        max-height: clamp(3rem, calc(100dvh - 7rem - var(--picture-height)), 9rem);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
         font-size: 0.85rem;
         line-height: 1.5;
         text-align: center;
@@ -636,6 +670,10 @@
         cursor: auto;
         user-select: text;
         transition: opacity var(--dur-fast);
+
+        &.more {
+            mask-image: linear-gradient(to bottom, black calc(100% - 1.75rem), transparent);
+        }
 
         &.hidden {
             opacity: 0;
@@ -646,6 +684,44 @@
             opacity: 0;
             transition-duration: var(--close-ms);
         }
+    }
+
+    /* citations look as they do in the article: small, muted, no brackets */
+    figcaption :global(sup.reference) {
+        font-size: 0.7em;
+        line-height: 0;
+    }
+
+    figcaption :global(sup.reference .cite-bracket) {
+        display: none;
+    }
+
+    figcaption :global(sup.reference a) {
+        color: var(--muted);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    /* lists in captions: centred as one block, text left-aligned beside its numbers (as in the article) */
+    figcaption :global(:is(ul, ol)) {
+        margin: 0.3em 0 0;
+        padding-left: 1.5em;
+        text-align: left;
+    }
+
+    figcaption :global(:is(ul, ol):not(li *)) {
+        display: table;
+        margin-inline: auto !important;
+    }
+
+    figcaption :global(li) {
+        margin: 0.1em 0 0;
+        padding-left: 0.15em;
+    }
+
+    figcaption :global(li :is(ul, ol)) {
+        margin-top: 0.1em;
+        padding-left: 1.3em;
     }
 
     .counter {

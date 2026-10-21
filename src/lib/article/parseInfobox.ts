@@ -3,10 +3,9 @@ import type { ArticleImage, Infobox, InfoboxRow, SuccessionEntry } from "./types
 import { makeImagesZoomable } from "./zoomableImages";
 
 // Interactive or editing parts of infoboxes that don't work (or mean nothing) outside Wikipedia.
+// Audio (anthems, name pronunciations) stays; video doesn't fit the column.
 const INFOBOX_JUNK_SELECTOR = [
-  "audio",
   "video",
-  ".mw-tmh-player",
   EDIT_AFFORDANCE_SELECTOR,
   ".switcher-label",
   "[style*='display:none']",
@@ -86,6 +85,19 @@ function readSuccession(table: HTMLElement) {
   return { header, body, row };
 }
 
+/** Removes the "• " Wikipedia types before sub-row labels; returns whether there was one. */
+function stripLeadingBullet(label: Element): boolean {
+  const walker = label.ownerDocument.createTreeWalker(label, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node.textContent ?? "";
+    if (!text.trim()) continue;
+    if (!/^\s*•/.test(text)) return false;
+    node.textContent = text.replace(/^\s*•[\s\u00a0]*/, "");
+    return true;
+  }
+  return false;
+}
+
 function isEmpty(element: Element) {
   return !element.textContent?.trim() && !element.querySelector("img");
 }
@@ -123,7 +135,8 @@ export function parseInfobox(table: HTMLElement, toImage: (image: HTMLImageEleme
     } else if (header && cells.length === 0) {
       rows.push({ kind: "header", html: header.innerHTML.trim() });
     } else if (header && cells.length > 0) {
-      rows.push({ kind: "data", label: header.innerHTML.trim(), html: cells[0].innerHTML.trim() });
+      const sub = stripLeadingBullet(header);
+      rows.push({ kind: "data", label: header.innerHTML.trim(), html: cells[0].innerHTML.trim(), ...(sub && { sub }) });
     } else if (cells.length > 0) {
       rows.push({ kind: "full", html: [...cells].map((cell) => cell.innerHTML.trim()).join(" ") });
     }

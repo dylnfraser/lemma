@@ -89,3 +89,35 @@ export const GALLERY_ARTICLE = `<div class="mw-parser-output">
 <figure typeof="mw:File/Thumb"><img alt="A map" src="${thumb("Map.png", 250)}" width="250" height="200" data-file-width="2000" /><figcaption>A map</figcaption></figure>
 <figure class="skin-invert-image" typeof="mw:File/Thumb"><img alt="A graph" src="${thumb("Graph.svg", 250, ".png")}" width="250" height="200" data-file-width="500" /><figcaption></figcaption></figure>
 </div>`;
+
+export const LEGEND_ARTICLE = `<div class="mw-parser-output">
+<figure typeof="mw:File/Thumb"><img alt="A map" src="${thumb("Euro_map.svg", 250, ".png")}" width="250" height="200" data-file-width="2000" /><figcaption>Eurozone participation
+<div class="legend"><span class="legend-color" style="background-color:#039;">&#160;</span>&#160;21 in the <a href="/wiki/Eurozone">eurozone</a></div>
+<div class="legend"><span class="legend-color" style="background-color:#fc0;">&#160;</span>&#160;5 not in <a href="/wiki/ERM_II">ERM II</a>, but committed</div>
+<i>Non-EU member states</i>
+<div class="legend"><span class="legend-color" style="background-color:#f90;">&#160;</span>&#160;4 using the euro</div></figcaption></figure>
+<p>The euro is a currency.</p>
+</div>`;
+
+export const EXTRAS_ARTICLE = `<div class="mw-parser-output">
+<style data-mw-deduplicate="TemplateStyles:r1">.mw-parser-output .quotebox{border:1px solid var(--border-color-base,#a2a9b1);padding:6px}.mw-parser-output .legend-color{width:1.25em}.mw-parser-output .infobox{float:right},.mw-parser-output .hatnote{font-style:italic}@media screen{.mw-parser-output .chess-board td{width:24px}.mw-parser-output .navbox{display:none}}.global-leak{color:red}</style>
+<style data-mw-deduplicate="TemplateStyles:r1">.mw-parser-output .quotebox{border:1px solid red}</style>
+<div role="note" class="hatnote navigation-not-searchable">Main article: <a href="/wiki/Topic_history">Topic history</a></div>
+<p>Topic (<span class="ext-phonos"><span data-ooui="{&quot;href&quot;:&quot;\/\/upload.wikimedia.org\/topic.ogg.mp3&quot;}"><a href="//upload.wikimedia.org/topic.ogg.mp3"></a></span></span>) is a thing.</p>
+<div class="thumb tmulti tright"><div class="thumbinner multiimageinner"><div class="trow"><div class="theader">Two views</div></div><div class="trow">
+<div class="tsingle"><div class="thumbimage"><span typeof="mw:File"><img alt="Left" src="${thumb("Left.jpg", 200)}" width="200" height="150" data-file-width="2000" /></span></div><div class="thumbcaption">The left view</div></div>
+<div class="tsingle"><div class="thumbimage"><span typeof="mw:File"><img alt="Right" src="${thumb("Right.jpg", 200)}" width="200" height="150" data-file-width="2000" /></span></div><div class="thumbcaption">The right view</div></div>
+</div><div class="trow"><div class="thumbcaption">Both views, side by side</div></div></div></div>
+<div class="thumb tright"><div class="thumbinner"><table class="chess-board"><tbody><tr><td>a</td><td>b</td></tr></tbody></table><div class="thumbcaption">A board</div></div></div>
+<figure typeof="mw:File/Thumb"><span><video poster="//upload.wikimedia.org/poster.jpg" controls="" id="mwe_player_0" width="200"><source src="//upload.wikimedia.org/clip.webm" type="video/webm" /><track src="https://commons.wikimedia.org/w/api.php?action=timedtext" kind="subtitles" /></video></span><figcaption>A clip</figcaption></figure>
+<div class="haudio"><div class="listen-file-header"><a href="/wiki/File:Theme.ogg">The theme</a></div><div><span typeof="mw:File"><span><audio controls="" preload="none"><source src="//upload.wikimedia.org/theme.ogg" type="audio/ogg" /></audio></span></span></div><div class="description">Played on piano</div></div>
+<table role="presentation" class="col-begin"><tbody><tr><td><ul><li><a href="/wiki/Alpha">Alpha</a></li></ul></td><td><ul><li><a href="/wiki/Beta">Beta</a></li></ul></td></tr></tbody></table>
+<table class="wikitable sortable mw-collapsible"><tbody><tr><th>Name</th><th>Value</th></tr><tr><td>b</td><td>2</td></tr><tr><td>a</td><td>10</td></tr></tbody></table>
+<table class="sidebar"><tbody><tr><td class="sidebar-pretitle">Part of a series on</td></tr><tr><th class="sidebar-title"><a href="/wiki/Topics">Topics</a></th></tr><tr><th class="sidebar-heading">Basics</th></tr><tr><td class="sidebar-content"><ul><li><a href="/wiki/Basic_topic">Basic topic</a></li></ul></td></tr></tbody></table>
+<div role="navigation" class="navbox"><table class="nowraplinks"><tbody>
+<tr><th colspan="2" class="navbox-title"><div class="navbar"><a href="/wiki/Template:Topic">v</a></div><div><a href="/wiki/Topic">Topic</a></div></th></tr>
+<tr><th class="navbox-group">People</th><td class="navbox-list"><ul><li><a href="/wiki/Ada_Lovelace">Ada Lovelace</a></li><li><a href="/wiki/Alan_Turing">Alan Turing</a> <img src="${thumb("Flag.svg", 20, ".png")}" width="20" height="13" /></li></ul></td></tr>
+<tr><th class="navbox-group">Works</th><td class="navbox-list"><table class="navbox-subgroup"><tbody><tr><th class="navbox-group">Books</th><td class="navbox-list"><ul><li><a href="/wiki/A_Book">A Book</a></li></ul></td></tr></tbody></table></td></tr>
+<tr><td class="navbox-list"><img src="${thumb("Big.jpg", 200)}" width="200" height="150" /><a href="/wiki/Index">Index</a></td></tr>
+</tbody></table></div>
+</div>`;

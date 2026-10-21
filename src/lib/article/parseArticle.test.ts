@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { parseArticle } from "./parseArticle";
-import { DUPLICATE_HEADINGS, EDIT_AFFORDANCES, GALLERY_ARTICLE, INFOBOX_ARTICLE, ORDINARY_ARTICLE, SKIPPED_LEVELS } from "./fixtures/articles";
+import {
+  DUPLICATE_HEADINGS,
+  EDIT_AFFORDANCES,
+  EXTRAS_ARTICLE,
+  GALLERY_ARTICLE,
+  INFOBOX_ARTICLE,
+  LEGEND_ARTICLE,
+  ORDINARY_ARTICLE,
+  SKIPPED_LEVELS,
+} from "./fixtures/articles";
 import type { HtmlBlock, ImagesBlock, InfoboxRow, ParsedArticle } from "./types";
 
 const parse = (text: string, title = "Pi") => parseArticle({ title, text });
@@ -25,15 +34,18 @@ describe("parseArticle", () => {
     expect(lead.caption).toContain('href="/wiki/Circumference"');
     expect(lead.width).toBe(250);
     expect(lead.invertInDarkMode).toBe(true);
-    expect(article.blocks[0].type).toBe("images");
+    // only the article's hatnote comes before it
+    expect(article.blocks.find((block) => !(block.type === "html" && block.kind === "hatnote"))?.type).toBe("images");
   });
 
-  it("drops infoboxes, hatnotes, navboxes, layout tables and empty elements", () => {
+  it("drops infoboxes, navboxes and empty elements, but keeps hatnotes and layout tables' content", () => {
     const html = allHtml(article);
     expect(html).not.toContain("Infobox.jpg");
-    expect(html).not.toContain("For other uses");
     expect(html).not.toContain("Navigation box paragraph");
-    expect(html).not.toContain("Layout table paragraph");
+    expect(htmlBlocks(article).find((block) => block.kind === "hatnote")?.html).toContain("For other uses");
+    // the layout table is unwrapped: its paragraph becomes an ordinary block
+    expect(htmlBlocks(article).some((block) => block.kind === "paragraph" && block.html.includes("Layout table paragraph"))).toBe(true);
+    expect(html).not.toContain('class="multicol"');
     expect(html).not.toContain("Mathematical constant</div>");
     expect(html).not.toContain("mw-empty-elt");
   });
@@ -151,7 +163,7 @@ describe("parseArticle", () => {
   });
 
   it("counts words and links but not references, citations or tables", () => {
-    expect(article.stats.links).toBe(7);
+    expect(article.stats.links).toBe(8); // includes the hatnote's link
     expect(article.stats.words).toBeGreaterThan(70);
     expect(article.stats.words).toBeLessThan(110);
     expect(article.stats.readingMinutes).toBe(1);
@@ -208,9 +220,9 @@ describe("parseArticle infobox", () => {
     expect(rowHtml(capital)).toContain('href="/wiki/Warsaw"');
   });
 
-  it("drops players, hidden rows, empty rows and extra switcher maps", () => {
+  it("keeps audio as a plain player, and drops hidden rows, empty rows and extra switcher maps", () => {
     const html = infobox!.rows.map(rowHtml).join("");
-    expect(html).not.toContain("<audio");
+    expect(html).toMatch(/<audio src="anthem\.ogg" controls="" preload="none"><\/audio>/);
     expect(html).not.toContain("secret");
     expect(html).not.toContain("Show globe");
     expect(html).toContain("Globe.svg");
@@ -247,6 +259,13 @@ describe("parseArticle infobox", () => {
     expect(succession.before[0].icon).toContain("Flag_A.svg");
     // the flag sits after the name on this side in Wikipedia's markup; it's still picked up as the icon
     expect(succession.after).toEqual([{ icon: expect.stringContaining("Flag_C.svg"), html: '<a href="/wiki/Soviet_Union">Soviet Union</a>' }]);
+  });
+
+  it("marks bulleted rows as sub-rows and drops the bullet", () => {
+    const president = infobox!.rows.find((row) => row.kind === "data" && row.label.includes("President"));
+    expect(president).toMatchObject({ kind: "data", sub: true });
+    expect(president && "label" in president && president.label).not.toContain("•");
+    expect(infobox!.rows.find((row) => row.kind === "data" && row.label === "Capital")).not.toHaveProperty("sub");
   });
 
   it("is null for articles without one", () => {
@@ -316,4 +335,155 @@ describe("parseArticle images", () => {
     expect(gallery.images.map((image) => image.lightBacking)).toEqual([false, true]);
   });
 
+});
+
+describe("parseArticle legends", () => {
+  const caption = imageBlocks(parse(LEGEND_ARTICLE, "Euro"))[0].images[0].caption;
+  const doc = new DOMParser().parseFromString(caption, "text/html");
+
+  it("groups runs of legend entries, keeping other caption text in place", () => {
+    const groups = [...doc.querySelectorAll(".legend-group")];
+    expect(groups.map((group) => group.querySelectorAll(".legend").length)).toEqual([2, 1]);
+    // the italic heading stays between the two groups, in its original position
+    expect(groups[0].nextElementSibling?.tagName).toBe("I");
+    expect(doc.body.textContent?.indexOf("Non-EU")).toBeGreaterThan(doc.body.textContent!.indexOf("committed"));
+  });
+});
+
+describe("parseArticle extras", () => {
+  const article = parse(EXTRAS_ARTICLE, "Topic");
+  const blocksOf = (kind: string) => htmlBlocks(article).filter((block) => block.kind === kind);
+
+  it("keeps hatnotes as their own blocks, not counted as words", () => {
+    expect(blocksOf("hatnote")[0].html).toContain('href="/wiki/Topic_history"');
+  });
+
+  it("turns pronunciation widgets into play buttons", () => {
+    const paragraph = blocksOf("paragraph")[0].html;
+    expect(paragraph).toContain('<button type="button" class="pronounce" data-audio="https://upload.wikimedia.org/topic.ogg.mp3"');
+    expect(paragraph).not.toContain("ext-phonos");
+  });
+
+  it("keeps {{multiple image}} as one group with per-image and shared captions", () => {
+    const set = imageBlocks(article).find((block) => block.images.some((image) => image.alt === "Left"))!;
+    expect(set.images.map((image) => image.caption)).toEqual(["The left view", "The right view"]);
+    expect(set.caption).toBe("Two views Both views, side by side");
+  });
+
+  it("keeps legacy frames around tables whole, with their caption", () => {
+    const [frame] = blocksOf("figure");
+    expect(frame.html).toContain('class="chess-board"');
+    expect(frame.html).toContain("A board");
+    expect(blocksOf("table").some((block) => block.html.includes("chess-board"))).toBe(false);
+  });
+
+  it("keeps video and audio players with clean https sources and captions", () => {
+    const [video, audio] = blocksOf("media");
+    expect(video.html).toContain('poster="https://upload.wikimedia.org/poster.jpg"');
+    expect(video.html).toContain('src="https://upload.wikimedia.org/clip.webm"');
+    expect(video.html).toContain("<figcaption>A clip</figcaption>");
+    expect(video.html).not.toContain("<track");
+    expect(video.html).not.toContain("mwe_player");
+    expect(audio.html).toContain('src="https://upload.wikimedia.org/theme.ogg"');
+    expect(audio.html).toContain("Played on piano");
+    expect(audio.html).toContain("The theme");
+  });
+
+  it("unwraps layout tables so their lists flow as blocks", () => {
+    const lists = blocksOf("list").map((block) => block.html);
+    expect(lists.some((html) => html.includes("/wiki/Alpha"))).toBe(true);
+    expect(lists.some((html) => html.includes("/wiki/Beta"))).toBe(true);
+  });
+
+  it("keeps sortable and collapsible tables for the reader to enhance", () => {
+    expect(blocksOf("table")[0].html).toContain('class="wikitable sortable mw-collapsible"');
+  });
+
+  it("turns navboxes and series sidebars into related topics", () => {
+    const [sidebar, navbox] = article.related;
+    expect(sidebar.title).toContain("Part of a series on");
+    expect(sidebar.title).toContain('href="/wiki/Topics"');
+    expect(sidebar.groups).toEqual([{ label: "Basics", html: expect.stringContaining("/wiki/Basic_topic") }]);
+
+    expect(navbox.title).toContain('href="/wiki/Topic"');
+    expect(navbox.title).not.toContain("Template:Topic"); // the v·t·e bar is gone
+    expect(navbox.groups.map((group) => group.label)).toEqual(["People", "Works › Books", ""]);
+    // icons stay, pictures go
+    expect(navbox.groups[0].html).toContain("inline-icon");
+    expect(navbox.groups[2].html).not.toContain("Big.jpg");
+    // and the boxes themselves aren't in the article
+    expect(allHtml(article)).not.toContain("navbox");
+  });
+
+  it("reads sidebars with portrait titles and collapsible groups, without their colours", () => {
+    const sidebar = parse(
+      `<div class="mw-parser-output"><p>Text.</p><table class="sidebar"><tbody>
+        <tr><td><table><tbody><tr><td class="sidebar-person-title" style="background-color:#002466;color:#FFF"><div>This article is part of <br>a series about</div><a class="mw-selflink">Someone</a></td></tr></tbody></table></td></tr>
+        <tr><td class="sidebar-content"><hr><div class="hidden-begin mw-collapsible"><div class="hidden-title">Personal</div><div class="hidden-content" style="text-align:center"><ul><li><a href="/wiki/Family">Family</a></li></ul></div></div>
+        <div class="hidden-begin mw-collapsible"><div class="hidden-title">Career</div><div class="hidden-content"><ul><li><a href="/wiki/Job">Job</a></li></ul></div></div></td></tr>
+      </tbody></table></div>`,
+      "Someone",
+    ).related[0];
+    expect(sidebar.title).toBe("This article is part of a series about Someone");
+    expect(sidebar.groups.map((group) => group.label)).toEqual(["Personal", "Career"]);
+    expect(sidebar.groups[0].html).not.toContain("style=");
+  });
+
+  it("splits wrapper navboxes into their navboxes and skips authority control", () => {
+    const wrapped = parse(
+      `<div class="mw-parser-output"><p>Text.</p>
+      <div class="navbox"><table><tbody><tr><th class="navbox-title">Articles related to X</th></tr><tr><td class="navbox-list">
+        <div class="navbox"><table><tbody><tr><th class="navbox-title">First</th></tr><tr><td class="navbox-list"><a href="/wiki/A">A</a></td></tr></tbody></table></div>
+        <div class="navbox"><table><tbody><tr><th class="navbox-title">Second</th></tr><tr><td class="navbox-list"><a href="/wiki/B">B</a></td></tr></tbody></table></div>
+      </td></tr></tbody></table></div>
+      <div class="navbox authority-control"><table><tbody><tr><th class="navbox-title">Authority control</th></tr><tr><td class="navbox-list"><a href="https://viaf.org/1">VIAF</a></td></tr></tbody></table></div>
+      </div>`,
+      "X",
+    );
+    expect(wrapped.related.map((topic) => topic.title)).toEqual(["First", "Second"]);
+  });
+
+  it("reads multiple-image sets that contain a player item by item", () => {
+    const mixed = parse(
+      `<div class="mw-parser-output"><div class="thumb tmulti"><div class="thumbinner"><div class="trow">
+        <div class="tsingle"><img alt="Still" src="https://upload.wikimedia.org/a/250px-Still.jpg" width="250" height="200" /><div class="thumbcaption">A still</div></div>
+        <div class="tsingle"><span><video controls=""><source src="https://upload.wikimedia.org/clip.webm" /></video></span><div class="thumbcaption">The clip</div></div>
+      </div></div></div></div>`,
+      "X",
+    );
+    expect(mixed.blocks.map((block) => (block.type === "html" ? block.kind : block.type))).toEqual(["images", "media"]);
+    expect(imageBlocks(mixed)[0].images[0].caption).toBe("A still");
+    expect(htmlBlocks(mixed).find((block) => block.kind === "media")?.html).toContain("<figcaption>The clip</figcaption>");
+  });
+
+  it("keeps TemplateStyles scoped to the article, minus restyled parts, once each", () => {
+    expect(article.styles).toContain(".mw-parser-output .quotebox{border:1px solid var(--border-color-base,#a2a9b1);padding:6px}");
+    expect(article.styles).toContain("@media screen{.mw-parser-output .chess-board td{width:24px}}");
+    expect(article.styles).not.toContain("infobox");
+    expect(article.styles).not.toContain("hatnote");
+    expect(article.styles).not.toContain("navbox");
+    expect(article.styles).not.toContain("global-leak");
+    // restyled names cover the classes built from them
+    expect(article.styles).not.toContain("legend-color");
+    expect(article.styles).not.toContain("border:1px solid red"); // deduplicated
+  });
+});
+
+describe("parseArticle image sizes", () => {
+  const article = parse(
+    `<div class="mw-parser-output">
+      <figure><img alt="Big" src="//upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Big.jpg/250px-Big.jpg" width="250" height="200" data-file-width="4000" /></figure>
+      <div class="thumb"><div class="thumbinner"><div><img alt="Twice" src="//upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Twice.jpg/250px-Twice.jpg" width="200" height="265" /></div><div><img alt="" src="//upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Twice.jpg/250px-Twice.jpg" width="200" height="265" /></div></div></div>
+    </div>`,
+    "X",
+  );
+  const images = imageBlocks(article).flatMap((block) => block.images);
+
+  it("records the chosen file's pixel width", () => {
+    expect(images[0].pixelWidth).toBe(960);
+  });
+
+  it("drops an image repeated straight after itself (image overlays)", () => {
+    expect(images.map((image) => image.alt)).toEqual(["Big", "Twice"]);
+  });
 });

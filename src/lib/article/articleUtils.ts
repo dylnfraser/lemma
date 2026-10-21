@@ -6,13 +6,16 @@ export const EXCLUDED_CONTENT_SELECTOR = [
   ".navbox",
   ".vertical-navbox",
   ".metadata",
+  // message boxes (cleanup and maintenance notices)
   ".ambox",
-  ".hatnote",
+  ".ombox",
+  ".tmbox",
+  ".imbox",
+  ".cmbox",
   ".mw-empty-elt",
   ".shortdescription",
   // Alternate renderings that Wikipedia hides with TemplateStyles (e.g. the static frame behind an animation).
   ".calculator-value-false",
-  "table:not(.wikitable)",
 ].join(", ");
 
 /**
@@ -110,6 +113,13 @@ export function getBestImageSrc(image: HTMLImageElement, targetWidth = IMAGE_TAR
   if (parts && (parts.isVector || fileWidth > targetWidth)) return resizeWikimediaThumb(src, targetWidth);
 
   return normalizeImageSrc(largestCandidate);
+}
+
+/** The width in pixels of the file at `src`: from a thumbnail's "NNNpx-" name, or the original's recorded width. */
+export function getPixelWidth(src: string, image: Element): number | undefined {
+  const thumb = src.match(/\/(\d+)px-[^/]*$/);
+  if (thumb) return Number(thumb[1]);
+  return Number(image.getAttribute("data-file-width")) || Number(image.getAttribute("width")) || undefined;
 }
 
 export function isArticleHeadingTag(tag: string): tag is ArticleHeadingTag {

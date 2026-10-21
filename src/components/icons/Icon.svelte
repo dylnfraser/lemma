@@ -7,7 +7,9 @@
         | "arrow-up-right"
         | "corner-down-left"
         | "chevron-right"
-        | "x";
+        | "x"
+        | "volume"
+        | "corner-down-right";
 </script>
 
 <script lang="ts">

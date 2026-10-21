@@ -1,10 +1,12 @@
 <script lang="ts">
     import { isBlockHiddenByCollapsed } from "$lib/article/articleNavigation";
     import { isFoldableHeadingLevel } from "$lib/article/articleUtils";
+    import { enhanceContent } from "$lib/article/enhanceContent";
     import type { ArticleBlock } from "$lib/article/types";
     import { isKeyboardClick, preventMouseFocus } from "$lib/focus";
     import { openLightbox } from "$lib/lightbox.svelte";
     import { fold } from "$lib/motion";
+    import { handlePronunciationClick, stopPronunciation } from "$lib/pronunciation";
     import ChevronIcon from "../icons/ChevronIcon.svelte";
     import ImageFan from "./ImageFan.svelte";
 
@@ -13,9 +15,29 @@
         collapsedSectionIds: ReadonlySet<string>;
         onToggleSection: (id: string) => void;
         onclick?: (event: MouseEvent) => void;
+        /** Wikipedia's TemplateStyles for this article (scoped to .mw-parser-output, which this body carries). */
+        styles?: string;
     }
 
-    let { blocks, collapsedSectionIds, onToggleSection, onclick }: Props = $props();
+    let { blocks, collapsedSectionIds, onToggleSection, onclick, styles = "" }: Props = $props();
+
+    /** Adds the article's template CSS to the page while it's shown. textContent keeps it inert as markup. */
+    function templateStyles(_node: HTMLElement, css: string) {
+        const element = document.createElement("style");
+        element.dataset.lemma = "template-styles";
+        element.textContent = css;
+        document.head.append(element);
+        return {
+            update: (next: string) => (element.textContent = next),
+            destroy: () => element.remove(),
+        };
+    }
+
+    function handleClick(event: MouseEvent) {
+        if (!handlePronunciationClick(event)) onclick?.(event);
+    }
+
+    $effect(() => stopPronunciation);
 
     // The opening paragraph is styled as a standfirst.
     let leadIndex = $derived(blocks.findIndex((block) => block.type === "html" && block.kind === "paragraph"));
@@ -46,12 +68,15 @@
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions (delegates clicks on in-article links) -->
-<div class="article-body" {onclick}>
+<div class="article-body mw-parser-output" onclick={handleClick} use:templateStyles={styles}>
     {#each blocks as block, i (i)}
-        {#if !isBlockHiddenByCollapsed(block, collapsedSectionIds)}
-            {#if block.type === "heading"}
-                {@const heading = block.heading}
-                {@const collapsed = collapsedSectionIds.has(heading.id)}
+        <!-- each element sits directly in its own {#if shown}: Svelte's (local) transitions only play when the
+             block immediately around an element is added or removed, so this is what lets folding animate -->
+        {@const shown = !isBlockHiddenByCollapsed(block, collapsedSectionIds)}
+        {#if block.type === "heading"}
+            {@const heading = block.heading}
+            {@const collapsed = collapsedSectionIds.has(heading.id)}
+            {#if shown}
                 <svelte:element this={heading.tag.toLowerCase()} id={heading.id} data-heading transition:fold>
                     {#if isFoldableHeadingLevel(heading.level)}
                         <button
@@ -75,17 +100,24 @@
                         {copyLabel(heading.id)}
                     </button>
                 </svelte:element>
-            {:else if block.type === "images" && block.images.length > 1}
+            {/if}
+        {:else if block.type === "images" && block.images.length > 1}
+            {#if shown}
                 <div class="block images" transition:fold>
-                    <ImageFan images={block.images} />
+                    <ImageFan images={block.images} caption={block.caption} />
                 </div>
-            {:else if block.type === "images"}
-                {@const image = block.images[0]}
+            {/if}
+        {:else if block.type === "images"}
+            {@const image = block.images[0]}
+            {@const caption = image.caption || block.caption}
+            {#if shown}
                 <div class="wiki-images" transition:fold>
                     <figure>
                         <button
                             type="button"
                             class="zoomable"
+                            style:--ar={image.width && image.height ? image.width / image.height : undefined}
+                            style:--max-w={image.pixelWidth ? `${image.pixelWidth}px` : undefined}
                             aria-label={image.alt ? `View full screen: ${image.alt}` : "View image full screen"}
                             onmousedown={preventMouseFocus}
                             onclick={(event) =>
@@ -102,16 +134,20 @@
                                 decoding="async"
                             />
                         </button>
-                        {#if image.caption}
-                            <figcaption>{@html image.caption}</figcaption>
+                        {#if caption}
+                            <figcaption>{@html caption}</figcaption>
                         {/if}
                     </figure>
                 </div>
-            {:else if block.kind === "table"}
-                <div class="table-scroll" transition:fold>{@html block.html}</div>
-            {:else}
-                <!-- spacing lives on this wrapper (not the HTML inside) so folding never jumps by a collapsed margin -->
-                <div class="block {block.kind}" class:lead={i === leadIndex} transition:fold>{@html block.html}</div>
+            {/if}
+        {:else if block.kind === "table"}
+            {#if shown}<div class="table-scroll" transition:fold use:enhanceContent>{@html block.html}</div>{/if}
+        {:else}
+            <!-- spacing lives on this wrapper (not the HTML inside) so folding never jumps by a collapsed margin -->
+            {#if shown}
+                <div class="block {block.kind}" class:lead={i === leadIndex} transition:fold use:enhanceContent>
+                    {@html block.html}
+                </div>
             {/if}
         {/if}
     {/each}
@@ -373,6 +409,275 @@
         }
     }
 
+    /* ---------- hatnotes ("Main article: …", "For other uses, see …") ---------- */
+
+    .block.hatnote {
+        position: relative;
+        margin: 0.25em 0 1.25em;
+        padding-left: 1.35em;
+        font-size: 0.88em;
+        line-height: 1.5;
+        color: var(--muted);
+
+        /* a small arrow marks it as a pointer elsewhere, not article text */
+        &::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: calc(0.5lh - 0.45em);
+            width: 0.9em;
+            height: 0.9em;
+            background-color: currentColor;
+            opacity: 0.7;
+            mask: var(--icon-corner-down-right) center / contain no-repeat;
+            -webkit-mask: var(--icon-corner-down-right) center / contain no-repeat;
+        }
+
+        :global(div.hatnote) {
+            font-style: normal;
+            padding: 0;
+            margin: 0;
+        }
+
+        :global(a) {
+            color: var(--text-color);
+        }
+    }
+
+    /* a heading's hatnote sits close under it */
+    .article-body :is(h2, h3, h4, h5, h6) + .block.hatnote {
+        margin-top: -0.1em;
+    }
+
+    /* ---------- audio, video and pronunciation ---------- */
+
+    .block.media {
+        margin: 1.75rem 0;
+
+        :global(figure) {
+            margin: 0;
+        }
+
+        :global(video) {
+            display: block;
+            width: 100%;
+            max-height: 70dvh;
+            border-radius: 10px;
+            background: black;
+            box-shadow: 0 10px 30px -14px var(--shadow-color);
+        }
+
+        :global(audio) {
+            display: block;
+            width: 100%;
+            height: 40px;
+            accent-color: var(--accent);
+        }
+
+        :global(figcaption) {
+            margin-top: 0.6rem;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        :global(.media-audio) {
+            padding: 0.75rem 0.85rem;
+            border: 1px solid var(--rule);
+            border-radius: 12px;
+            background: color-mix(in oklch, var(--secondary) 14%, var(--bg-color));
+        }
+
+        :global(.media-audio figcaption) {
+            margin-top: 0.5rem;
+            text-align: left;
+        }
+    }
+
+    .article-body :global(button.pronounce) {
+        display: inline-grid;
+        place-items: center;
+        width: 1.4em;
+        height: 1.4em;
+        margin: 0 0.1em;
+        padding: 0;
+        vertical-align: -0.3em;
+        border: 1px solid var(--rule);
+        border-radius: 50%;
+        background: var(--bg-color);
+        color: var(--muted);
+        cursor: pointer;
+        transition:
+            color var(--dur-fast),
+            border-color var(--dur-fast),
+            scale var(--dur-instant) var(--ease-out);
+
+        &::before {
+            content: "";
+            width: 0.8em;
+            height: 0.8em;
+            background-color: currentColor;
+            mask: var(--icon-volume) center / contain no-repeat;
+            -webkit-mask: var(--icon-volume) center / contain no-repeat;
+        }
+
+    }
+
+    .article-body :global(button.pronounce:hover),
+    .article-body :global(button.pronounce.playing) {
+        color: var(--accent);
+        border-color: color-mix(in oklch, var(--accent) 50%, var(--rule));
+    }
+
+    .article-body :global(button.pronounce.playing::before) {
+        animation: pronounce-pulse 0.9s ease-in-out infinite;
+    }
+
+    @keyframes pronounce-pulse {
+        50% {
+            opacity: 0.45;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .article-body :global(button.pronounce.playing::before) {
+            animation: none;
+        }
+    }
+
+    /* ---------- unwrapped layout tables, legacy frames ---------- */
+
+    /* columns of links (e.g. "See also" in two columns) flow as one list on narrow screens */
+    .article-body :global(.layout-columns) {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+        column-gap: 1.5rem;
+    }
+
+    .block.figure {
+        display: flex;
+        justify-content: center;
+        margin: 1.75rem 0;
+
+        :global(.thumbinner) {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        :global(.thumbcaption) {
+            max-width: 52ch;
+            margin-top: 0.6rem;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            text-align: center;
+            color: var(--muted);
+        }
+    }
+
+    /* ---------- sortable and collapsible tables ---------- */
+
+    .article-body :global(.sort-button) {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3em;
+        padding: 0;
+        border: none;
+        background: none;
+        font: inherit;
+        font-weight: inherit;
+        text-align: inherit;
+        color: inherit;
+        cursor: pointer;
+
+        /* a faint up/down pair until the column is sorted, then one direction in the accent colour */
+        &::after {
+            content: "";
+            flex: none;
+            width: 0.75em;
+            height: 0.75em;
+            background-color: currentColor;
+            opacity: 0.35;
+            mask: var(--icon-chevron-right) center / contain no-repeat;
+            -webkit-mask: var(--icon-chevron-right) center / contain no-repeat;
+            rotate: 90deg;
+            transition:
+                rotate var(--dur-fast) var(--ease-out),
+                opacity var(--dur-fast);
+        }
+
+        &:hover::after {
+            opacity: 0.7;
+        }
+    }
+
+    .article-body :global(th[aria-sort="ascending"] .sort-button::after) {
+        rotate: -90deg;
+        opacity: 1;
+        background-color: var(--accent);
+    }
+
+    .article-body :global(th[aria-sort="descending"] .sort-button::after) {
+        rotate: 90deg;
+        opacity: 1;
+        background-color: var(--accent);
+    }
+
+    .article-body :global(.collapse-toggle) {
+        float: right;
+        margin-left: 0.75em;
+        padding: 0.05em 0.6em;
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        background: var(--bg-color);
+        font: inherit;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.6;
+        color: var(--muted);
+        cursor: pointer;
+        transition:
+            color var(--dur-fast),
+            border-color var(--dur-fast);
+
+        &:hover {
+            color: var(--text-color);
+            border-color: var(--secondary);
+        }
+    }
+
+    /* ---------- lists inside image captions ---------- */
+
+    /*
+     * Captions are centred, but a list in one (e.g. a map's numbered key) reads badly centred line by line: its
+     * numbers stay at the left while each label drifts. Centre the list as one block instead, text left-aligned
+     * beside its numbers. (Covers standalone images and the fan's grid, which both render inside .article-body.)
+     */
+    .article-body :global(figcaption :is(ul, ol)) {
+        margin: 0.3em 0 0;
+        padding-left: 1.5em;
+        text-align: left;
+    }
+
+    /* top-level lists shrink-wrap and sit centred; Wikipedia's inline left margin would pin them left */
+    .article-body :global(figcaption :is(ul, ol):not(li *)) {
+        display: table;
+        margin-inline: auto !important;
+    }
+
+    .article-body :global(figcaption li) {
+        margin: 0.1em 0 0;
+        padding-left: 0.15em;
+    }
+
+    .article-body :global(figcaption li :is(ul, ol)) {
+        margin-top: 0.1em;
+        padding-left: 1.3em;
+    }
+
     /* ---------- small icons and portal links ---------- */
 
     /* flags, portal and sister-project logos inside text (tagged by the parser) */
@@ -627,6 +932,26 @@
     }
 
     /* ---------- figures ---------- */
+
+    /*
+     * Images take their final size before they load (from Wikipedia's width/height), so the page never jumps as they
+     * arrive: as wide as fits, no taller than the height cap, never stretched past the file's own pixels. The size is
+     * set on the image's button (the image fills it), since a percentage width on the image itself would depend on
+     * the button's, which depends on the image.
+     */
+    .wiki-images figure:has(> .zoomable[style*="--ar"]) {
+        width: 100%;
+    }
+
+    .wiki-images .zoomable[style*="--ar"] {
+        width: min(100%, var(--max-w, 100%), calc(min(28rem, 65dvh) * var(--ar)));
+
+        img {
+            width: 100%;
+            height: auto;
+            aspect-ratio: var(--ar);
+        }
+    }
 
     .wiki-images {
         display: flex;

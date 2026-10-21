@@ -2,6 +2,7 @@
     import { MediaQuery } from "svelte/reactivity";
     import type { Infobox } from "$lib/article/types";
     import { openLightboxFromClick, preventMouseFocusOnZoomImages } from "$lib/lightbox.svelte";
+    import { handlePronunciationClick } from "$lib/pronunciation";
     import { DURATION, fold } from "$lib/motion";
     import Icon from "../icons/Icon.svelte";
 
@@ -33,7 +34,7 @@
     class:inline={!wide.current}
     aria-label="Quick facts"
     onmousedown={preventMouseFocusOnZoomImages}
-    onclick={(event) => openLightboxFromClick(event, infobox.images)}
+    onclick={(event) => handlePronunciationClick(event) || openLightboxFromClick(event, infobox.images)}
 >
     {#if infobox.title}
         <div class="title">{@html infobox.title}</div>
@@ -41,7 +42,7 @@
 
     <div class="rows">
         {#each rows as row, i (i)}
-            <div class="row {row.kind}" transition:fold={{ duration: animateRows ? DURATION.base : 0 }}>
+            <div class="row {row.kind}" transition:fold={{ duration: animateRows ? DURATION.base : 0 }} class:sub={row.kind === "data" && row.sub}>
                 {#if row.kind === "data"}
                     <div class="label">{@html row.label}</div>
                     <div class="value">{@html row.html}</div>
@@ -133,16 +134,52 @@
     }
 
     .row {
-        padding: 0.5rem 0;
-        border-top: 1px solid color-mix(in oklch, var(--rule) 60%, transparent);
+        padding: 0.32rem 0;
+        border-top: 1px solid color-mix(in oklch, var(--rule) 45%, transparent);
     }
 
     .row.data {
         display: grid;
         /* wide enough for labels like "Official languages" on one line */
         grid-template-columns: minmax(6.75rem, 38%) minmax(0, 1fr);
-        gap: 0.9rem;
+        gap: 0.75rem;
         align-items: baseline;
+        line-height: 1.4;
+    }
+
+    /* Details of the row above ("President" under "Government", the parts of a population breakdown): tucked under
+       it as one group, no dividers, a small dot instead of Wikipedia's typed bullet. */
+    .row.sub {
+        padding: 0.06rem 0;
+        border-top: none;
+
+        .label {
+            position: relative;
+            padding-left: 0.75rem;
+            font-weight: 500;
+
+            &::before {
+                content: "";
+                position: absolute;
+                left: 0.2rem;
+                top: calc(0.5lh - 1.5px);
+                width: 3px;
+                height: 3px;
+                border-radius: 50%;
+                background: currentColor;
+                opacity: 0.6;
+            }
+        }
+    }
+
+    /* the group's last sub-row leaves a little air before the next divider */
+    .row.sub:has(+ .row:not(.sub)) {
+        padding-bottom: 0.3rem;
+    }
+
+    /* rows straight after a section heading start the section; the heading already separates it */
+    .row.header + .row {
+        border-top: none;
     }
 
     .label {
@@ -174,8 +211,14 @@
     }
 
     .row.header {
-        margin-top: 0.6rem;
-        padding-top: 0.6rem;
+        margin-top: 0.35rem;
+        padding: 0.5rem 0 0.15rem;
+
+        /* keep a heading's citation or qualifier on its line ("Racial makeup (2022)³") */
+        :global(div) {
+            display: inline;
+        }
+
         border-top-color: var(--rule);
         font-size: 0.7rem;
         font-weight: 700;
@@ -269,9 +312,10 @@
             border-radius: 6px;
         }
 
+        /* flags, trend arrows and similar icons stay at text height */
         :global(img.inline-icon) {
             width: auto;
-            max-height: 1.3em;
+            max-height: 1em;
             vertical-align: -0.25em;
             margin-inline-end: 0.3em;
         }
@@ -322,6 +366,43 @@
 
         :global(details.infobox-collapsible[open] summary) {
             margin-bottom: 0.25rem;
+        }
+
+        :global(audio) {
+            display: block;
+            width: 100%;
+            height: 36px;
+            margin: 0.35rem 0 0.15rem;
+            accent-color: var(--accent);
+        }
+
+        :global(button.pronounce) {
+            display: inline-grid;
+            place-items: center;
+            width: 1.4em;
+            height: 1.4em;
+            margin: 0 0.1em;
+            padding: 0;
+            vertical-align: -0.3em;
+            border: 1px solid var(--rule);
+            border-radius: 50%;
+            background: var(--bg-color);
+            color: var(--muted);
+            cursor: pointer;
+        }
+
+        :global(button.pronounce::before) {
+            content: "";
+            width: 0.8em;
+            height: 0.8em;
+            background-color: currentColor;
+            mask: var(--icon-volume) center / contain no-repeat;
+            -webkit-mask: var(--icon-volume) center / contain no-repeat;
+        }
+
+        :global(button.pronounce:hover),
+        :global(button.pronounce.playing) {
+            color: var(--accent);
         }
 
         /* app.css sizes every <p> at 1rem; inside the card they should match it */

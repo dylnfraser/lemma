@@ -8,9 +8,11 @@
 
     interface Props {
         images: ArticleImage[];
+        /** A caption for the whole set ({{multiple image}}), shown instead of the front image's own caption. */
+        caption?: string;
     }
 
-    let { images }: Props = $props();
+    let { images, caption = "" }: Props = $props();
 
     // Cards beyond this are hidden behind the stack; the badge still counts them.
     const MAX_FANNED = 4;
@@ -219,6 +221,8 @@
                             src={image.src}
                             width={image.width}
                             height={image.height}
+                            style:--ar={image.width && image.height ? image.width / image.height : undefined}
+                            style:--max-w={image.pixelWidth ? `${image.pixelWidth}px` : undefined}
                             class:invert-dark={image.invertInDarkMode}
                             class:light-backing={image.lightBacking}
                             decoding="async"
@@ -230,6 +234,9 @@
                 </figure>
             {/each}
         </div>
+        {#if caption}
+            <p class="set-caption">{@html caption}</p>
+        {/if}
     </div>
 {:else}
     <figure class="fan-figure">
@@ -270,8 +277,8 @@
                 {images.length}
             </span>
         </button>
-        {#if images[0].caption}
-            <figcaption>{@html images[0].caption}</figcaption>
+        {#if caption || images[0].caption}
+            <figcaption>{@html caption || images[0].caption}</figcaption>
         {/if}
     </figure>
 {/if}
@@ -428,5 +435,16 @@
         .card {
             transition: none;
         }
+    }
+
+    /* the caption for the whole set, under the expanded grid */
+    .set-caption {
+        max-width: 52ch;
+        margin: 1rem auto 0;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        text-align: center;
+        text-wrap: pretty;
+        color: var(--muted);
     }
 </style>

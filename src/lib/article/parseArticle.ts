@@ -1,6 +1,16 @@
 import DOMPurify from "dompurify";
 import type { WikipediaPageContent } from "$lib/api/wikipedia";
+import {
+  convertPronunciations,
+  extractRelatedTopics,
+  tidyPlayers,
+  mediaContainer,
+  mediaHtml,
+  normalizeMediaUrls,
+  unwrapLayoutTables,
+} from "./articleExtras";
 import { rewriteArticleLink } from "./articleLinks";
+import { extractTemplateStyles } from "./templateStyles";
 import { parseInfobox } from "./parseInfobox";
 import {
   countWords,
@@ -9,6 +19,7 @@ import {
   getBestImageSrc,
   getHeadingLevel,
   getImageFileName,
+  getPixelWidth,
   isArticleHeadingTag,
   isBlockedArticleImage,
   isFoldableHeadingLevel,
@@ -24,7 +35,8 @@ import type {
 } from "./types";
 
 const WORDS_PER_MINUTE = 230;
-const BLOCK_SELECTOR = "p, h1, h2, h3, h4, h5, h6, ul, ol, dl, blockquote, table, img";
+const BLOCK_SELECTOR =
+  "p, h1, h2, h3, h4, h5, h6, ul, ol, dl, blockquote, table, img, audio, video, div.hatnote, div.tmulti, div.thumb";
 // Elements that are rendered as part of a larger block rather than on their own.
 const INLINE_CONTAINER_SELECTOR = "p, li, dd, dt, blockquote, table, figcaption";
 const CITATION_SELECTOR = "sup.reference, .mw-cite-backlink";
@@ -54,6 +66,30 @@ function removeClutter(root: HTMLElement) {
   contentRoot?.querySelectorAll(":scope > .plainlist").forEach((element) => element.remove());
 }
 
+/**
+ * Wraps each run of consecutive {{legend}} entries (colour swatch + label) in a `.legend-group`, so a map key can be laid
+ * out as one block: rows left-aligned with their swatches in a column, the block centred under its image.
+ * Only whitespace may separate the entries of a run; anything else ends it, so no text is reordered.
+ */
+function groupLegends(root: HTMLElement) {
+  for (const legend of root.querySelectorAll(".legend")) {
+    if (legend.parentElement?.classList.contains("legend-group")) continue;
+
+    const group = root.ownerDocument.createElement("div");
+    group.className = "legend-group";
+    legend.before(group);
+
+    let node: ChildNode | null = legend;
+    while (node) {
+      const next: ChildNode | null = node.nextSibling;
+      if (node instanceof Element && node.classList.contains("legend")) group.append(node);
+      else if (node.nodeType === Node.TEXT_NODE && !node.textContent?.trim()) node.remove();
+      else break;
+      node = next;
+    }
+  }
+}
+
 /** Tags flags, portal and sister-project logos so they can be sized consistently inside text and lists. */
 function markInlineIcons(root: HTMLElement) {
   root.querySelectorAll("img").forEach((image) => {
@@ -80,7 +116,12 @@ function toArticleImage(image: HTMLImageElement): ArticleImage | null {
   if (!src || isBlockedArticleImage(src)) return null;
 
   const figure = image.closest("figure");
-  const caption = figure?.querySelector("figcaption")?.innerHTML.trim() ?? "";
+  // modern figures, {{multiple image}} cells, and legacy div.thumb frames each keep their caption differently
+  const captionElement =
+    figure?.querySelector("figcaption") ??
+    image.closest(".tsingle")?.querySelector(".thumbcaption") ??
+    image.closest(".thumbinner")?.querySelector(":scope > .thumbcaption");
+  const caption = captionElement?.innerHTML.trim() ?? "";
   const width = Number(image.getAttribute("width")) || undefined;
   const height = Number(image.getAttribute("height")) || undefined;
   if (Math.max(width ?? Infinity, height ?? Infinity) < MIN_ARTICLE_IMAGE_SIZE) return null;
@@ -92,6 +133,7 @@ function toArticleImage(image: HTMLImageElement): ArticleImage | null {
     caption,
     width,
     height,
+    pixelWidth: getPixelWidth(src.split("?")[0], image),
     invertInDarkMode,
     lightBacking: !invertInDarkMode && mayHaveTransparency(src),
     fileName: getImageFileName(src),
@@ -111,6 +153,8 @@ function getHtmlBlockKind(element: Element): HtmlBlockKind | null {
       return "table";
     case "BLOCKQUOTE":
       return "quote";
+    case "DIV":
+      return element.matches(".hatnote") && element.textContent?.trim() ? "hatnote" : null;
     default:
       return null;
   }
@@ -133,6 +177,8 @@ function uniqueId(base: string, used: Set<string>): string {
 }
 
 export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
+  // collected from the raw HTML: the sanitizer removes <style>
+  const styles = extractTemplateStyles(pageContent.text);
   const document = parseDocument(pageContent.text);
   const root = document.body;
 
@@ -145,14 +191,23 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
   let infobox = null;
   if (infoboxTable) {
     infoboxTable.querySelectorAll("a").forEach(rewriteArticleLink);
+    normalizeMediaUrls(infoboxTable);
+    convertPronunciations(infoboxTable);
+    tidyPlayers(infoboxTable);
     markInlineIcons(infoboxTable);
+    groupLegends(infoboxTable);
     markLightBackings(infoboxTable);
     infobox = parseInfobox(infoboxTable, toArticleImage);
   }
 
+  const related = extractRelatedTopics(root);
   removeClutter(root);
+  unwrapLayoutTables(root);
   root.querySelectorAll("a").forEach(rewriteArticleLink);
+  normalizeMediaUrls(root);
+  convertPronunciations(root);
   markInlineIcons(root);
+  groupLegends(root);
   markLightBackings(root);
 
   // Galleries become image blocks, so they stack into a fan like any other image group. Each photo's caption is its
@@ -167,8 +222,25 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
     });
     if (images.length > 0) galleryImages.set(gallery, images);
   });
-  // A gallery is its own group: images that follow it start a new one rather than joining its fan.
+  // {{multiple image}}: a fixed group, each image with its own caption, plus an optional caption for the whole set.
+  const multiImages = new Map<Element, { images: ArticleImage[]; caption: string }>();
+  root.querySelectorAll("div.tmulti").forEach((set) => {
+    // a set mixing pictures with a player is read item by item, so the player gets its own block
+    if (set.querySelector("audio, video")) return;
+    const images = [...set.querySelectorAll("img")].flatMap((element) => toArticleImage(element) ?? []);
+    const shared = [...set.querySelectorAll(".trow > .thumbcaption, .theader")]
+      .filter((caption) => !caption.closest(".tsingle"))
+      .map((caption) => caption.innerHTML.trim())
+      .filter(Boolean)
+      .join(" ");
+    if (images.length > 0) multiImages.set(set, { images, caption: shared });
+  });
+
+  // A gallery or multiple-image set is its own group: images that follow it start a new one rather than joining it.
   const galleryBlocks = new Set<ImagesBlock>();
+  // Elements already turned into a block whole; anything inside them is skipped.
+  const consumed: Element[] = [];
+  const insideConsumed = (element: Element) => consumed.some((container) => container !== element && container.contains(element));
 
   const blocks: ArticleBlock[] = [];
   const headings: ArticleHeading[] = [];
@@ -187,8 +259,38 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
   }
 
   for (const element of root.querySelectorAll(BLOCK_SELECTOR)) {
-    if (!isStandaloneBlock(element)) continue;
+    if (insideConsumed(element)) continue;
     const tag = element.tagName;
+
+    // players can sit inside a paragraph-like wrapper, so they're picked up before the standalone check
+    if (tag === "AUDIO" || tag === "VIDEO") {
+      if (element.closest(EXCLUDED_CONTENT_SELECTOR) || element.closest("table, li")) continue;
+      const { container, caption } = mediaContainer(element);
+      consumed.push(container);
+      registerAnchors(container, blocks.length);
+      blocks.push({ type: "html", kind: "media", html: mediaHtml(element, caption), sectionIds: sectionIds() });
+      continue;
+    }
+
+    if (!isStandaloneBlock(element)) continue;
+
+    if (multiImages.has(element)) {
+      consumed.push(element);
+      const { images, caption } = multiImages.get(element)!;
+      const block: ImagesBlock = { type: "images", images, sectionIds: sectionIds(), ...(caption && { caption }) };
+      galleryBlocks.add(block);
+      blocks.push(block);
+      continue;
+    }
+
+    if (tag === "DIV" && element.matches(".thumb")) {
+      // a legacy frame around something other than a picture (a chess board, a table): keep the frame whole
+      if (element.matches(".tmulti") || !element.querySelector("table")) continue;
+      consumed.push(element);
+      registerAnchors(element, blocks.length);
+      blocks.push({ type: "html", kind: "figure", html: element.outerHTML, sectionIds: sectionIds() });
+      continue;
+    }
 
     if (tag === "IMG") {
       const image = toArticleImage(element as HTMLImageElement);
@@ -196,6 +298,8 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
 
       const previous = blocks.at(-1);
       if (previous?.type === "images" && !galleryBlocks.has(previous)) {
+        // {{Image overlay}} and similar draw the same picture twice, one on top of the other
+        if (previous.images.at(-1)?.src === image.src) continue;
         previous.images.push(image);
       } else {
         blocks.push({ type: "images", images: [image], sectionIds: sectionIds() } satisfies ImagesBlock);
@@ -241,7 +345,7 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
 
       if (kind !== "references") {
         links += countLinks(element);
-        if (kind !== "table") words += countWords(element.textContent ?? "");
+        if (kind !== "table" && kind !== "hatnote") words += countWords(element.textContent ?? "");
       }
     }
   }
@@ -254,5 +358,7 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
     headings,
     stats: { words, links, readingMinutes: Math.max(1, Math.round(words / WORDS_PER_MINUTE)) },
     anchors,
+    related,
+    styles,
   };
 }
