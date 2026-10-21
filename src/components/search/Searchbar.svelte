@@ -125,7 +125,7 @@
 
 <div class="search">
     <div class="searchbar">
-        <span class="search-icon"><SearchIcon /></span>
+        <span class="search-icon" class:loading={isLoading}><SearchIcon /></span>
         <input
             bind:this={inputBox}
             bind:value={query}
@@ -199,16 +199,65 @@
         border-radius: 12px;
         box-shadow: 0 12px 32px var(--shadow-color);
         z-index: 2;
+        transition:
+            border-color var(--dur-fast) ease,
+            box-shadow var(--dur-base) var(--ease-out);
 
         &:focus-within {
             border-color: color-mix(in oklch, var(--accent) 45%, var(--secondary));
+            box-shadow:
+                0 12px 32px var(--shadow-color),
+                0 0 0 4px color-mix(in oklch, var(--accent) 12%, transparent);
         }
     }
 
     .search-icon {
+        position: relative;
         display: grid;
         flex: none;
         opacity: 0.55;
+
+        :global(svg) {
+            transition: opacity var(--dur-fast) ease;
+        }
+
+        /* spinner that takes the icon's place while a search is in flight */
+        &::after {
+            content: "";
+            position: absolute;
+            inset: 5px;
+            border: 1.5px solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity var(--dur-fast) ease;
+            animation: spin 0.7s linear infinite;
+
+            @media (prefers-reduced-motion: reduce) {
+                animation: none;
+                border-style: dotted;
+                border-right-color: currentColor;
+            }
+        }
+
+        /* only for searches slow enough to notice: quick responses never swap the icon */
+        &.loading {
+            :global(svg) {
+                opacity: 0;
+                transition-delay: 150ms;
+            }
+
+            &::after {
+                opacity: 1;
+                transition-delay: 150ms;
+            }
+        }
+    }
+
+    @keyframes spin {
+        to {
+            rotate: 1turn;
+        }
     }
 
     input {
@@ -250,10 +299,8 @@
 
         &.open {
             display: grid;
-            animation: results-appear 0.1s ease-in both;
-            @media (prefers-reduced-motion: reduce) {
-                animation: none;
-            }
+            transform-origin: 50% 0;
+            animation: results-appear var(--dur-base) var(--ease-out) both;
         }
     }
 
@@ -274,15 +321,11 @@
         opacity: 1;
     }
 
+    /* drops open from the search bar's edge */
     @keyframes results-appear {
         from {
             opacity: 0;
-            filter: blur(2px);
-        }
-
-        to {
-            opacity: 1;
-            filter: none;
+            transform: translateY(-6px) scale(0.985);
         }
     }
 </style>

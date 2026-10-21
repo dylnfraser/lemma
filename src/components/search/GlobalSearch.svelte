@@ -1,7 +1,7 @@
 <script lang="ts">
     import { afterNavigate } from "$app/navigation";
-    import { fade } from "svelte/transition";
-    import { prefersReducedMotion } from "svelte/motion";
+    import { fade, scale } from "svelte/transition";
+    import { DURATION, cubicOut, motion } from "$lib/motion";
     import { closeSearch, isSearchShortcut, searchOverlay, toggleSearch } from "$lib/search/searchOverlay.svelte";
     import Searchbar from "./Searchbar.svelte";
 
@@ -46,9 +46,15 @@
     <div
         class="overlay"
         onclick={handleBackdropClick}
-        transition:fade={{ duration: prefersReducedMotion.current ? 0 : 150 }}
+        transition:fade={{ duration: motion(DURATION.fast) }}
     >
-        <div class="dialog" role="dialog" aria-modal="true" aria-label="Search Wikipedia">
+        <div
+            class="dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Search Wikipedia"
+            transition:scale|global={{ start: 0.97, opacity: 0, duration: motion(DURATION.base), easing: cubicOut }}
+        >
             <Searchbar autofocus initialQuery={searchOverlay.query} onDismiss={closeSearch} />
         </div>
     </div>

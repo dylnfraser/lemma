@@ -59,6 +59,7 @@
         text-decoration: none;
         border-radius: 7px;
         overflow: hidden;
+        transition: background-color var(--dur-instant) ease;
     }
 
     .res.active {
