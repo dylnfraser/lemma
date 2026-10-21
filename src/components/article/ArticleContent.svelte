@@ -2,6 +2,8 @@
     import { isBlockHiddenByCollapsed } from "$lib/article/articleNavigation";
     import { isFoldableHeadingLevel } from "$lib/article/articleUtils";
     import type { ArticleBlock } from "$lib/article/types";
+    import { isKeyboardClick, preventMouseFocus } from "$lib/focus";
+    import { openLightbox } from "$lib/lightbox.svelte";
     import { fold } from "$lib/motion";
     import ChevronIcon from "../icons/ChevronIcon.svelte";
     import ImageFan from "./ImageFan.svelte";
@@ -81,15 +83,24 @@
                 {@const image = block.images[0]}
                 <div class="wiki-images" transition:fold>
                     <figure>
-                        <img
-                            alt={image.alt}
-                            src={image.src}
-                            width={image.width}
-                            height={image.height}
-                            class:invert-dark={image.invertInDarkMode}
-                            loading="lazy"
-                            decoding="async"
-                        />
+                        <button
+                            type="button"
+                            class="zoomable"
+                            aria-label={image.alt ? `View full screen: ${image.alt}` : "View image full screen"}
+                            onmousedown={preventMouseFocus}
+                            onclick={(event) =>
+                                openLightbox([image], 0, [event.currentTarget.querySelector("img")], isKeyboardClick(event))}
+                        >
+                            <img
+                                alt={image.alt}
+                                src={image.src}
+                                width={image.width}
+                                height={image.height}
+                                class:invert-dark={image.invertInDarkMode}
+                                loading="lazy"
+                                decoding="async"
+                            />
+                        </button>
                         {#if image.caption}
                             <figcaption>{@html image.caption}</figcaption>
                         {/if}
@@ -129,11 +140,6 @@
             scroll-margin-top: calc(var(--nav-height) + 1.5rem);
         }
 
-        /* jumping to a citation or section briefly lights it up, then fades */
-        :global(.jump-flash) {
-            border-radius: 4px;
-            animation: jump-flash 1.6s var(--ease-out);
-        }
 
         :global(p) {
             margin: 0 0 1.15em;
@@ -361,6 +367,89 @@
         }
     }
 
+    /* ---------- small icons and portal links ---------- */
+
+    /* flags, portal and sister-project logos inside text (tagged by the parser) */
+    .article-body :global(img.inline-icon) {
+        display: inline-block;
+        width: auto;
+        max-height: 1.35em;
+        vertical-align: -0.25em;
+        margin-inline-end: 0.35em;
+        border-radius: 2px;
+    }
+
+    /* "See also" portal box: a row of chips, each icon in the same-sized slot */
+    .article-body :global(ul.portalbox) {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0;
+        list-style: none;
+    }
+
+    .article-body :global(li.portalbox-entry) {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        margin: 0;
+        padding: 0.35rem 0.9rem 0.35rem 0.45rem;
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        background: color-mix(in oklch, var(--secondary) 18%, transparent);
+        font-size: 0.9em;
+        line-height: 1.3;
+        transition:
+            border-color var(--dur-fast),
+            background-color var(--dur-fast);
+
+        &:hover {
+            border-color: color-mix(in oklch, var(--accent) 45%, var(--rule));
+            background: color-mix(in oklch, var(--accent) 8%, transparent);
+        }
+
+        &:has(a:focus-visible) {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+    }
+
+    .article-body :global(.portalbox-image) {
+        display: grid;
+        place-items: center;
+        flex: none;
+        width: 1.6rem;
+        height: 1.6rem;
+
+        :global(img) {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            margin: 0;
+            vertical-align: 0;
+            object-fit: contain;
+        }
+    }
+
+    .article-body :global(.portalbox-link a) {
+        font-weight: 550;
+        text-decoration: none;
+
+        /* the whole chip is the link */
+        &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+        }
+
+        &:focus-visible {
+            outline: none;
+        }
+    }
+
     /* ---------- block spacing ---------- */
 
     .block {
@@ -503,19 +592,6 @@
         }
     }
 
-    @keyframes -global-jump-flash {
-        from,
-        15% {
-            background-color: color-mix(in oklch, var(--accent) 22%, transparent);
-            box-shadow: 0 0 0 4px color-mix(in oklch, var(--accent) 22%, transparent);
-        }
-
-        to {
-            background-color: transparent;
-            box-shadow: 0 0 0 4px transparent;
-        }
-    }
-
     @keyframes copy-confirm {
         from {
             opacity: 0;
@@ -566,6 +642,17 @@
                 text-decoration-color: color-mix(in oklch, currentColor 35%, transparent);
             }
         }
+    }
+
+    .zoomable {
+        display: block;
+        max-width: 100%;
+        margin-inline: auto;
+        padding: 0;
+        border: none;
+        border-radius: 8px;
+        background: none;
+        cursor: zoom-in;
     }
 
     /* ---------- tables ---------- */

@@ -1,6 +1,7 @@
 import DOMPurify from "dompurify";
 import type { WikipediaPageContent } from "$lib/api/wikipedia";
 import { rewriteArticleLink } from "./articleLinks";
+import { parseInfobox } from "./parseInfobox";
 import {
   countWords,
   EXCLUDED_CONTENT_SELECTOR,
@@ -48,6 +49,14 @@ function removeClutter(root: HTMLElement) {
 
   const contentRoot = root.firstElementChild;
   contentRoot?.querySelectorAll(":scope > .plainlist").forEach((element) => element.remove());
+}
+
+/** Tags flags, portal and sister-project logos so they can be sized consistently inside text and lists. */
+function markInlineIcons(root: HTMLElement) {
+  root.querySelectorAll("img").forEach((image) => {
+    const size = Math.max(Number(image.getAttribute("width")), Number(image.getAttribute("height")));
+    if (size > 0 && size < MIN_ARTICLE_IMAGE_SIZE) image.classList.add("inline-icon");
+  });
 }
 
 function toArticleImage(image: HTMLImageElement): ArticleImage | null {
@@ -105,8 +114,20 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
 
   // Wikipedia's one-line summary ("English computer scientist (1912–1954)") is hidden markup; keep it as a subtitle.
   const description = root.querySelector(".shortdescription")?.textContent?.trim() ?? "";
+
+  // The infobox is shown beside the article rather than inline, so lift it out before clutter removal discards it.
+  const infoboxTable = root.querySelector<HTMLElement>("table.infobox");
+  infoboxTable?.remove();
+  let infobox = null;
+  if (infoboxTable) {
+    infoboxTable.querySelectorAll("a").forEach(rewriteArticleLink);
+    markInlineIcons(infoboxTable);
+    infobox = parseInfobox(infoboxTable, toArticleImage);
+  }
+
   removeClutter(root);
   root.querySelectorAll("a").forEach(rewriteArticleLink);
+  markInlineIcons(root);
 
   const blocks: ArticleBlock[] = [];
   const headings: ArticleHeading[] = [];
@@ -182,6 +203,7 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
   return {
     title: pageContent.title,
     description,
+    infobox,
     blocks,
     headings,
     stats: { words, links, readingMinutes: Math.max(1, Math.round(words / WORDS_PER_MINUTE)) },

@@ -48,6 +48,22 @@ export interface HtmlBlock extends BaseBlock {
 
 export type ArticleBlock = HeadingBlock | ImagesBlock | HtmlBlock;
 
+export type InfoboxRow =
+  /** Section heading inside the infobox ("Government", "Area"). */
+  | { kind: "header"; html: string }
+  /** A label/value pair. */
+  | { kind: "data"; label: string; html: string }
+  /** A full-width row: images, maps, captions, subheaders. */
+  | { kind: "full"; html: string };
+
+export interface Infobox {
+  /** Sanitized title HTML (may include a native-language name). */
+  title: string;
+  rows: InfoboxRow[];
+  /** Images in the infobox, in order, for the full-screen viewer; their <img> tags carry data-lightbox-index. */
+  images: ArticleImage[];
+}
+
 export interface ArticleStats {
   words: number;
   links: number;
@@ -58,6 +74,8 @@ export interface ParsedArticle {
   title: string;
   /** Wikipedia's short description, or an empty string. */
   description: string;
+  /** The article's infobox, when it has one. */
+  infobox: Infobox | null;
   blocks: ArticleBlock[];
   headings: ArticleHeading[];
   stats: ArticleStats;

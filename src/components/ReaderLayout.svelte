@@ -59,10 +59,16 @@
 
 <style>
     .reader {
+        --gap: clamp(1.5rem, 4vw, 3.5rem);
+        --pad: clamp(1.25rem, 4vw, 2rem);
+        --measure-px: var(--measure);
+        /* width of each side column, for content placed in the margins (e.g. the infobox) */
+        --side-width: calc((100vw - 2 * var(--pad) - var(--measure-px) - 2 * var(--gap)) / 2);
+
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, var(--measure)) minmax(0, 1fr);
-        column-gap: clamp(1.5rem, 4vw, 3.5rem);
-        padding: calc(var(--nav-height) + 2rem) clamp(1.25rem, 4vw, 2rem) 40vh;
+        column-gap: var(--gap);
+        padding: calc(var(--nav-height) + 2rem) var(--pad) 40vh;
         line-height: var(--leading);
         /* Last-resort guard: stray wide content must never widen the page (and the mobile viewport) itself. */
         overflow-x: clip;

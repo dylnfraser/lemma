@@ -14,6 +14,8 @@
     import ReaderLayout from "../ReaderLayout.svelte";
     import ArticleBreadcrumbs from "./ArticleBreadcrumbs.svelte";
     import ArticleContent from "./ArticleContent.svelte";
+    import ArticleInfobox from "./ArticleInfobox.svelte";
+    import Lightbox from "./Lightbox.svelte";
 
     interface Props {
         article: ParsedArticle;
@@ -124,7 +126,8 @@
     /** Opens any folded sections hiding `id` and returns its element once rendered. */
     async function reveal(id: string): Promise<HTMLElement | null> {
         const blockIndex = anchors[id];
-        if (blockIndex === undefined) return null;
+        // not in the article body (e.g. a citation inside the infobox): nothing to unfold
+        if (blockIndex === undefined) return document.getElementById(id);
 
         for (const sectionId of blocks[blockIndex].sectionIds) collapsedSections.delete(sectionId);
         for (const ancestorId of headingsById.get(id)?.ancestorIds ?? []) {
@@ -170,7 +173,7 @@
         if (!link) return;
 
         const id = safeDecodeURIComponent(link.getAttribute("href")!.slice(1));
-        if (anchors[id] === undefined) return;
+        if (anchors[id] === undefined && !document.getElementById(id)) return;
 
         event.preventDefault();
         goToAnchor(id);
@@ -235,6 +238,7 @@
 <svelte:window onscroll={scheduleActiveUpdate} onresize={scheduleActiveUpdate} />
 
 <div class="reading-progress" aria-hidden="true"></div>
+<Lightbox />
 
 <ReaderLayout>
     {#snippet outline({ close })}
@@ -250,7 +254,8 @@
         {/if}
     {/snippet}
 
-    <article bind:this={articleElement} lang="en">
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions (delegates clicks on same-page links in the body and infobox) -->
+    <article bind:this={articleElement} lang="en" onclick={handleArticleClick}>
         <header class="article-header">
             <h1 id="title">{title}</h1>
             {#if description}
@@ -266,17 +271,23 @@
             </p>
         </header>
 
+        {#if article.infobox}
+            <div class="infobox-slot">
+                <ArticleInfobox infobox={article.infobox} />
+            </div>
+        {/if}
+
         <ArticleContent
             {blocks}
             collapsedSectionIds={collapsedSections}
             onToggleSection={toggleSection}
-            onclick={handleArticleClick}
         />
     </article>
 </ReaderLayout>
 
 <style>
     article {
+        position: relative;
         /* `backwards` so no transform lingers afterwards (it would trap the fixed/sticky children's positioning) */
         animation: article-in var(--dur-slow) var(--ease-out) backwards;
     }
@@ -316,6 +327,16 @@
 
         to {
             transform: scaleX(1);
+        }
+    }
+
+    /* Wide screens: the infobox sits in the right margin, level with the title. Narrower: inline under the header. */
+    @media (min-width: 1280px) {
+        .infobox-slot {
+            position: absolute;
+            top: 1.5rem;
+            left: calc(100% + var(--gap));
+            width: min(21rem, var(--side-width));
         }
     }
 

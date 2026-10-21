@@ -43,3 +43,20 @@ export const SKIPPED_LEVELS = `<div class="mw-parser-output">
 <h3 id="A_mid">A mid</h3><p>a mid</p>
 <h2 id="B">B</h2><p>b</p>
 </div>`;
+
+export const INFOBOX_ARTICLE = `<div class="mw-parser-output">
+<table class="infobox ib-country vcard"><tbody>
+<tr><th colspan="2" class="infobox-above"><div class="fn org country-name">Republic of Poland</div><div class="ib-country-names"><i>Rzeczpospolita Polska</i></div></th></tr>
+<tr><td colspan="2" class="infobox-image"><a href="/wiki/File:Flag_of_Poland.svg" class="mw-file-description"><img alt="Flag" src="${thumb("Flag.svg", 125, ".png")}" width="125" height="78" data-file-width="1280" /></a><div class="infobox-caption"><a href="/wiki/Flag_of_Poland">Flag</a></div></td></tr>
+<tr><td colspan="2" class="infobox-full-data"><span class="mw-tmh-player audio"><audio src="anthem.ogg"></audio></span>Anthem</td></tr>
+<tr><td colspan="2" class="infobox-full-data"><div class="switcher-container"><div><img alt="Globe" src="${thumb("Globe.svg", 250, ".png")}" width="250" height="250" data-file-width="2000" /><span class="switcher-label">Show globe</span></div><div><img alt="Map of Europe" src="${thumb("Europe.svg", 250, ".png")}" width="250" height="200" data-file-width="2000" /><span class="switcher-label">Show map of Europe</span></div></div></td></tr>
+<tr><th scope="row" class="infobox-label">Capital</th><td class="infobox-data"><a href="/wiki/Warsaw">Warsaw</a><br /><img src="${thumb("Coords.svg", 16, ".png")}" width="16" height="16" /></td></tr>
+<tr><th colspan="2" class="infobox-header">Government</th></tr>
+<tr><th scope="row" class="infobox-label">• President</th><td class="infobox-data"><a href="/wiki/Karol_Nawrocki">Karol Nawrocki</a></td></tr>
+<tr><th scope="row" class="infobox-label">Regional languages</th><td class="infobox-data"><div class="collapsible-list mw-collapsible mw-collapsed"><div><div>List</div></div><ul class="mw-collapsible-content"><li>German<br />Belarusian<br />Lithuanian</li></ul></div></td></tr>
+<tr><th scope="row" class="infobox-label">Cities</th><td class="infobox-data"><div class="collapsible-list mw-collapsible mw-collapsed"><div><div>Major cities</div></div><ul class="mw-collapsible-content"><li>A</li><li>B</li><li>C</li><li>D</li><li>E</li><li>F</li><li>G</li></ul></div></td></tr>
+<tr style="display:none"><th class="infobox-label">Hidden</th><td class="infobox-data">secret</td></tr>
+<tr><td colspan="2"></td></tr>
+</tbody></table>
+<p>Poland is a country.</p>
+</div>`;

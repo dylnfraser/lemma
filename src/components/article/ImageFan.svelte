@@ -2,6 +2,9 @@
     import { tick } from "svelte";
     import { prefersReducedMotion } from "svelte/motion";
     import type { ArticleImage } from "$lib/article/types";
+    import { isKeyboardClick, preventMouseFocus } from "$lib/focus";
+    import { lightbox, openLightbox } from "$lib/lightbox.svelte";
+    import { searchOverlay } from "$lib/search/searchOverlay.svelte";
 
     interface Props {
         images: ArticleImage[];
@@ -14,16 +17,17 @@
     const uid = $props.id();
 
     // Springy ease-out so cards overshoot a touch as they land, like iMessage's photo stacks.
-    const EASING = "cubic-bezier(0.22, 1.2, 0.36, 1)";
-    const DURATION_MS = 560;
-    const STAGGER_MS = 35;
+    const EASING = "cubic-bezier(0.2, 1.15, 0.3, 1)";
+    const DURATION_MS = 420;
+    const STAGGER_MS = 24;
     // The surrounding text glides with the height change, without overshoot.
     const HEIGHT_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
     // Final clip extends past the image so its drop shadow is never cut off when the clip is removed.
     const OPEN_CLIP = "inset(-48px -48px round 60px)";
 
     let expanded = $state(false);
-    let toggledByReader = false;
+    // Move focus to the stack/grid after toggling only when the reader is using the keyboard.
+    let focusAfterToggle = false;
     let fanned = $derived(images.slice(0, MAX_FANNED));
     let fanButton = $state<HTMLButtonElement>();
     let grid = $state<HTMLElement>();
@@ -61,7 +65,7 @@
     function fadeIn(elements: Iterable<Element>, delay: number) {
         for (const element of elements) {
             element.animate([{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }], {
-                duration: 280,
+                duration: 200,
                 delay,
                 easing: "ease-out",
                 fill: "backwards",
@@ -70,10 +74,10 @@
     }
 
     /** FLIP: render the grid, then fly each image out from the card it was shown on. */
-    async function expand() {
+    async function expand(event: MouseEvent) {
         const cards = measureCards();
         const stackHeight = fanButton?.parentElement?.getBoundingClientRect().height ?? 0;
-        toggledByReader = true;
+        focusAfterToggle = isKeyboardClick(event);
         expanded = true;
         await tick();
         if (prefersReducedMotion.current || !grid || cards.length === 0) return;
@@ -102,16 +106,43 @@
             );
         });
 
-        fadeIn(grid.querySelectorAll("figcaption, .collapse"), DURATION_MS * 0.55);
+        fadeIn(grid.querySelectorAll("figcaption"), DURATION_MS * 0.55);
+    }
+
+    // Clicking a photo opens the viewer; clicking anywhere else on the grid stacks it again (caption links still work).
+    function handleGridClick(event: MouseEvent) {
+        if ((event.target as Element).closest("a, button")) return;
+        collapse();
+    }
+
+    // While another overlay is up, Escape and outside clicks belong to it.
+    const overlayOpen = () => lightbox.open || searchOverlay.open;
+
+    function handleWindowKeydown(event: KeyboardEvent) {
+        if (!expanded || event.key !== "Escape" || overlayOpen()) return;
+        collapse({ focus: grid?.contains(document.activeElement) ?? false });
+    }
+
+    // pointerdown rather than click: the click that expanded the fan must not count as an outside click.
+    function handleWindowPointerDown(event: PointerEvent) {
+        if (!expanded || !grid || overlayOpen()) return;
+        const target = event.target as Element;
+        if (grid.contains(target) || target.closest('[role="dialog"]')) return;
+        collapse();
+    }
+
+    function openViewer(index: number, event: MouseEvent) {
+        const sources = [...(grid?.querySelectorAll<HTMLElement>("figure img") ?? [])];
+        openLightbox(images, index, sources, isKeyboardClick(event));
     }
 
     /** Reverse FLIP: render the stack, then fly each card back from its spot in the grid onto its fanned pose. */
-    async function collapse() {
+    async function collapse({ focus = false }: { focus?: boolean } = {}) {
         const images = [...(grid?.querySelectorAll<HTMLElement>("figure img") ?? [])].map((image) =>
             centre(image.getBoundingClientRect()),
         );
         const gridHeight = grid?.getBoundingClientRect().height ?? 0;
-        toggledByReader = true;
+        focusAfterToggle = focus;
         expanded = false;
         await tick();
         if (prefersReducedMotion.current || !fanButton || images.length === 0) return;
@@ -145,7 +176,7 @@
 
     // Expanding/collapsing replaces the focused control, so move focus to its counterpart (never on first render).
     function focusWhenToggled(node: HTMLElement) {
-        if (toggledByReader) node.focus({ preventScroll: true });
+        if (focusAfterToggle) node.focus({ preventScroll: true });
     }
 
     /** Front card sits straight; the rest alternate left and right, each a little further out and more tilted. */
@@ -157,38 +188,47 @@
     }
 </script>
 
+<svelte:window onkeydown={handleWindowKeydown} onpointerdown={handleWindowPointerDown} />
+
 {#if expanded}
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_click_events_have_key_events (Escape anywhere stacks the images again; each photo is its own button) -->
     <div
         class="expanded"
         id="{uid}-grid"
         tabindex="-1"
-        aria-label={`${images.length} images`}
+        aria-label={`${images.length} images. Press Escape to stack them again.`}
         role="group"
         bind:this={grid}
         use:focusWhenToggled
+        onclick={handleGridClick}
     >
         <div class="grid">
             {#each images as image, i}
                 <!-- earlier images stay on top while they fly out, matching the stack's order -->
                 <figure style:z-index={images.length - i}>
-                    <!-- not lazy: the cards already loaded these, and the animation needs their real size -->
-                    <img
-                        alt={image.alt}
-                        src={image.src}
-                        width={image.width}
-                        height={image.height}
-                        class:invert-dark={image.invertInDarkMode}
-                        decoding="async"
-                    />
+                    <button
+                        type="button"
+                        class="zoomable"
+                        aria-label={image.alt ? `View full screen: ${image.alt}` : `View image ${i + 1} full screen`}
+                        onmousedown={preventMouseFocus}
+                        onclick={(event) => openViewer(i, event)}
+                    >
+                        <!-- not lazy: the cards already loaded these, and the animation needs their real size -->
+                        <img
+                            alt={image.alt}
+                            src={image.src}
+                            width={image.width}
+                            height={image.height}
+                            class:invert-dark={image.invertInDarkMode}
+                            decoding="async"
+                        />
+                    </button>
                     {#if image.caption}
                         <figcaption>{@html image.caption}</figcaption>
                     {/if}
                 </figure>
             {/each}
         </div>
-        <button type="button" class="collapse" aria-controls="{uid}-grid" onclick={collapse}>
-            Stack images
-        </button>
     </div>
 {:else}
     <figure class="fan-figure">
@@ -197,6 +237,7 @@
             class="fan"
             aria-expanded="false"
             aria-label={`Show all ${images.length} images`}
+            onmousedown={preventMouseFocus}
             onclick={expand}
             bind:this={fanButton}
             use:focusWhenToggled
@@ -273,7 +314,7 @@
             0 14px 34px -12px var(--shadow-color);
         transform: translate(var(--x), var(--y)) rotate(var(--r));
         transform-origin: 50% 90%;
-        transition: transform 0.35s var(--ease-spring);
+        transition: transform 0.26s var(--ease-spring);
 
         img {
             display: block;
@@ -326,10 +367,14 @@
 
     .expanded {
         margin: 2.25rem 0;
+        border-radius: 14px;
+        cursor: zoom-out;
 
         &:focus {
             outline: none;
         }
+
+
     }
 
     .grid {
@@ -343,12 +388,14 @@
             margin: 0;
         }
 
+        /* the box hugs the picture (no object-fit letterboxing), so the rounded corners always land on the photo */
         img {
             display: block;
-            width: 100%;
+            width: auto;
+            max-width: 100%;
             height: auto;
             max-height: min(28rem, 65dvh);
-            object-fit: contain;
+            margin-inline: auto;
             border-radius: 12px;
             box-shadow: 0 10px 30px -14px var(--shadow-color);
         }
@@ -358,22 +405,15 @@
         }
     }
 
-    .collapse {
+    .zoomable {
         display: block;
-        margin: 1rem auto 0;
-        padding: 0.35rem 0.85rem;
-        border: 1px solid var(--rule);
-        border-radius: 999px;
-        background: var(--bg-color);
-        font-size: 0.78rem;
-        font-weight: 550;
-        color: var(--muted);
-        cursor: pointer;
-
-        &:hover {
-            color: var(--text-color);
-            border-color: var(--secondary);
-        }
+        max-width: 100%;
+        margin-inline: auto;
+        padding: 0;
+        border: none;
+        border-radius: 12px;
+        background: none;
+        cursor: zoom-in;
     }
 
     @media (prefers-color-scheme: dark) {
