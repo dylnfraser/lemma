@@ -1,5 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchArticle, fetchImageCredit, fetchLastEdited, getWikipediaHistoryUrl, searchArticles, WikipediaError } from "./wikipedia";
+import {
+  fetchArticle,
+  fetchImageCredit,
+  fetchLastEdited,
+  fetchRelatedArticles,
+  fetchSummary,
+  getWikipediaHistoryUrl,
+  searchArticles,
+  WikipediaError,
+} from "./wikipedia";
 
 const json = (body: unknown, init: ResponseInit = {}) =>
   new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" }, ...init });
@@ -39,7 +48,7 @@ describe("fetchArticle", () => {
       }),
     );
 
-    await expect(fetchArticle("Turing early life", { fetch: fetcher })).resolves.toEqual({
+    await expect(fetchArticle("Turing early life", { fetch: fetcher })).resolves.toMatchObject({
       title: "Alan Turing",
       text: "<p>Hi</p>",
       redirectFragment: "Early life",
@@ -141,5 +150,83 @@ describe("fetchImageCredit", () => {
   it("resolves to null instead of throwing", async () => {
     await expect(fetchImageCredit("A.jpg", { fetch: mockFetch(json({ query: { pages: [{ missing: true }] } })) })).resolves.toBeNull();
     await expect(fetchImageCredit("A.jpg", { fetch: mockFetch(new TypeError("Failed to fetch")) })).resolves.toBeNull();
+  });
+});
+
+describe("fetchSummary", () => {
+  it("requests the REST summary and normalises it", async () => {
+    const fetcher = mockFetch(
+      json({
+        type: "standard",
+        title: "Alan Turing",
+        titles: { normalized: "Alan Turing" },
+        description: "English computer scientist (1912–1954)",
+        extract: "Alan Mathison Turing was an English mathematician.",
+        thumbnail: { source: "//upload.wikimedia.org/turing.jpg", width: 330, height: 440 },
+      }),
+    );
+
+    await expect(fetchSummary("Turing", { fetch: fetcher })).resolves.toEqual({
+      title: "Alan Turing",
+      description: "English computer scientist (1912–1954)",
+      extract: "Alan Mathison Turing was an English mathematician.",
+      thumbnail: { src: "https://upload.wikimedia.org/turing.jpg", width: 330, height: 440 },
+      disambiguation: false,
+    });
+    expect(String(fetcher.mock.calls[0][0])).toBe("https://en.wikipedia.org/api/rest_v1/page/summary/Turing");
+  });
+
+  it("encodes titles and flags disambiguation pages without thumbnails", async () => {
+    const fetcher = mockFetch(json({ type: "disambiguation", title: "AC/DC (disambiguation)", extract: "AC/DC may refer to:" }));
+    const summary = await fetchSummary("AC/DC (disambiguation)", { fetch: fetcher });
+
+    expect(String(fetcher.mock.calls[0][0])).toContain("/page/summary/AC%2FDC_(disambiguation)");
+    expect(summary).toMatchObject({ disambiguation: true, thumbnail: null, description: "" });
+  });
+
+  it("maps missing pages and unreadable bodies to errors", async () => {
+    await expectKind(fetchSummary("Nope", { fetch: mockFetch(new Response("", { status: 404 })) }), "not_found");
+    await expectKind(fetchSummary("Odd", { fetch: mockFetch(json({ type: "standard" })) }), "invalid");
+  });
+});
+
+describe("fetchArticle extras", () => {
+  it("reads the redirect source, languages and visible categories", async () => {
+    const fetcher = mockFetch(
+      json({
+        parse: {
+          title: "Alan Turing",
+          text: { "*": "<p>Hi</p>" },
+          redirects: [{ from: "Turing", to: "Alan Turing" }],
+          langlinks: [{ lang: "fr", url: "https://fr.wikipedia.org/wiki/Alan_Turing", langname: "French", autonym: "français", "*": "Alan Turing" }],
+          categories: [{ "*": "Pages_with_errors", hidden: "" }, { "*": "British_cryptographers" }],
+        },
+      }),
+    );
+    const article = await fetchArticle("Turing", { fetch: fetcher });
+    expect(new URL(String(fetcher.mock.calls[0][0])).searchParams.get("prop")).toBe("text|langlinks|categories");
+    expect(article.redirectedFrom).toBe("Turing");
+    expect(article.languages).toEqual([{ code: "fr", name: "French", autonym: "français", title: "Alan Turing", url: "https://fr.wikipedia.org/wiki/Alan_Turing" }]);
+    expect(article.categories).toEqual(["British cryptographers"]);
+  });
+});
+
+describe("fetchRelatedArticles", () => {
+  it("returns morelike results in rank order", async () => {
+    const fetcher = mockFetch(
+      json({
+        query: {
+          pages: [
+            { title: "Second", index: 2, description: "two" },
+            { title: "First", index: 1, thumbnail: { source: "//upload.wikimedia.org/first.jpg" } },
+          ],
+        },
+      }),
+    );
+    await expect(fetchRelatedArticles("Alan Turing", { fetch: fetcher })).resolves.toEqual([
+      { title: "First", description: "", thumbnail: "https://upload.wikimedia.org/first.jpg" },
+      { title: "Second", description: "two", thumbnail: "" },
+    ]);
+    expect(new URL(String(fetcher.mock.calls[0][0])).searchParams.get("gsrsearch")).toBe("morelike:Alan Turing");
   });
 });

@@ -17,6 +17,11 @@ export const load: PageLoad = ({ params, fetch }) => {
   const article = fetchArticle(params.title, { fetch, signal: controller.signal }).then((content) => ({
     article: parseArticle(content),
     redirectFragment: content.redirectFragment ?? "",
+    meta: {
+      redirectedFrom: content.redirectedFrom ?? "",
+      languages: content.languages ?? [],
+      categories: content.categories ?? [],
+    },
   }));
   // Rejections are handled by the page; this stops abandoned requests from being reported as unhandled.
   article.catch(() => {});

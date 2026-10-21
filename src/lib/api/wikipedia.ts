@@ -33,10 +33,27 @@ type QuickSearchResponse = {
   }[];
 };
 
+export type ArticleLanguage = {
+  /** Language code ("fr"). */
+  code: string;
+  /** English name ("French"). */
+  name: string;
+  /** The language's own name ("français"). */
+  autonym: string;
+  /** The article's title in that language. */
+  title: string;
+  url: string;
+};
+
 export type WikipediaPageContent = {
   title: string;
   text: string;
   redirectFragment?: string;
+  /** The title the reader asked for, when a redirect led here. */
+  redirectedFrom?: string;
+  languages?: ArticleLanguage[];
+  /** Reader-facing categories (Wikipedia's hidden maintenance categories are left out), with spaces in their names. */
+  categories?: string[];
 };
 
 type ParseResponse =
@@ -45,11 +62,13 @@ type ParseResponse =
         title: string;
         text: { "*": string };
         redirects?: { from: string; to: string; tofragment?: string }[];
+        langlinks?: { lang: string; url: string; langname?: string; autonym?: string; "*": string }[];
+        categories?: { "*": string; hidden?: string }[];
       };
     }
   | { error: { code: string; info: string } };
 
-type RequestOptions = {
+export type RequestOptions = {
   fetch?: typeof fetch;
   signal?: AbortSignal;
 };
@@ -58,7 +77,8 @@ export function getWikipediaArticleUrl(title: string): string {
   return `${WIKIPEDIA_ORIGIN}/wiki/${encodeURIComponent(title.replaceAll(" ", "_"))}`;
 }
 
-async function requestJson<T>(url: URL, { fetch: fetcher = fetch, signal }: RequestOptions): Promise<T> {
+/** Shared GET helper for Wikipedia APIs: identifies Lemma, times out, and maps failures to WikipediaError. */
+export async function requestJson<T>(url: URL, { fetch: fetcher = fetch, signal }: RequestOptions): Promise<T> {
   const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
   let res: Response;
 
@@ -101,7 +121,7 @@ export async function fetchArticle(title: string, options: RequestOptions = {}):
   url.search = new URLSearchParams({
     action: "parse",
     page: title,
-    prop: "text",
+    prop: "text|langlinks|categories",
     redirects: "1",
     format: "json",
     origin: "*",
@@ -124,7 +144,55 @@ export async function fetchArticle(title: string, options: RequestOptions = {}):
     title: json.parse.title,
     text: json.parse.text["*"],
     redirectFragment: json.parse.redirects?.at(-1)?.tofragment,
+    redirectedFrom: json.parse.redirects?.[0]?.from,
+    languages: (json.parse.langlinks ?? []).map((link) => ({
+      code: link.lang,
+      name: link.langname ?? link.lang,
+      autonym: link.autonym ?? link.langname ?? link.lang,
+      title: link["*"],
+      url: link.url,
+    })),
+    categories: (json.parse.categories ?? []).filter((category) => !("hidden" in category)).map((category) => category["*"].replaceAll("_", " ")),
   };
+}
+
+export type RelatedArticle = {
+  title: string;
+  description: string;
+  thumbnail: string;
+};
+
+type RelatedResponse = {
+  query?: { pages?: { title: string; index?: number; description?: string; thumbnail?: { source?: string } }[] };
+};
+
+/** Articles like this one, by Wikipedia's search ("morelike:"), best match first. */
+export async function fetchRelatedArticles(title: string, options: RequestOptions = {}): Promise<RelatedArticle[]> {
+  const url = new URL("/w/api.php", WIKIPEDIA_ORIGIN);
+  url.search = new URLSearchParams({
+    action: "query",
+    generator: "search",
+    gsrsearch: `morelike:${title}`,
+    gsrnamespace: "0",
+    gsrlimit: "6",
+    prop: "pageimages|description",
+    piprop: "thumbnail",
+    pithumbsize: "240",
+    pilimit: "6",
+    pilicense: "any",
+    format: "json",
+    formatversion: "2",
+    origin: "*",
+  }).toString();
+
+  const json = await requestJson<RelatedResponse>(url, options);
+  return (json.query?.pages ?? [])
+    .toSorted((a, b) => (a.index ?? 0) - (b.index ?? 0))
+    .map((page) => ({
+      title: page.title,
+      description: page.description ?? "",
+      thumbnail: normalizeProtocol(page.thumbnail?.source ?? ""),
+    }));
 }
 
 type RevisionsResponse = {
@@ -218,6 +286,47 @@ export async function fetchImageCredit(fileName: string, options: RequestOptions
   }
 }
 
-function normalizeProtocol(url: string): string {
+export type ArticleSummary = {
+  /** Resolved title (redirects are followed). */
+  title: string;
+  description: string;
+  /** Plain-text opening of the article. */
+  extract: string;
+  thumbnail: { src: string; width: number; height: number } | null;
+  /** Disambiguation pages list meanings rather than summarise a topic. */
+  disambiguation: boolean;
+};
+
+type SummaryResponse = {
+  type?: string;
+  title?: string;
+  titles?: { normalized?: string };
+  description?: string;
+  extract?: string;
+  thumbnail?: { source?: string; width?: number; height?: number };
+};
+
+/** The short summary Wikipedia uses for its own link previews. Follows redirects. */
+export async function fetchSummary(title: string, options: RequestOptions = {}): Promise<ArticleSummary> {
+  const url = new URL(`/api/rest_v1/page/summary/${encodeURIComponent(title.replaceAll(" ", "_"))}`, WIKIPEDIA_ORIGIN);
+  const json = await requestJson<SummaryResponse>(url, options);
+
+  const resolvedTitle = json.titles?.normalized ?? json.title;
+  if (!resolvedTitle) throw new WikipediaError("invalid", "Wikipedia sent a response Lemma couldn't read.");
+
+  const thumbnail = json.thumbnail;
+  return {
+    title: resolvedTitle,
+    description: json.description ?? "",
+    extract: json.extract ?? "",
+    thumbnail:
+      thumbnail?.source && thumbnail.width && thumbnail.height
+        ? { src: normalizeProtocol(thumbnail.source), width: thumbnail.width, height: thumbnail.height }
+        : null,
+    disambiguation: json.type === "disambiguation",
+  };
+}
+
+export function normalizeProtocol(url: string): string {
   return url.startsWith("//") ? `https:${url}` : url;
 }
