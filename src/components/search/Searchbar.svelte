@@ -1,109 +1,95 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
-    import { WikipediaAPI, type WikipediaSearchResult } from "$lib/api/wikipedia";
+    import { searchArticles, type WikipediaSearchResult } from "$lib/api/wikipedia";
+    import { getArticlePath } from "$lib/article/articleUtils";
+    import SearchIcon from "../icons/SearchIcon.svelte";
     import Result from "./Result.svelte";
 
-    let { autofocus = false, onDismiss } = $props<{
+    interface Props {
         autofocus?: boolean;
+        initialQuery?: string;
         onDismiss?: () => void;
-    }>();
-
-    const api = new WikipediaAPI();
-
-    function handleKeyDown(event: KeyboardEvent) {
-        if ((event.metaKey || event.ctrlKey) && event.key === "k") {
-            event.preventDefault();
-            inputBox.focus();
-        }
     }
 
-    onMount(() => {
-        document.addEventListener("keydown", handleKeyDown);
-        return () => {
-            document.removeEventListener("keydown", handleKeyDown);
-        };
-    });
+    let { autofocus = false, initialQuery = "", onDismiss }: Props = $props();
+
     const debounceMs = 200;
-    const maxResults = 5;
+    const uid = $props.id();
+    const listboxId = `${uid}-results`;
+    const optionId = (index: number) => `${uid}-option-${index}`;
 
     let inputBox: HTMLInputElement;
-    let query = $state("");
+    // svelte-ignore state_referenced_locally
+    let query = $state(initialQuery);
     let results = $state<WikipediaSearchResult[]>([]);
     let isLoading = $state(false);
     let errorMessage = $state("");
     let activeIndex = $state(-1);
-    let searchRequestId = 0;
+    let searchedQuery = $state("");
     let debounceTimer: ReturnType<typeof setTimeout>;
+    let activeRequest: AbortController | undefined;
 
-    function getArticlePath(title: string) {
-        return `/wiki/${encodeURIComponent(title.trim().replaceAll(" ", "_"))}`;
-    }
+    let trimmedQuery = $derived(query.trim());
+    let showPanel = $derived(trimmedQuery.length > 0 && (isLoading || !!errorMessage || !!searchedQuery));
+    // Previous results stay visible while the next query loads so the list doesn't flicker on every keystroke.
+    let showOptions = $derived(showPanel && !errorMessage && results.length > 0);
 
-    function clearResults() {
-        results = [];
-        activeIndex = -1;
-        errorMessage = "";
-    }
-
-    function focusInput() {
+    export function focus() {
         inputBox?.focus();
         inputBox?.select();
     }
 
+    function clearResults() {
+        activeRequest?.abort();
+        results = [];
+        activeIndex = -1;
+        errorMessage = "";
+        isLoading = false;
+        searchedQuery = "";
+    }
+
     function scheduleSearch() {
         clearTimeout(debounceTimer);
-        const trimmedQuery = query.trim();
 
         if (!trimmedQuery) {
-            isLoading = false;
             clearResults();
             return;
         }
 
-        debounceTimer = setTimeout(() => search(trimmedQuery), debounceMs);
+        const nextQuery = trimmedQuery;
+        debounceTimer = setTimeout(() => search(nextQuery), debounceMs);
     }
 
     async function search(searchQuery: string) {
-        const requestId = ++searchRequestId;
+        activeRequest?.abort();
+        const request = new AbortController();
+        activeRequest = request;
         isLoading = true;
         errorMessage = "";
 
         try {
-            const searchResults = await api.getSearchResults(searchQuery);
-            if (requestId !== searchRequestId) return;
-
-            results = searchResults.slice(0, maxResults);
+            results = await searchArticles(searchQuery, { signal: request.signal });
             activeIndex = results.length > 0 ? 0 : -1;
+            searchedQuery = searchQuery;
         } catch {
-            if (requestId !== searchRequestId) return;
-
+            if (request.signal.aborted) return;
             results = [];
             activeIndex = -1;
             errorMessage = "Couldn't load results. Try again.";
         } finally {
-            if (requestId === searchRequestId) {
-                isLoading = false;
-            }
+            if (activeRequest === request) isLoading = false;
         }
     }
 
-    async function openArticle(title = query) {
+    async function openArticle(title: string) {
         const trimmedTitle = title.trim();
         if (!trimmedTitle) return;
 
+        clearTimeout(debounceTimer);
+        activeRequest?.abort();
         await goto(getArticlePath(trimmedTitle));
         onDismiss?.();
-    }
-
-    function handleWindowKeydown(event: KeyboardEvent) {
-        if (event.key !== "/") return;
-
-        const target = event.target as HTMLElement;
-        if (["INPUT", "TEXTAREA"].includes(target.tagName) || target.isContentEditable) return;
-
-        event.preventDefault();
-        focusInput();
     }
 
     function handleKeydown(event: KeyboardEvent) {
@@ -112,14 +98,10 @@
             openArticle(results[activeIndex]?.title ?? query);
         } else if (event.key === "ArrowDown") {
             event.preventDefault();
-            if (results.length > 0) {
-                activeIndex = Math.min(activeIndex + 1, results.length - 1);
-            }
+            if (results.length > 0) activeIndex = Math.min(activeIndex + 1, results.length - 1);
         } else if (event.key === "ArrowUp") {
             event.preventDefault();
-            if (results.length > 0) {
-                activeIndex = Math.max(activeIndex - 1, 0);
-            }
+            if (results.length > 0) activeIndex = Math.max(activeIndex - 1, 0);
         } else if (event.key === "Escape") {
             if (onDismiss) {
                 onDismiss();
@@ -131,123 +113,133 @@
     }
 
     onMount(() => {
-        if (autofocus) focusInput();
+        if (autofocus) focus();
+        if (trimmedQuery) search(trimmedQuery);
 
-        return () => clearTimeout(debounceTimer);
+        return () => {
+            clearTimeout(debounceTimer);
+            activeRequest?.abort();
+        };
     });
 </script>
 
-<svelte:window onkeydown={handleWindowKeydown} />
-
-<div id="search">
-    <div id="searchbar">
-        <img src="/icon/search.svg" class="icon" alt="" aria-hidden="true" id="searchbaritem" />
+<div class="search">
+    <div class="searchbar">
+        <span class="search-icon"><SearchIcon /></span>
         <input
-            placeholder="Search articles, people, places..."
-            id="searchbar-item"
             bind:this={inputBox}
             bind:value={query}
             oninput={scheduleSearch}
             onkeydown={handleKeydown}
+            type="search"
+            role="combobox"
+            placeholder="Search articles, people, places..."
             aria-label="Search Wikipedia articles"
             aria-autocomplete="list"
-            aria-controls="search-results"
-            aria-expanded={results.length > 0 || isLoading || !!errorMessage}
+            aria-controls={listboxId}
+            aria-expanded={showOptions}
+            aria-activedescendant={showOptions && activeIndex >= 0 ? optionId(activeIndex) : undefined}
+            autocomplete="off"
+            spellcheck="false"
         />
     </div>
 
-    {#if query.trim().length > 0 && (results.length > 0 || isLoading || errorMessage)}
-        <div id="results" role="listbox" aria-label="Search results">
-            {#if isLoading}
-                <p class="status">Searching…</p>
+    <div class="results" class:open={showPanel}>
+        {#if showPanel}
+            {#if isLoading && results.length === 0}
+                <p class="status" role="status">Searching…</p>
             {:else if errorMessage}
-                <p class="status error">{errorMessage}</p>
-            {:else}
-                {#each results as result, i}
+                <p class="status error" role="alert">{errorMessage}</p>
+            {:else if results.length === 0}
+                <p class="status" role="status">No articles match “{searchedQuery}”. Press Enter to try it anyway.</p>
+            {/if}
+        {/if}
+
+        <div id={listboxId} role="listbox" aria-label="Search results" hidden={!showOptions}>
+            {#if showOptions}
+                {#each results as result, i (result.title)}
                     <Result
+                        id={optionId(i)}
                         title={result.title}
                         desc={result.description}
                         imgsrc={result.thumbnail}
                         href={getArticlePath(result.title)}
                         active={i === activeIndex}
+                        onhover={() => (activeIndex = i)}
+                        onselect={onDismiss}
                     />
                 {/each}
             {/if}
         </div>
-    {/if}
+    </div>
 </div>
 
 <style>
-    #search {
-        opacity: 0;
+    .search {
+        position: relative;
+        width: min(55ch, 100%);
+        margin-inline: auto;
 
-        animation: quickappear 0.5s forwards;
+        animation: quickappear 0.5s both;
         @media (prefers-reduced-motion: reduce) {
             animation: none;
         }
-
-        position: fixed;
-        width: 55ch;
-        left: calc(50% - 27.5ch);
-        top: var(--search-top, auto);
-        z-index: var(--search-z-index, auto);
-
-        @media (max-width: 600px) {
-            width: calc(80dvw);
-            left: calc(10dvw);
-        }
     }
 
-    #searchbar {
+    .searchbar {
         position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        height: 48px;
+        padding: 0 12px;
+        box-sizing: border-box;
         background: var(--bg-color);
         border: solid 1px var(--secondary);
         border-radius: 12px;
         box-shadow: 0 12px 32px var(--shadow-color);
-        width: 100%;
-        height: 48px;
         z-index: 2;
 
-        img {
-            position: absolute;
-            user-select: none;
-            width: 24px;
-            height: 24px;
-            left: 12px;
-            top: 12px;
-        }
-
-        input {
-            font-size: 16px;
-            line-height: 1;
-            height: 24px;
-            padding: 0;
-            margin: 0;
-            position: absolute;
-            left: 38px;
-            top: 12px;
-            width: calc(100% - 62px);
-            background: none;
-            border: none;
-            color: var(--text-color, inherit);
-        }
-
-        input:focus {
-            outline: none;
+        &:focus-within {
+            border-color: color-mix(in oklch, var(--accent) 45%, var(--secondary));
         }
     }
 
-    #results {
-        animation: appear 0.1s ease-in forwards;
-        @media (prefers-reduced-motion: reduce) {
-            animation: none;
+    .search-icon {
+        display: grid;
+        flex: none;
+        opacity: 0.55;
+    }
+
+    input {
+        flex: 1;
+        min-width: 0;
+        height: 24px;
+        padding: 0;
+        margin: 0;
+        font: inherit;
+        font-size: 16px;
+        line-height: 1;
+        background: none;
+        border: none;
+        color: inherit;
+
+        &:focus,
+        &:focus-visible {
+            outline: none;
         }
 
+        &::-webkit-search-cancel-button {
+            display: none;
+        }
+    }
+
+    .results {
+        display: none;
         position: absolute;
         top: calc(48px + 12px);
         left: 0;
-        width: calc(100% - 12px);
-        display: grid;
+        right: 0;
         gap: 3px;
         padding: 6px;
         background: var(--bg-color);
@@ -255,27 +247,40 @@
         box-shadow: 0 12px 32px var(--shadow-color);
         border-radius: 12px;
         z-index: 1;
+
+        &.open {
+            display: grid;
+            animation: results-appear 0.1s ease-in both;
+            @media (prefers-reduced-motion: reduce) {
+                animation: none;
+            }
+        }
+    }
+
+    [role="listbox"]:not([hidden]) {
+        display: grid;
+        gap: 3px;
     }
 
     .status {
         margin: 0;
-        padding: 0 4px;
+        padding: 0.4rem 4px;
         font-size: 0.9rem;
         opacity: 0.7;
     }
 
     .error {
-        color: oklch(0.5 0.18 25);
+        color: var(--danger);
         opacity: 1;
     }
 
-    @keyframes appear {
-        0% {
+    @keyframes results-appear {
+        from {
             opacity: 0;
             filter: blur(2px);
         }
 
-        100% {
+        to {
             opacity: 1;
             filter: none;
         }

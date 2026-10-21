@@ -1,72 +1,72 @@
 <script lang="ts">
+    import { afterNavigate } from "$app/navigation";
+    import { fade } from "svelte/transition";
+    import { prefersReducedMotion } from "svelte/motion";
+    import { closeSearch, isSearchShortcut, searchOverlay, toggleSearch } from "$lib/search/searchOverlay.svelte";
     import Searchbar from "./Searchbar.svelte";
-    import { onMount } from "svelte";
 
-    let visible = $state(false);
+    let navigatedWhileOpen = false;
 
-    function toggleSearch() {
-        visible = !visible;
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-        // Cmd+K (macOS) or Ctrl+K (Windows/Linux)
-        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+    function handleWindowKeydown(event: KeyboardEvent) {
+        if (isSearchShortcut(event)) {
             event.preventDefault();
+            if (event.key === "/" && searchOverlay.open) return;
             toggleSearch();
-        }
-
-        // Optional: close with Escape
-        if (event.key === "Escape" || event.key === "Enter") {
-            visible = false;
+        } else if (event.key === "Escape" && searchOverlay.open) {
+            closeSearch();
         }
     }
 
-    function click(event: MouseEvent) {
-        if ((event.target as HTMLElement).id !== "searchbar" && (event.target as HTMLElement).id !== "searchbar-item") {
-            visible = false;
-        }
+    function handleBackdropClick(event: MouseEvent) {
+        if (event.target === event.currentTarget) closeSearch();
     }
 
-    onMount(() => {
-        window.addEventListener("keydown", handleKeyDown);
-        window.addEventListener("click", click);
+    // Return focus to whatever opened the overlay, unless the reader navigated away with it.
+    $effect.pre(() => {
+        if (!searchOverlay.open) return;
+
+        const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        navigatedWhileOpen = false;
 
         return () => {
-            window.removeEventListener("keydown", handleKeyDown);
-            window.removeEventListener("click", click);
+            if (!navigatedWhileOpen) requestAnimationFrame(() => opener?.focus({ preventScroll: true }));
         };
+    });
+
+    afterNavigate(() => {
+        navigatedWhileOpen = true;
+        closeSearch();
     });
 </script>
 
-<div id="global-search" class:visible class:hidden={!visible}>
-    {#each Array(12) as _}
-        <br />
-    {/each}
+<svelte:window onkeydown={handleWindowKeydown} />
 
-    <Searchbar />
-</div>
+{#if searchOverlay.open}
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions (Escape closes the dialog) -->
+    <div
+        class="overlay"
+        onclick={handleBackdropClick}
+        transition:fade={{ duration: prefersReducedMotion.current ? 0 : 150 }}
+    >
+        <div class="dialog" role="dialog" aria-modal="true" aria-label="Search Wikipedia">
+            <Searchbar autofocus initialQuery={searchOverlay.query} onDismiss={closeSearch} />
+        </div>
+    </div>
+{/if}
 
 <style>
-    #global-search {
-        z-index: 10;
+    .overlay {
+        z-index: 30;
         position: fixed;
         inset: 0;
+        padding: min(28vh, 14rem) 1rem 0;
 
-        background: rgba(0, 0, 0, 0.05);
+        background: color-mix(in oklch, var(--page-bg) 25%, transparent);
         backdrop-filter: blur(4px);
-
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.15s ease;
     }
 
-    #global-search.visible {
-        opacity: 1;
-        pointer-events: auto;
-    }
-
-    #global-search.hidden {
-        opacity: 0;
-        pointer-events: none;
+    .dialog {
+        width: min(55ch, 100%);
+        margin-inline: auto;
     }
 </style>
