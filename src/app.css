@@ -286,6 +286,34 @@ kbd {
     cursor: zoom-in;
 }
 
+/*
+ * Wikipedia's {{legend}} template (map keys in the infobox, figure and gallery captions): a colour swatch and a label.
+ * Its own stylesheet is stripped, so lay each entry out as a left-aligned row with a square swatch.
+ */
+.legend {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45em;
+    text-align: left;
+
+    & + .legend {
+        margin-top: 0.15em;
+    }
+}
+
+.legend-color {
+    display: inline-block;
+    flex: none;
+    width: 0.8em;
+    height: 0.8em;
+    overflow: hidden;
+    border-radius: 3px;
+    outline: 1px solid color-mix(in oklch, currentColor 25%, transparent);
+    outline-offset: -1px;
+    font-size: inherit;
+    line-height: 0;
+}
+
 /* jumping to a citation or section briefly lights it up, then fades (see ArticleView) */
 .jump-flash {
     border-radius: 4px;
