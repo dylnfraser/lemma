@@ -3,6 +3,7 @@
     import { isFoldableHeadingLevel } from "$lib/article/articleUtils";
     import type { ArticleBlock } from "$lib/article/types";
     import ChevronIcon from "../icons/ChevronIcon.svelte";
+    import ImageFan from "./ImageFan.svelte";
 
     interface Props {
         blocks: ArticleBlock[];
@@ -68,24 +69,25 @@
                         {copyLabel(heading.id)}
                     </button>
                 </svelte:element>
+            {:else if block.type === "images" && block.images.length > 1}
+                <ImageFan images={block.images} />
             {:else if block.type === "images"}
-                <div class="wiki-images" class:adjacent-images={block.images.length > 1}>
-                    {#each block.images as image}
-                        <figure>
-                            <img
-                                alt={image.alt}
-                                src={image.src}
-                                width={image.width}
-                                height={image.height}
-                                class:invert-dark={image.invertInDarkMode}
-                                loading="lazy"
-                                decoding="async"
-                            />
-                            {#if image.caption}
-                                <figcaption>{@html image.caption}</figcaption>
-                            {/if}
-                        </figure>
-                    {/each}
+                {@const image = block.images[0]}
+                <div class="wiki-images">
+                    <figure>
+                        <img
+                            alt={image.alt}
+                            src={image.src}
+                            width={image.width}
+                            height={image.height}
+                            class:invert-dark={image.invertInDarkMode}
+                            loading="lazy"
+                            decoding="async"
+                        />
+                        {#if image.caption}
+                            <figcaption>{@html image.caption}</figcaption>
+                        {/if}
+                    </figure>
                 </div>
             {:else if block.kind === "table"}
                 <div class="table-scroll">{@html block.html}</div>
@@ -520,28 +522,6 @@
             :global(a) {
                 text-decoration-color: color-mix(in oklch, currentColor 35%, transparent);
             }
-        }
-    }
-
-    .wiki-images.adjacent-images {
-        align-items: stretch;
-
-        figure {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            flex: 1 1 calc(50% - 0.625rem);
-            min-width: min(12rem, 100%);
-            max-width: calc(50% - 0.625rem);
-
-            @media (max-width: 640px) {
-                flex-basis: 100%;
-                max-width: 100%;
-            }
-        }
-
-        img {
-            margin-block: auto;
         }
     }
 
