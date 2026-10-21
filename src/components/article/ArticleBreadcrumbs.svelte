@@ -1,6 +1,8 @@
 <script lang="ts">
+    import { untrack } from "svelte";
     import { headingHasChildren, isHeadingHiddenByCollapsed } from "$lib/article/articleNavigation";
     import type { ArticleHeading } from "$lib/article/types";
+    import { DURATION, fold } from "$lib/motion";
     import ChevronIcon from "../icons/ChevronIcon.svelte";
 
     interface Props {
@@ -16,6 +18,33 @@
     let { headings, activeId, highlightActive, collapsedIds, onToggle, onOpen }: Props = $props();
 
     let list: HTMLElement;
+    let track: HTMLElement;
+
+    // Accent bar that glides to the active entry. Positioned from the link's layout box (offsets ignore transforms).
+    let indicator = $state<{ x: number; y: number; height: number } | null>(null);
+    // No gliding into place on first render; only later moves animate.
+    let indicatorReady = $state(false);
+
+    function placeIndicator() {
+        const active = track?.querySelector<HTMLElement>('.breadcrumb[aria-current="location"]');
+        const next = active ? { x: active.offsetLeft, y: active.offsetTop, height: active.offsetHeight } : null;
+        indicator = next;
+        if (next && !indicatorReady) requestAnimationFrame(() => (indicatorReady = true));
+    }
+
+    $effect(() => {
+        void activeId;
+        void collapsedIds.size;
+        // untracked: placing the indicator reads and writes its own state, which must not re-trigger this effect
+        untrack(placeIndicator);
+    });
+
+    // Folding entries animate their height; follow them frame by frame instead of jumping at the end.
+    $effect(() => {
+        const observer = new ResizeObserver(placeIndicator);
+        observer.observe(track);
+        return () => observer.disconnect();
+    });
 
     // Keep the active entry visible by scrolling the outline itself (never the page).
     $effect(() => {
@@ -37,36 +66,47 @@
 
 <p class="outline-title" aria-hidden="true">Contents</p>
 <nav class="crumbs" bind:this={list} aria-label="Article sections">
-    <ul>
-        {#each headings as heading (heading.id)}
-            {#if !isHeadingHiddenByCollapsed(heading, collapsedIds)}
-                {@const collapsed = collapsedIds.has(heading.id)}
-                <li class="breadcrumb-row">
-                    {#if headingHasChildren(heading)}
-                        <button
-                            class="breadcrumb-fold"
-                            type="button"
-                            aria-label={`${collapsed ? "Expand" : "Collapse"} ${heading.text}`}
-                            aria-expanded={!collapsed}
-                            onclick={() => onToggle(heading.id)}
+    <div class="track" bind:this={track}>
+        <span
+            class="indicator"
+            class:on={indicator && highlightActive}
+            class:ready={indicatorReady}
+            style:--x="{indicator?.x ?? 0}px"
+            style:--y="{indicator?.y ?? 0}px"
+            style:--h="{indicator?.height ?? 0}px"
+            aria-hidden="true"
+        ></span>
+        <ul>
+            {#each headings as heading (heading.id)}
+                {#if !isHeadingHiddenByCollapsed(heading, collapsedIds)}
+                    {@const collapsed = collapsedIds.has(heading.id)}
+                    <li class="breadcrumb-row" transition:fold={{ duration: DURATION.fast }}>
+                        {#if headingHasChildren(heading)}
+                            <button
+                                class="breadcrumb-fold"
+                                type="button"
+                                aria-label={`${collapsed ? "Expand" : "Collapse"} ${heading.text}`}
+                                aria-expanded={!collapsed}
+                                onclick={() => onToggle(heading.id)}
+                            >
+                                <ChevronIcon {collapsed} size={16} />
+                            </button>
+                        {:else}
+                            <span class="breadcrumb-fold-spacer"></span>
+                        {/if}
+                        <a
+                            class="breadcrumb breadcrumb-{heading.tag.toLowerCase()}"
+                            class:active={activeId === heading.id && highlightActive}
+                            class:faded={activeId === heading.id && !highlightActive}
+                            aria-current={activeId === heading.id ? "location" : undefined}
+                            href="#{encodeURIComponent(heading.id)}"
+                            onclick={(event) => onOpen(heading.id, event)}>{heading.text}</a
                         >
-                            <ChevronIcon {collapsed} size={16} />
-                        </button>
-                    {:else}
-                        <span class="breadcrumb-fold-spacer"></span>
-                    {/if}
-                    <a
-                        class="breadcrumb breadcrumb-{heading.tag.toLowerCase()}"
-                        class:active={activeId === heading.id && highlightActive}
-                        class:faded={activeId === heading.id && !highlightActive}
-                        aria-current={activeId === heading.id ? "location" : undefined}
-                        href="#{encodeURIComponent(heading.id)}"
-                        onclick={(event) => onOpen(heading.id, event)}>{heading.text}</a
-                    >
-                </li>
-            {/if}
-        {/each}
-    </ul>
+                    </li>
+                {/if}
+            {/each}
+        </ul>
+    </div>
 </nav>
 
 <style>
@@ -88,6 +128,44 @@
         padding: 2px 10px 3rem 2px;
         scrollbar-gutter: stable;
         mask-image: linear-gradient(to bottom, black calc(100% - 3rem), transparent);
+    }
+
+    .track {
+        position: relative;
+    }
+
+    .indicator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 2px;
+        height: var(--h);
+        border-radius: 2px;
+        background: var(--accent);
+        transform: translate(calc(var(--x) - 7px), var(--y));
+        opacity: 0;
+        pointer-events: none;
+        /* fades out as slowly as the text highlight after load */
+        transition: opacity 0.9s ease;
+
+        &.on {
+            opacity: 1;
+            transition: opacity var(--dur-fast) ease;
+        }
+
+        &.ready {
+            transition:
+                transform var(--dur-base) var(--ease-out),
+                height var(--dur-base) var(--ease-out),
+                opacity 0.9s ease;
+        }
+
+        &.ready.on {
+            transition:
+                transform var(--dur-base) var(--ease-out),
+                height var(--dur-base) var(--ease-out),
+                opacity var(--dur-fast) ease;
+        }
     }
 
     ul {
