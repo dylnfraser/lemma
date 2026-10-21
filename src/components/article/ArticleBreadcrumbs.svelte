@@ -20,14 +20,14 @@
     let list: HTMLElement;
     let track: HTMLElement;
 
-    // Accent bar that glides to the active entry. Positioned from the link's layout box (offsets ignore transforms).
-    let indicator = $state<{ x: number; y: number; height: number } | null>(null);
+    // Accent bar that glides along a fixed rail to the active entry. Positioned from the link's layout box.
+    let indicator = $state<{ y: number; height: number } | null>(null);
     // No gliding into place on first render; only later moves animate.
     let indicatorReady = $state(false);
 
     function placeIndicator() {
         const active = track?.querySelector<HTMLElement>('.breadcrumb[aria-current="location"]');
-        const next = active ? { x: active.offsetLeft, y: active.offsetTop, height: active.offsetHeight } : null;
+        const next = active ? { y: active.offsetTop, height: active.offsetHeight } : null;
         indicator = next;
         if (next && !indicatorReady) requestAnimationFrame(() => (indicatorReady = true));
     }
@@ -71,8 +71,7 @@
             class="indicator"
             class:on={indicator && highlightActive}
             class:ready={indicatorReady}
-            style:--x="{indicator?.x ?? 0}px"
-            style:--y="{indicator?.y ?? 0}px"
+                style:--y="{indicator?.y ?? 0}px"
             style:--h="{indicator?.height ?? 0}px"
             aria-hidden="true"
         ></span>
@@ -111,7 +110,8 @@
 
 <style>
     .outline-title {
-        margin: 0 0 0.85rem 1.2rem;
+        /* aligned with the entries' text: rail padding + fold-button column */
+        margin: 0 0 0.85rem calc(12px + 1.2rem + 2px);
         font-size: 0.72rem;
         font-weight: 650;
         letter-spacing: 0.08em;
@@ -130,23 +130,35 @@
         mask-image: linear-gradient(to bottom, black calc(100% - 3rem), transparent);
     }
 
+    /* entries sit right of a faint rail; the active marker always rides that same rail, at every level */
     .track {
         position: relative;
+        padding-left: 12px;
+
+        &::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 1px;
+            width: 1px;
+            background: var(--rule);
+        }
     }
 
     .indicator {
         position: absolute;
         top: 0;
         left: 0;
-        width: 2px;
+        width: 3px;
         height: var(--h);
-        border-radius: 2px;
+        border-radius: 3px;
         background: var(--accent);
-        transform: translate(calc(var(--x) - 7px), var(--y));
+        transform: translateY(var(--y));
         opacity: 0;
         pointer-events: none;
         /* fades out as slowly as the text highlight after load */
-        transition: opacity 0.9s ease;
+        transition: opacity var(--dur-fade) ease;
 
         &.on {
             opacity: 1;
@@ -157,7 +169,7 @@
             transition:
                 transform var(--dur-base) var(--ease-out),
                 height var(--dur-base) var(--ease-out),
-                opacity 0.9s ease;
+                opacity var(--dur-fade) ease;
         }
 
         &.ready.on {
@@ -214,9 +226,9 @@
         white-space: nowrap;
         text-decoration: none;
         transition:
-            color 0.15s ease,
-            font-weight 0.15s ease,
-            opacity 0.15s ease;
+            color var(--dur-fast) ease,
+            font-weight var(--dur-fast) ease,
+            opacity var(--dur-fast) ease;
 
         &:hover {
             opacity: 1;
@@ -225,11 +237,7 @@
 
         /* the post-load highlight eases out slowly rather than snapping off */
         &.faded {
-            transition-duration: 0.9s;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            transition: none;
+            transition-duration: var(--dur-fade);
         }
     }
 

@@ -71,6 +71,8 @@ body *::-webkit-scrollbar-thumb {
     --dur-fast: 150ms;
     --dur-base: 240ms;
     --dur-slow: 420ms;
+    /* long, gentle fades (e.g. the outline highlight easing out after load) */
+    --dur-fade: 900ms;
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
     --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 
@@ -80,6 +82,7 @@ body *::-webkit-scrollbar-thumb {
         --dur-fast: 0ms;
         --dur-base: 0ms;
         --dur-slow: 0ms;
+        --dur-fade: 0ms;
     }
 
     /* derived from the palette above, so they follow light/dark automatically */
@@ -198,7 +201,9 @@ h6 {
 }
 
 a {
-    transition: color 0.2s, text-decoration-color 0.2s;
+    transition:
+        color var(--dur-fast),
+        text-decoration-color var(--dur-fast);
     color: inherit;
     text-decoration-color: currentColor;
 }
