@@ -15,7 +15,7 @@
     let { name, size = "1em" }: { name: IconName; size?: string } = $props();
 </script>
 
-<span class="icon" style:--icon="var(--icon-{name})" style:--size={size} aria-hidden="true"></span>
+<span class="icon" data-icon={name} style:--icon="var(--icon-{name})" style:--size={size} aria-hidden="true"></span>
 
 <style>
     .icon {
@@ -27,5 +27,6 @@
         background-color: currentColor;
         mask: var(--icon) center / contain no-repeat;
         -webkit-mask: var(--icon) center / contain no-repeat;
+        transition: translate var(--dur-fast) var(--ease-out);
     }
 </style>

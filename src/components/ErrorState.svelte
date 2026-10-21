@@ -68,6 +68,9 @@
         border-radius: 999px;
         background: var(--bg-color);
         cursor: pointer;
+        transition:
+            border-color var(--dur-fast),
+            scale var(--dur-instant) var(--ease-out);
 
         &:hover {
             border-color: var(--accent);

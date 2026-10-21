@@ -118,6 +118,8 @@
 
     .edited {
         font-weight: 500;
+        /* it arrives after the article, so ease it in rather than popping */
+        animation: appear var(--dur-base) var(--ease-out) both;
     }
 
     .license a {

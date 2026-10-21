@@ -7,34 +7,48 @@
 </svelte:head>
 
 <ReaderLayout>
-    <header class="about-header">
-        <h1 id="title">About Lemma</h1>
-    </header>
+    <div class="about">
+        <header class="about-header">
+            <h1 id="title">About Lemma</h1>
+        </header>
 
-    <p>
-        Lemma is a private, fast Wikipedia reader built for calm, focused browsing. It strips away visual clutter and
-        presents articles in a clean custom layout with strong typography and lightweight navigation.
-    </p>
-
-    <section>
-        <h2>Why it exists</h2>
         <p>
-            Lemma is designed for quick lookups, deeper reading, and browsing Wikipedia without the usual noise. It’s
-            meant to feel private, fast, and pleasant enough that reading becomes the default.
+            Lemma is a private, fast Wikipedia reader built for calm, focused browsing. It strips away visual clutter and
+            presents articles in a clean custom layout with strong typography and lightweight navigation.
         </p>
-    </section>
 
-    <section>
-        <h2>How it works</h2>
-        <p>
-            Lemma fetches articles straight from Wikipedia’s public endpoints in your browser, with no API key, backend
-            proxy, or server-side cache, then renders just the readable content in a distraction-free reader.
-        </p>
-        <p>It’s built with SvelteKit, Svelte 5, Vite, TypeScript, and Bun.</p>
-    </section>
+        <section>
+            <h2>Why it exists</h2>
+            <p>
+                Lemma is designed for quick lookups, deeper reading, and browsing Wikipedia without the usual noise. It’s
+                meant to feel private, fast, and pleasant enough that reading becomes the default.
+            </p>
+        </section>
+
+        <section>
+            <h2>How it works</h2>
+            <p>
+                Lemma fetches articles straight from Wikipedia’s public endpoints in your browser, with no API key, backend
+                proxy, or server-side cache, then renders just the readable content in a distraction-free reader.
+            </p>
+            <p>It’s built with SvelteKit, Svelte 5, Vite, TypeScript, and Bun.</p>
+        </section>
+    </div>
 </ReaderLayout>
 
 <style>
+    /* the same gentle entrance as an article (see ArticleView) */
+    .about {
+        animation: about-in var(--dur-slow) var(--ease-out) backwards;
+    }
+
+    @keyframes about-in {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+    }
+
     .about-header {
         margin: 1.5rem 0 2rem;
         padding-bottom: 1.5rem;

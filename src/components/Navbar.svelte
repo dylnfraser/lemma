@@ -105,6 +105,10 @@
         border-radius: 8px;
         cursor: pointer;
         opacity: 0.85;
+        transition:
+            opacity var(--dur-fast),
+            border-color var(--dur-fast),
+            scale var(--dur-instant) var(--ease-out);
 
         &:hover {
             opacity: 1;
