@@ -6,8 +6,8 @@
     let heading = $derived(isNotFound ? "404" : String(page.status));
     let message = $derived(
         isNotFound
-            ? "We couldn’t find what you were looking for. The page may have been moved, renamed, or no longer exists. Try going back or heading to the homepage."
-            : (page.error?.message ?? "Something went wrong."),
+            ? "We looked everywhere, but there’s nothing at this address. It may have moved, been renamed, or never existed in the first place. Try going back, or start fresh from the homepage."
+            : `Something went sideways on our end${page.error?.message ? ` (${page.error.message})` : ""}. A reload usually sorts it out.`,
     );
 </script>
 
@@ -17,7 +17,7 @@
 </svelte:head>
 
 <main id="main">
-    <ErrorState {heading} {message} onRetry={isNotFound ? undefined : () => location.reload()} />
+    <ErrorState {heading} {message} onRetry={isNotFound ? undefined : () => location.reload()} retryLabel="Reload the page" />
 </main>
 
 <style>

@@ -2,7 +2,7 @@
     import { invalidateAll } from "$app/navigation";
     import type { Snapshot } from "./$types";
     import { WikipediaError } from "$lib/api/wikipedia";
-    import type { ParsedArticle } from "$lib/article/types";
+    import type { ArticleMeta, ParsedArticle } from "$lib/article/types";
     import ArticleSkeleton from "../../../components/article/ArticleSkeleton.svelte";
     import ArticleView, { type ArticleViewState } from "../../../components/article/ArticleView.svelte";
     import ErrorState from "../../../components/ErrorState.svelte";
@@ -12,7 +12,7 @@
 
     type View =
         | { status: "loading" }
-        | { status: "ready"; article: ParsedArticle; redirectFragment: string }
+        | { status: "ready"; article: ParsedArticle; redirectFragment: string; meta: ArticleMeta }
         | { status: "error"; error: unknown };
 
     let view = $state.raw<View>({ status: "loading" });
@@ -51,26 +51,26 @@
         switch (kind) {
             case "not_found":
                 return {
-                    heading: "No such article",
-                    message: `Wikipedia doesn't have an article called “${data.requestedTitle}”.`,
+                    heading: "Nothing by that name",
+                    message: `Wikipedia doesn't have an article called “${data.requestedTitle}”, at least not under that exact title. It might be spelled differently, or live under a broader topic. The search up top should find it.`,
                     retry: false,
                 };
             case "offline":
                 return {
-                    heading: "You're offline",
-                    message: `Couldn't reach Wikipedia to load “${data.requestedTitle}”. Check your connection and try again.`,
+                    heading: "Lost the connection",
+                    message: `We couldn't reach Wikipedia to fetch “${data.requestedTitle}”. It looks like you're offline, or the network dropped for a moment. Once you're back online, give it another go.`,
                     retry: true,
                 };
             case "timeout":
                 return {
-                    heading: "That took too long",
-                    message: `Wikipedia didn't respond in time while loading “${data.requestedTitle}”.`,
+                    heading: "Taking its time",
+                    message: `Wikipedia is being slow to answer for “${data.requestedTitle}”. That usually clears up in a moment, so it's worth another try.`,
                     retry: true,
                 };
             default:
                 return {
-                    heading: "Something went wrong",
-                    message: `Lemma couldn't load “${data.requestedTitle}” from Wikipedia.`,
+                    heading: "Something went sideways",
+                    message: `We hit a snag loading “${data.requestedTitle}” from Wikipedia. It's probably a hiccup on their end or ours, and trying again usually sorts it out.`,
                     retry: true,
                 };
         }
@@ -92,6 +92,7 @@
             bind:this={articleView}
             article={view.article}
             redirectFragment={view.redirectFragment}
+            meta={view.meta}
             {restoreState}
         />
     {/key}
@@ -101,8 +102,8 @@
             <ErrorState
                 heading={errorDetails.heading}
                 message={errorDetails.message}
-                searchQuery={data.requestedTitle}
                 onRetry={errorDetails.retry ? () => invalidateAll() : undefined}
+                retryLabel="Give it another go"
             />
         </div>
     </ReaderLayout>
