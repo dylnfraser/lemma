@@ -95,21 +95,19 @@
             {restoreState}
         />
     {/key}
-{:else}
+{:else if errorDetails}
     <ReaderLayout>
-        {#if errorDetails}
-            <div class="error-wrapper">
-                <ErrorState
-                    heading={errorDetails.heading}
-                    message={errorDetails.message}
-                    searchQuery={data.requestedTitle}
-                    onRetry={errorDetails.retry ? () => invalidateAll() : undefined}
-                />
-            </div>
-        {:else}
-            <ArticleSkeleton seed={data.requestedTitle} />
-        {/if}
+        <div class="error-wrapper">
+            <ErrorState
+                heading={errorDetails.heading}
+                message={errorDetails.message}
+                searchQuery={data.requestedTitle}
+                onRetry={errorDetails.retry ? () => invalidateAll() : undefined}
+            />
+        </div>
     </ReaderLayout>
+{:else}
+    <ArticleSkeleton seed={data.requestedTitle} />
 {/if}
 
 <style>

@@ -1,36 +1,86 @@
 <script lang="ts">
+    import ReaderLayout from "../ReaderLayout.svelte";
+
     let { seed }: { seed: string } = $props();
 
-    // Stable, title-seeded line widths so the skeleton doesn't jitter between renders.
-    let widths = $derived.by(() => {
+    // Lines per paragraph, and how many entries the placeholder outline shows.
+    const PARAGRAPHS = [4, 5, 3];
+    const OUTLINE_ENTRIES = 9;
+
+    // Stable, title-seeded widths (as percentages) so the skeleton doesn't jitter between renders.
+    let layout = $derived.by(() => {
         let state = 2166136261;
         for (const character of seed) {
             state ^= character.charCodeAt(0);
             state = Math.imul(state, 16777619);
         }
-
-        return Array.from({ length: 8 }, () => {
+        const random = (min: number, max: number) => {
             state = Math.imul(state, 1664525) + 1013904223;
-            return 62 + ((state >>> 0) % 39);
-        });
+            return min + ((state >>> 0) % (max - min + 1));
+        };
+
+        return {
+            // full lines run nearly to the measure; each paragraph's last line stops short
+            paragraphs: PARAGRAPHS.map((lines) =>
+                Array.from({ length: lines }, (_, i) => (i === lines - 1 ? random(35, 70) : random(92, 100))),
+            ),
+            outline: Array.from({ length: OUTLINE_ENTRIES }, () => random(40, 85)),
+        };
     });
 </script>
 
-<div class="article-skeleton" role="status" aria-label="Loading article">
-    <div class="skeleton skeleton-title"></div>
-    <div class="skeleton skeleton-meta"></div>
-    <div class="skeleton skeleton-rule"></div>
-    {#each widths as width, i}
-        <div class="skeleton skeleton-line" class:paragraph-break={i === 5} style:--skeleton-width="{width}%"></div>
-    {/each}
-</div>
+<!-- Mirrors ArticleView's layout (outline, header, margin infobox, body) so nothing jumps when the article lands. -->
+<ReaderLayout>
+    {#snippet outline()}
+        <div class="outline-skeleton" aria-hidden="true">
+            <p class="outline-title">Contents</p>
+            <div class="track">
+                {#each layout.outline as width}
+                    <div class="outline-row"><span class="skeleton bar" style:--width="{width}%"></span></div>
+                {/each}
+            </div>
+        </div>
+    {/snippet}
+
+    <div class="article-skeleton" role="status" aria-label="Loading article">
+        <div class="header" aria-hidden="true">
+            <div class="skeleton bar title"></div>
+            <div class="skeleton bar description"></div>
+            <div class="skeleton bar meta"></div>
+        </div>
+
+        <div class="infobox-skeleton" aria-hidden="true">
+            <div class="skeleton bar infobox-title"></div>
+            <div class="skeleton infobox-image"></div>
+            {#each { length: 6 } as _}
+                <div class="infobox-row">
+                    <span class="skeleton bar"></span>
+                    <span class="skeleton bar"></span>
+                </div>
+            {/each}
+        </div>
+
+        <div class="body" aria-hidden="true">
+            {#each layout.paragraphs as lines}
+                <div class="paragraph">
+                    {#each lines as width}
+                        <div class="skeleton bar line" style:--width="{width}%"></div>
+                    {/each}
+                </div>
+            {/each}
+        </div>
+    </div>
+</ReaderLayout>
 
 <style>
-    .article-skeleton {
-        padding-top: 1.25rem;
-
+    .article-skeleton,
+    .outline-skeleton {
         /* held back briefly: preloaded or fast articles replace it before it ever flickers into view */
         animation: appear var(--dur-base) var(--ease-out) 120ms both;
+    }
+
+    .article-skeleton {
+        position: relative;
     }
 
     .skeleton {
@@ -49,31 +99,145 @@
         }
     }
 
-    .skeleton-title {
+    /*
+     * A bar takes up a whole line box (--line) like the text it stands in for, but only paints a --bar-thick strip in
+     * its middle. Padding rather than margins, so neighbouring bars' spacing never collapses.
+     */
+    .bar {
+        display: block;
+        box-sizing: border-box;
+        width: var(--width, 100%);
+        height: var(--line);
+        padding-block: calc((var(--line) - var(--bar)) / 2);
+        background-clip: content-box;
+        border-radius: 999px;
+    }
+
+    /* the same boxes as .article-header in ArticleView */
+    .header {
+        margin: 1.5rem 0 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .title {
+        --line: calc(clamp(2.1rem, 1.6rem + 2vw, 2.75rem) * 1.1);
+        --bar: calc(var(--line) * 0.62);
         width: min(70%, 22rem);
-        height: 2rem;
-        margin-bottom: 0.85rem;
     }
 
-    .skeleton-meta {
-        width: min(42%, 12rem);
-        height: 0.8rem;
-        margin-bottom: 1.25rem;
+    .description {
+        --line: calc(1.15rem * 1.4);
+        --bar: 0.85rem;
+        width: min(55%, 17rem);
+        margin-top: 0.6rem;
     }
 
-    .skeleton-rule {
-        width: 100%;
-        height: 2px;
-        margin-bottom: 1.5rem;
+    .meta {
+        --line: calc(0.8rem * 1.4);
+        --bar: 0.65rem;
+        width: min(60%, 20rem);
+        margin-top: 1rem;
     }
 
-    .skeleton-line {
-        width: var(--skeleton-width);
-        height: 0.9rem;
-        margin-bottom: 1.05rem;
+    .paragraph {
+        margin-bottom: 1.15em;
+    }
 
-        &.paragraph-break {
-            margin-top: 2rem;
+    .line {
+        --line: calc(1em * var(--leading));
+        --bar: 0.85em;
+    }
+
+    /* the opening paragraph reads as a standfirst on wider screens, as in ArticleContent */
+    @media (min-width: 640px) {
+        .paragraph:first-child {
+            font-size: 1.1em;
+        }
+    }
+
+    /* Only in the right margin, where it can't push the text around; inline, it would shift articles without one. */
+    .infobox-skeleton {
+        display: none;
+    }
+
+    @media (min-width: 1280px) {
+        .infobox-skeleton {
+            display: block;
+            position: absolute;
+            top: 1.5rem;
+            left: calc(100% + var(--gap));
+            box-sizing: border-box;
+            width: min(21rem, var(--side-width));
+            padding: 1rem;
+            border: 1px solid var(--rule);
+            border-radius: 14px;
+            background: color-mix(in oklch, var(--bg-color) 70%, var(--page-bg));
+        }
+    }
+
+    .infobox-title {
+        --line: 1.45rem;
+        --bar: 0.9rem;
+        width: 60%;
+        margin: 0 auto 0.75rem;
+    }
+
+    .infobox-image {
+        aspect-ratio: 4 / 3;
+        margin-bottom: 0.75rem;
+        border-radius: 8px;
+    }
+
+    .infobox-row {
+        display: grid;
+        grid-template-columns: 38% 1fr;
+        gap: 0.9rem;
+        padding: 0.5rem 0;
+        border-top: 1px solid color-mix(in oklch, var(--rule) 60%, transparent);
+
+        .bar {
+            --line: 1.15rem;
+            --bar: 0.6rem;
+        }
+
+        .bar:first-child {
+            width: 80%;
+        }
+    }
+
+    /* matches the outline in ArticleBreadcrumbs: label, then entries beside a faint rail */
+    .outline-title {
+        margin: 0 0 0.85rem calc(12px + 1.2rem + 2px);
+        font-size: 0.72rem;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+
+    .track {
+        position: relative;
+        /* bars start where the real entries' text does */
+        padding: 2px 0 0 calc(12px + 1.2rem + 8px);
+
+        &::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 3px;
+            width: 1px;
+            background: var(--rule);
+        }
+    }
+
+    .outline-row {
+        margin-bottom: 0.25rem;
+
+        .bar {
+            --line: 1.25rem;
+            --bar: 0.6rem;
         }
     }
 
