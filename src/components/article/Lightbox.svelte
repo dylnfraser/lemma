@@ -471,7 +471,11 @@
                     {#if image.caption}{@html image.caption}{/if}
                     {#if image.fileName}
                         <span class="credit">
-                            {#if credit?.artist}<span class="artist" title={credit.artist}>{credit.artist}</span>{/if}
+                            <!-- separators are their own elements: inside a link they'd be underlined and clickable -->
+                            {#if credit?.artist}
+                                <span class="artist" title={credit.artist}>{credit.artist}</span>
+                                <span class="sep" aria-hidden="true">·</span>
+                            {/if}
                             {#if credit?.license}
                                 {#if credit.licenseUrl}
                                     <a class="license" href={credit.licenseUrl} target="_blank" rel="noopener noreferrer"
@@ -480,6 +484,7 @@
                                 {:else}
                                     <span class="license">{credit.license}</span>
                                 {/if}
+                                <span class="sep" aria-hidden="true">·</span>
                             {/if}
                             <a href={getWikipediaArticleUrl(`File:${image.fileName}`)} target="_blank" rel="noopener noreferrer"
                                 >File details <Icon name="arrow-up-right" size="0.85em" /><span class="sr-only"> (opens in a new tab)</span></a
@@ -662,8 +667,7 @@
         font-size: 0.75rem;
         color: var(--muted);
 
-        > :not(:last-child)::after {
-            content: "·";
+        .sep {
             margin: 0 0.5em;
         }
 
@@ -675,7 +679,8 @@
 
         /* arrives after the caption; eases in rather than popping */
         .artist,
-        .license {
+        .license,
+        .sep {
             animation: appear var(--dur-base) var(--ease-out);
         }
 
