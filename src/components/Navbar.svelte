@@ -24,7 +24,6 @@
                 <kbd aria-hidden="true">/</kbd>
             </button>
         {/if}
-        <a href="/about" aria-current={page.route.id === "/about" ? "page" : undefined}>About</a>
     </nav>
 </header>
 
