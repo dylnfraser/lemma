@@ -65,7 +65,7 @@
         z-index: 30;
         position: fixed;
         inset: 0;
-        padding: min(28vh, 14rem) 1rem 0;
+        padding: min(22vh, 11rem) 1rem 0;
 
         background: color-mix(in oklch, var(--page-bg) 25%, transparent);
         backdrop-filter: blur(4px);
