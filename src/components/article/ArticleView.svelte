@@ -111,6 +111,16 @@
         });
     }
 
+    /** Briefly lights up the element the reader jumped to, so the eye can find it after the scroll. */
+    function flash(element: HTMLElement) {
+        element.classList.remove("jump-flash");
+        void element.offsetWidth; // restart the animation when jumping to the same target twice
+        element.classList.add("jump-flash");
+        const clear = () => element.classList.remove("jump-flash");
+        element.addEventListener("animationend", clear, { once: true });
+        setTimeout(clear, 2000); // in case the animation never runs
+    }
+
     /** Opens any folded sections hiding `id` and returns its element once rendered. */
     async function reveal(id: string): Promise<HTMLElement | null> {
         const blockIndex = anchors[id];
@@ -136,6 +146,7 @@
             // A native hash change scrolls (respecting scroll-margin), sets :target and adds a history entry.
             location.hash = id;
         }
+        flash(element);
 
         if (headingsById.has(id)) {
             // A deliberate jump always shows where the reader landed, even during the load fade.
@@ -196,6 +207,7 @@
         if (!restoreState && fragment) {
             reveal(fragment).then((element) => {
                 element?.scrollIntoView();
+                if (element) flash(element);
                 if (headingsById.has(fragment)) setActiveHeading(fragment);
                 else scheduleActiveUpdate();
             });
@@ -221,6 +233,8 @@
 </svelte:head>
 
 <svelte:window onscroll={scheduleActiveUpdate} onresize={scheduleActiveUpdate} />
+
+<div class="reading-progress" aria-hidden="true"></div>
 
 <ReaderLayout>
     {#snippet outline({ close })}
@@ -262,6 +276,49 @@
 </ReaderLayout>
 
 <style>
+    article {
+        /* `backwards` so no transform lingers afterwards (it would trap the fixed/sticky children's positioning) */
+        animation: article-in var(--dur-slow) var(--ease-out) backwards;
+    }
+
+    @keyframes article-in {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+    }
+
+    /* A hairline under the navbar that fills as you read; pure CSS, only where scroll-driven animations exist. */
+    .reading-progress {
+        display: none;
+    }
+
+    @supports (animation-timeline: scroll()) {
+        .reading-progress {
+            display: block;
+            position: fixed;
+            z-index: 21;
+            top: calc(var(--nav-height) - 1px);
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent);
+            transform-origin: 0 50%;
+            animation: reading-progress linear both;
+            animation-timeline: scroll(root);
+        }
+    }
+
+    @keyframes reading-progress {
+        from {
+            transform: scaleX(0);
+        }
+
+        to {
+            transform: scaleX(1);
+        }
+    }
+
     .article-header {
         margin: 1.5rem 0 2rem;
         padding-bottom: 1.5rem;

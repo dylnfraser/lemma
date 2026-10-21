@@ -2,6 +2,7 @@
     import { isBlockHiddenByCollapsed } from "$lib/article/articleNavigation";
     import { isFoldableHeadingLevel } from "$lib/article/articleUtils";
     import type { ArticleBlock } from "$lib/article/types";
+    import { fold } from "$lib/motion";
     import ChevronIcon from "../icons/ChevronIcon.svelte";
     import ImageFan from "./ImageFan.svelte";
 
@@ -13,6 +14,9 @@
     }
 
     let { blocks, collapsedSectionIds, onToggleSection, onclick }: Props = $props();
+
+    // The opening paragraph is styled as a standfirst.
+    let leadIndex = $derived(blocks.findIndex((block) => block.type === "html" && block.kind === "paragraph"));
 
     let copyStatus = $state<{ id: string; ok: boolean } | null>(null);
     let copiedResetTimer: ReturnType<typeof setTimeout>;
@@ -46,7 +50,7 @@
             {#if block.type === "heading"}
                 {@const heading = block.heading}
                 {@const collapsed = collapsedSectionIds.has(heading.id)}
-                <svelte:element this={heading.tag.toLowerCase()} id={heading.id} data-heading>
+                <svelte:element this={heading.tag.toLowerCase()} id={heading.id} data-heading transition:fold>
                     {#if isFoldableHeadingLevel(heading.level)}
                         <button
                             class="chev"
@@ -70,10 +74,12 @@
                     </button>
                 </svelte:element>
             {:else if block.type === "images" && block.images.length > 1}
-                <ImageFan images={block.images} />
+                <div class="block images" transition:fold>
+                    <ImageFan images={block.images} />
+                </div>
             {:else if block.type === "images"}
                 {@const image = block.images[0]}
-                <div class="wiki-images">
+                <div class="wiki-images" transition:fold>
                     <figure>
                         <img
                             alt={image.alt}
@@ -90,9 +96,10 @@
                     </figure>
                 </div>
             {:else if block.kind === "table"}
-                <div class="table-scroll">{@html block.html}</div>
+                <div class="table-scroll" transition:fold>{@html block.html}</div>
             {:else}
-                {@html block.html}
+                <!-- spacing lives on this wrapper (not the HTML inside) so folding never jumps by a collapsed margin -->
+                <div class="block {block.kind}" class:lead={i === leadIndex} transition:fold>{@html block.html}</div>
             {/if}
         {/if}
     {/each}
@@ -122,10 +129,10 @@
             scroll-margin-top: calc(var(--nav-height) + 1.5rem);
         }
 
-        :global(:target) {
+        /* jumping to a citation or section briefly lights it up, then fades */
+        :global(.jump-flash) {
             border-radius: 4px;
-            background: color-mix(in oklch, var(--accent) 12%, transparent);
-            box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 12%, transparent);
+            animation: jump-flash 1.6s var(--ease-out);
         }
 
         :global(p) {
@@ -134,7 +141,7 @@
 
         /* On wider screens the opening paragraph reads as a standfirst. */
         @media (min-width: 640px) {
-            > :global(p:first-of-type) {
+            .lead :global(p) {
                 font-size: 1.1em;
                 line-height: 1.65;
             }
@@ -157,8 +164,8 @@
             text-decoration-color: color-mix(in oklch, currentColor 28%, transparent);
             text-underline-offset: 0.22em;
             transition:
-                color 0.15s,
-                text-decoration-color 0.15s;
+                color var(--dur-fast),
+                text-decoration-color var(--dur-fast);
         }
 
         :global(a:hover) {
@@ -354,6 +361,25 @@
         }
     }
 
+    /* ---------- block spacing ---------- */
+
+    .block {
+        margin: 0 0 1.15em;
+
+        &.quote {
+            margin: 1.75em 0;
+        }
+
+        &.images {
+            margin: 2.25rem 0;
+        }
+    }
+
+    /* anchored under .article-body so it outranks the element rules above (p, ul, blockquote…) */
+    .article-body .block > :global(*) {
+        margin-block: 0;
+    }
+
     /* ---------- headings ---------- */
 
     .article-body :global(:is(h1, h2, h3, h4, h5, h6)) {
@@ -416,8 +442,9 @@
         cursor: pointer;
         opacity: 0.6;
         transition:
-            opacity 0.2s,
-            background-color 0.2s;
+            opacity var(--dur-fast),
+            background-color var(--dur-fast),
+            scale var(--dur-instant) var(--ease-out);
 
         &:hover {
             opacity: 1;
@@ -447,7 +474,10 @@
         color: var(--muted);
         cursor: pointer;
         opacity: 0;
-        transition: opacity 0.15s ease;
+        transition:
+            opacity var(--dur-fast) ease,
+            background-color var(--dur-fast),
+            scale var(--dur-instant) var(--ease-out);
 
         &:hover {
             background: color-mix(in oklch, var(--secondary) 40%, transparent);
@@ -470,6 +500,19 @@
         animation: copy-confirm 0.2s ease-in;
         @media (prefers-reduced-motion: reduce) {
             animation: none;
+        }
+    }
+
+    @keyframes -global-jump-flash {
+        from,
+        15% {
+            background-color: color-mix(in oklch, var(--accent) 22%, transparent);
+            box-shadow: 0 0 0 4px color-mix(in oklch, var(--accent) 22%, transparent);
+        }
+
+        to {
+            background-color: transparent;
+            box-shadow: 0 0 0 4px transparent;
         }
     }
 

@@ -29,10 +29,8 @@
     .article-skeleton {
         padding-top: 1.25rem;
 
-        animation: appear 0.25s ease-out both;
-        @media (prefers-reduced-motion: reduce) {
-            animation: none;
-        }
+        /* held back briefly: preloaded or fast articles replace it before it ever flickers into view */
+        animation: appear var(--dur-base) var(--ease-out) 120ms both;
     }
 
     .skeleton {
