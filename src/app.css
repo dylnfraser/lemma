@@ -12,11 +12,16 @@
     font-display: swap;
 }
 
-::-webkit-scrollbar {
+/*
+ * Thin scrollbars for inner scroll areas (outline, wide tables) only. Styling the page's own scrollbar makes
+ * Chrome and Safari reserve a gutter instead of overlaying it, which leaves a strip the fixed navbar can't cover.
+ */
+body *::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
 }
 
-::-webkit-scrollbar-thumb {
+body *::-webkit-scrollbar-thumb {
     background: var(--secondary);
     border-radius: 10px;
 }

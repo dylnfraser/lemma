@@ -57,6 +57,11 @@ describe("parseArticle", () => {
     expect(allHtml(article)).toContain("mwe-math-fallback-image-inline");
   });
 
+  it("ignores icon-sized images such as map markers", () => {
+    const sources = imageBlocks(article).flatMap((block) => block.images.map((image) => image.src));
+    expect(sources.some((src) => src.includes("Marker.svg"))).toBe(false);
+  });
+
   it("groups adjacent images and only upscales files that are large enough", () => {
     const group = imageBlocks(article).find((block) => block.images.length === 2)!;
     const [small, big] = group.images;

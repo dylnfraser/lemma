@@ -23,6 +23,7 @@ export const ORDINARY_ARTICLE = `<div class="mw-content-ltr mw-parser-output" la
 <table class="multicol"><tbody><tr><td><p>Layout table paragraph</p></td></tr></tbody></table>
 <figure typeof="mw:File/Thumb"><a href="/wiki/File:Small.jpg"><img alt="" src="${thumb("Small.jpg", 250)}" srcset="${thumb("Small.jpg", 500)} 2x" width="250" height="200" data-file-width="600" /></a><figcaption></figcaption></figure>
 <figure typeof="mw:File/Thumb"><a href="/wiki/File:Big.jpg"><img alt="Big photo" src="${thumb("Big.jpg", 250)}" width="250" height="180" data-file-width="4000" /></a><figcaption>A big photo</figcaption></figure>
+<div class="legend"><span><a href="/wiki/File:Marker.svg"><img src="${thumb("Marker.svg", 20, ".png")}" width="8" height="13" data-file-width="100" /></a></span></div>
 <blockquote><p>A quotation paragraph.</p></blockquote>
 <div class="mw-heading mw-heading2"><h2 id="References">References</h2></div>
 <div class="reflist"><div class="mw-references-wrap"><ol class="references"><li id="cite_note-1"><span class="mw-cite-backlink"><b><a href="#cite_ref-1">^</a></b></span> <span class="reference-text">A source with <a href="https://example.org/book" class="external text">a link</a>.</span></li></ol></div></div>

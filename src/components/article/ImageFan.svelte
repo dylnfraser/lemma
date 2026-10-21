@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { tick } from "svelte";
+    import { prefersReducedMotion } from "svelte/motion";
     import type { ArticleImage } from "$lib/article/types";
 
     interface Props {
@@ -11,13 +13,134 @@
     const MAX_FANNED = 4;
     const uid = $props.id();
 
+    // Springy ease-out so cards overshoot a touch as they land, like iMessage's photo stacks.
+    const EASING = "cubic-bezier(0.22, 1.2, 0.36, 1)";
+    const DURATION_MS = 560;
+    const STAGGER_MS = 35;
+    // The surrounding text glides with the height change, without overshoot.
+    const HEIGHT_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
+    // Final clip extends past the image so its drop shadow is never cut off when the clip is removed.
+    const OPEN_CLIP = "inset(-48px -48px round 60px)";
+
     let expanded = $state(false);
     let toggledByReader = false;
     let fanned = $derived(images.slice(0, MAX_FANNED));
+    let fanButton = $state<HTMLButtonElement>();
+    let grid = $state<HTMLElement>();
 
-    function toggle(next: boolean) {
+    type Rect = { cx: number; cy: number; width: number; height: number };
+
+    function centre(rect: DOMRect): Rect {
+        return { cx: rect.left + rect.width / 2, cy: rect.top + rect.height / 2, width: rect.width, height: rect.height };
+    }
+
+    /** Smoothly resize the block between the stack's and the grid's heights so the text below doesn't jump. */
+    function animateHeight(element: HTMLElement, fromHeight: number) {
+        const toHeight = element.getBoundingClientRect().height;
+        element.animate([{ height: `${fromHeight}px` }, { height: `${toHeight}px` }], {
+            duration: DURATION_MS,
+            easing: HEIGHT_EASING,
+        });
+    }
+
+    /** Where each card currently appears: its centre, angle and on-screen width (hover spread included). */
+    function measureCards() {
+        return [...(fanButton?.querySelectorAll<HTMLElement>(".card") ?? [])].map((card) => {
+            const matrix = new DOMMatrix(getComputedStyle(card).transform);
+            const scale = Math.hypot(matrix.a, matrix.b) || 1;
+            // A rotated box's bounding-rect centre is still its true centre.
+            return {
+                ...centre(card.getBoundingClientRect()),
+                width: card.offsetWidth * scale,
+                height: card.offsetHeight * scale,
+                angle: Math.atan2(matrix.b, matrix.a),
+            };
+        });
+    }
+
+    function fadeIn(elements: Iterable<Element>, delay: number) {
+        for (const element of elements) {
+            element.animate([{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }], {
+                duration: 280,
+                delay,
+                easing: "ease-out",
+                fill: "backwards",
+            });
+        }
+    }
+
+    /** FLIP: render the grid, then fly each image out from the card it was shown on. */
+    async function expand() {
+        const cards = measureCards();
+        const stackHeight = fanButton?.parentElement?.getBoundingClientRect().height ?? 0;
         toggledByReader = true;
-        expanded = next;
+        expanded = true;
+        await tick();
+        if (prefersReducedMotion.current || !grid || cards.length === 0) return;
+
+        animateHeight(grid, stackHeight);
+
+        grid.querySelectorAll<HTMLElement>("figure img").forEach((image, index) => {
+            const target = centre(image.getBoundingClientRect());
+            // Images that were hidden behind the stack emerge from the front card.
+            const from = cards[index] ?? cards[0];
+            // Start scaled to cover the card and clipped to the card's crop, then unclip in flight: a true morph.
+            const scale = Math.max(from.width / target.width, from.height / target.height);
+            const insetX = (target.width - from.width / scale) / 2;
+            const insetY = (target.height - from.height / scale) / 2;
+
+            image.animate(
+                [
+                    {
+                        transform: `translate(${from.cx - target.cx}px, ${from.cy - target.cy}px) rotate(${from.angle}rad) scale(${scale})`,
+                        clipPath: `inset(${insetY}px ${insetX}px round ${18 / scale}px)`,
+                        opacity: index < cards.length ? 1 : 0,
+                    },
+                    { transform: "none", clipPath: OPEN_CLIP, opacity: 1 },
+                ],
+                { duration: DURATION_MS, delay: index * STAGGER_MS, easing: EASING, fill: "backwards" },
+            );
+        });
+
+        fadeIn(grid.querySelectorAll("figcaption, .collapse"), DURATION_MS * 0.55);
+    }
+
+    /** Reverse FLIP: render the stack, then fly each card back from its spot in the grid onto its fanned pose. */
+    async function collapse() {
+        const images = [...(grid?.querySelectorAll<HTMLElement>("figure img") ?? [])].map((image) =>
+            centre(image.getBoundingClientRect()),
+        );
+        const gridHeight = grid?.getBoundingClientRect().height ?? 0;
+        toggledByReader = true;
+        expanded = false;
+        await tick();
+        if (prefersReducedMotion.current || !fanButton || images.length === 0) return;
+
+        if (fanButton.parentElement) animateHeight(fanButton.parentElement, gridHeight);
+
+        // Cards are laid out over the button and rotate around 50% 90%, so solve the start transform for that origin.
+        const box = fanButton.getBoundingClientRect();
+        const base = centre(box);
+        const origin = { x: box.left + box.width * 0.5, y: box.top + box.height * 0.9 };
+
+        fanButton.querySelectorAll<HTMLElement>(".card").forEach((card, index) => {
+            const from = images[index];
+            if (!from) return;
+            // Cards show a centre crop of their image, so start each one exactly over that crop of the grid image.
+            const scale = Math.min(from.width / card.offsetWidth, from.height / card.offsetHeight);
+            const tx = from.cx - origin.x - scale * (base.cx - origin.x);
+            const ty = from.cy - origin.y - scale * (base.cy - origin.y);
+
+            card.animate(
+                [
+                    { transform: `translate(${tx}px, ${ty}px) scale(${scale})`, borderRadius: `${12 / scale}px` },
+                    { transform: getComputedStyle(card).transform, borderRadius: "18px" },
+                ],
+                { duration: DURATION_MS, delay: index * STAGGER_MS, easing: EASING, fill: "backwards" },
+            );
+        });
+
+        fadeIn(fanButton.parentElement?.querySelectorAll(".badge, figcaption") ?? [], DURATION_MS * 0.6);
     }
 
     // Expanding/collapsing replaces the focused control, so move focus to its counterpart (never on first render).
@@ -35,17 +158,26 @@
 </script>
 
 {#if expanded}
-    <div class="expanded" id="{uid}-grid" tabindex="-1" aria-label={`${images.length} images`} role="group" use:focusWhenToggled>
+    <div
+        class="expanded"
+        id="{uid}-grid"
+        tabindex="-1"
+        aria-label={`${images.length} images`}
+        role="group"
+        bind:this={grid}
+        use:focusWhenToggled
+    >
         <div class="grid">
-            {#each images as image}
-                <figure>
+            {#each images as image, i}
+                <!-- earlier images stay on top while they fly out, matching the stack's order -->
+                <figure style:z-index={images.length - i}>
+                    <!-- not lazy: the cards already loaded these, and the animation needs their real size -->
                     <img
                         alt={image.alt}
                         src={image.src}
                         width={image.width}
                         height={image.height}
                         class:invert-dark={image.invertInDarkMode}
-                        loading="lazy"
                         decoding="async"
                     />
                     {#if image.caption}
@@ -54,7 +186,7 @@
                 </figure>
             {/each}
         </div>
-        <button type="button" class="collapse" aria-controls="{uid}-grid" onclick={() => toggle(false)}>
+        <button type="button" class="collapse" aria-controls="{uid}-grid" onclick={collapse}>
             Stack images
         </button>
     </div>
@@ -65,7 +197,8 @@
             class="fan"
             aria-expanded="false"
             aria-label={`Show all ${images.length} images`}
-            onclick={() => toggle(true)}
+            onclick={expand}
+            bind:this={fanButton}
             use:focusWhenToggled
         >
             {#each fanned as image, i}
@@ -197,8 +330,6 @@
         &:focus {
             outline: none;
         }
-
-        animation: grid-in 0.3s ease both;
     }
 
     .grid {
@@ -208,6 +339,7 @@
         align-items: start;
 
         figure {
+            position: relative;
             margin: 0;
         }
 
@@ -244,13 +376,6 @@
         }
     }
 
-    @keyframes grid-in {
-        from {
-            opacity: 0;
-            transform: scale(0.97);
-        }
-    }
-
     @media (prefers-color-scheme: dark) {
         img.invert-dark {
             filter: invert(1) hue-rotate(180deg);
@@ -260,10 +385,6 @@
     @media (prefers-reduced-motion: reduce) {
         .card {
             transition: none;
-        }
-
-        .expanded {
-            animation: none;
         }
     }
 </style>

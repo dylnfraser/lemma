@@ -24,6 +24,8 @@ const BLOCK_SELECTOR = "p, h1, h2, h3, h4, h5, h6, ul, ol, dl, blockquote, table
 // Elements that are rendered as part of a larger block rather than on their own.
 const INLINE_CONTAINER_SELECTOR = "p, li, dd, dt, blockquote, table, figcaption";
 const CITATION_SELECTOR = "sup.reference, .mw-cite-backlink";
+// Images shown smaller than this (map markers, flags, sister-project logos) are icons, not article images.
+const MIN_ARTICLE_IMAGE_SIZE = 64;
 
 /**
  * Wikipedia's parser output is the trust boundary: it's sanitized here (scripts, event handlers,
@@ -56,6 +58,7 @@ function toArticleImage(image: HTMLImageElement): ArticleImage | null {
   const caption = figure?.querySelector("figcaption")?.innerHTML.trim() ?? "";
   const width = Number(image.getAttribute("width")) || undefined;
   const height = Number(image.getAttribute("height")) || undefined;
+  if (Math.max(width ?? Infinity, height ?? Infinity) < MIN_ARTICLE_IMAGE_SIZE) return null;
   const invertInDarkMode =
     image.matches(".mw-invert, .skin-invert") || !!figure?.matches(".skin-invert-image, .mw-invert-image");
 
