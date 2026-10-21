@@ -1,6 +1,7 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
+    import { getSearchPath } from "$lib/api/search";
     import { searchArticles, type WikipediaSearchResult } from "$lib/api/wikipedia";
     import { getArticlePath } from "$lib/article/articleUtils";
     import { preventMouseFocus } from "$lib/focus";
@@ -11,10 +12,14 @@
     interface Props {
         autofocus?: boolean;
         initialQuery?: string;
+        /** Fetch suggestions for `initialQuery` straight away (off for the search page, which already shows results). */
+        suggestInitialQuery?: boolean;
         onDismiss?: () => void;
+        /** Show the "/" shortcut in the empty field (for pages where the shortcut focuses this bar). */
+        shortcutHint?: boolean;
     }
 
-    let { autofocus = false, initialQuery = "", onDismiss }: Props = $props();
+    let { autofocus = false, initialQuery = "", suggestInitialQuery = true, onDismiss, shortcutHint = false }: Props = $props();
 
     const debounceMs = 200;
     const uid = $props.id();
@@ -35,7 +40,9 @@
     let trimmedQuery = $derived(query.trim());
     let showPanel = $derived(trimmedQuery.length > 0 && (isLoading || !!errorMessage || !!searchedQuery));
     // Previous results stay visible while the next query loads so the list doesn't flicker on every keystroke.
-    let showOptions = $derived(showPanel && !errorMessage && results.length > 0);
+    // The last option is always "Search all of Wikipedia", so there's something to choose even with no title matches.
+    let showOptions = $derived(showPanel && !errorMessage && !!searchedQuery);
+    let searchAllIndex = $derived(results.length);
 
     function clearQuery() {
         query = "";
@@ -79,7 +86,8 @@
 
         try {
             results = await searchArticles(searchQuery, { signal: request.signal });
-            activeIndex = results.length > 0 ? 0 : -1;
+            // with no title matches, the "search all" option is the natural choice
+            activeIndex = 0;
             searchedQuery = searchQuery;
         } catch {
             if (request.signal.aborted) return;
@@ -101,16 +109,26 @@
         onDismiss?.();
     }
 
+    async function searchEverything() {
+        if (!trimmedQuery) return;
+        clearTimeout(debounceTimer);
+        activeRequest?.abort();
+        await goto(getSearchPath(trimmedQuery));
+        onDismiss?.();
+    }
+
     function handleKeydown(event: KeyboardEvent) {
         if (event.key === "Enter") {
             event.preventDefault();
-            openArticle(results[activeIndex]?.title ?? query);
+            if (showOptions && activeIndex === searchAllIndex) searchEverything();
+            // before suggestions arrive, Enter treats the query as a title (the article page offers search if it isn't one)
+            else openArticle(results[activeIndex]?.title ?? query);
         } else if (event.key === "ArrowDown") {
             event.preventDefault();
-            if (results.length > 0) activeIndex = Math.min(activeIndex + 1, results.length - 1);
+            if (showOptions) activeIndex = Math.min(activeIndex + 1, searchAllIndex);
         } else if (event.key === "ArrowUp") {
             event.preventDefault();
-            if (results.length > 0) activeIndex = Math.max(activeIndex - 1, 0);
+            if (showOptions) activeIndex = Math.max(activeIndex - 1, 0);
         } else if (event.key === "Escape") {
             if (onDismiss) {
                 onDismiss();
@@ -123,7 +141,7 @@
 
     onMount(() => {
         if (autofocus) focus();
-        if (trimmedQuery) search(trimmedQuery);
+        if (trimmedQuery && suggestInitialQuery) search(trimmedQuery);
 
         return () => {
             clearTimeout(debounceTimer);
@@ -161,6 +179,8 @@
             >
                 <Icon name="x" size="0.75rem" />
             </button>
+        {:else if shortcutHint}
+            <kbd class="shortcut-hint" aria-hidden="true" title="Press / to search">/</kbd>
         {/if}
     </div>
 
@@ -176,14 +196,8 @@
                     <span class="status-icon">!</span>
                     <span>{errorMessage}</span>
                 </p>
-            {:else if results.length === 0}
-                <p class="status" role="status">
-                    <span class="status-icon"><SearchIcon size={18} /></span>
-                    <span>
-                        No articles match “<b>{searchedQuery}</b>”
-                        <span class="status-hint">Press <kbd aria-label="Enter"><Icon name="corner-down-left" /></kbd> to open it anyway</span>
-                    </span>
-                </p>
+            {:else if results.length === 0 && !isLoading}
+                <p class="status no-titles" role="status"><span>No article titles match “<b>{searchedQuery}</b>”</span></p>
             {/if}
         {/if}
 
@@ -202,6 +216,21 @@
                         onselect={onDismiss}
                     />
                 {/each}
+                <a
+                    id={optionId(searchAllIndex)}
+                    class="search-all"
+                    class:active={activeIndex === searchAllIndex}
+                    href={getSearchPath(searchedQuery)}
+                    role="option"
+                    aria-selected={activeIndex === searchAllIndex}
+                    tabindex="-1"
+                    onpointermove={() => (activeIndex = searchAllIndex)}
+                    onclick={onDismiss}
+                >
+                    <span class="search-all-icon" aria-hidden="true"><SearchIcon size={18} /></span>
+                    <span class="search-all-text">Search all of Wikipedia for “<b>{searchedQuery}</b>”</span>
+                    <kbd class="enter" aria-hidden="true"><Icon name="corner-down-left" size="0.75rem" /></kbd>
+                </a>
             {/if}
         </div>
 
@@ -332,6 +361,25 @@
     }
 
     /* drawn like the palette's keycaps (same border, radius and fill), a touch larger as a click target */
+    /* the "/" shortcut: fades out once the field has focus, and isn't shown where there's no keyboard to press it */
+    .shortcut-hint {
+        flex: none;
+        margin-right: 0.15rem;
+        animation: clear-in var(--dur-fast) var(--ease-out) both;
+        transition:
+            opacity var(--dur-fast),
+            scale var(--dur-fast) var(--ease-out);
+
+        .search:focus-within & {
+            opacity: 0;
+            scale: 0.85;
+        }
+
+        @media (hover: none) {
+            display: none;
+        }
+    }
+
     .clear {
         display: grid;
         place-items: center;
@@ -432,25 +480,82 @@
         }
     }
 
-    .status-hint {
-        display: block;
-        margin-top: 0.15rem;
-        font-size: 0.8rem;
-        opacity: 0.85;
-
-        kbd {
-            height: 1.25rem;
-            min-width: 1.25rem;
-            margin-block: -0.15rem;
-            vertical-align: middle;
-        }
-    }
-
     .error {
         color: var(--danger);
 
         .status-icon {
             background: color-mix(in oklch, var(--danger) 15%, transparent);
+        }
+    }
+
+    .no-titles {
+        padding: 0.55rem 0.75rem 0.15rem;
+        font-size: 0.8rem;
+    }
+
+    /* drawn like a result row (see Result.svelte) so the list reads as one set of choices */
+    .search-all {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        min-height: 44px;
+        padding: 4px 8px 4px 4px;
+        box-sizing: border-box;
+        border-radius: 8px;
+        color: inherit;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color var(--dur-instant) ease;
+
+        &.active {
+            background: color-mix(in oklch, var(--secondary) 38%, transparent);
+        }
+
+        &:hover {
+            color: inherit;
+        }
+    }
+
+    .search-all-icon {
+        display: grid;
+        place-items: center;
+        flex: none;
+        width: 34px;
+        height: 34px;
+        border-radius: 7px;
+        background: color-mix(in oklch, var(--secondary) 45%, transparent);
+        color: var(--muted);
+    }
+
+    .search-all-text {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.85rem;
+        color: var(--muted);
+
+        b {
+            color: var(--text-color);
+            font-weight: 600;
+        }
+    }
+
+    .search-all .enter {
+        flex: none;
+        opacity: 0;
+        color: var(--muted);
+        transition: opacity var(--dur-fast) ease;
+    }
+
+    .search-all.active .enter {
+        opacity: 1;
+    }
+
+    @media (pointer: coarse) {
+        .search-all .enter {
+            display: none;
         }
     }
 
