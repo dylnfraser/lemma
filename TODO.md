@@ -16,15 +16,15 @@ A prioritized roadmap for evolving Lemma into a robust, private, and personal Wi
 
 ### Harden Wikipedia API requests
 
-- [ ] Check `Response.ok` before parsing API responses.
-- [ ] Add typed response interfaces for each Wikipedia endpoint.
-- [ ] Return descriptive errors for failed requests and malformed responses.
-- [ ] Handle missing and deleted pages.
-- [ ] Handle redirects consistently and update the displayed/canonical title.
-- [ ] Add request cancellation with `AbortController`.
-- [ ] Cancel an article request when navigating to another article.
-- [ ] Cancel or supersede stale search requests.
-- [ ] Add reasonable request timeouts.
+- [x] Check `Response.ok` before parsing API responses.
+- [x] Add typed response interfaces for each Wikipedia endpoint.
+- [x] Return descriptive errors for failed requests and malformed responses.
+- [x] Handle missing and deleted pages.
+- [x] Handle redirects consistently and update the displayed/canonical title.
+- [x] Add request cancellation with `AbortController`.
+- [x] Cancel an article request when navigating to another article.
+- [x] Cancel or supersede stale search requests.
+- [x] Add reasonable request timeouts.
 
 **Acceptance criteria**
 
@@ -35,20 +35,20 @@ A prioritized roadmap for evolving Lemma into a robust, private, and personal Wi
 
 ### Add article error states
 
-- [ ] Add a dedicated article error state.
-- [ ] Include a retry action.
-- [ ] Include a link back to search.
-- [ ] Distinguish between not found, offline, timeout, and generic failures where possible.
-- [ ] Preserve the requested title in the error UI.
+- [x] Add a dedicated article error state.
+- [x] Include a retry action.
+- [x] Include a link back to search.
+- [x] Distinguish between not found, offline, timeout, and generic failures where possible.
+- [x] Preserve the requested title in the error UI.
 
 ### Make rendered article HTML safer
 
-- [ ] Define the HTML elements and attributes Lemma permits.
-- [ ] Sanitize Wikipedia-provided paragraph and list HTML before rendering with `{@html}`.
-- [ ] Remove scripts, event-handler attributes, embedded content, and unsafe URLs.
-- [ ] Normalize `http:` resources to `https:` where appropriate.
-- [ ] Add safe `rel` values to external links.
-- [ ] Document the trust boundary around Wikipedia HTML.
+- [x] Define the HTML elements and attributes Lemma permits.
+- [x] Sanitize Wikipedia-provided paragraph and list HTML before rendering with `{@html}`.
+- [x] Remove scripts, event-handler attributes, embedded content, and unsafe URLs.
+- [x] Normalize `http:` resources to `https:` where appropriate.
+- [x] Add safe `rel` values to external links.
+- [x] Document the trust boundary around Wikipedia HTML.
 
 ---
 
@@ -56,16 +56,16 @@ A prioritized roadmap for evolving Lemma into a robust, private, and personal Wi
 
 ### Rewrite Wikipedia links
 
-- [ ] Detect internal Wikipedia article links during parsing.
-- [ ] Rewrite internal article links to `/wiki/[title]` Lemma routes.
-- [ ] Preserve and encode section hashes.
-- [ ] Keep same-page section links inside the current article.
-- [ ] Support browser back and forward navigation.
-- [ ] Handle redirects after following an internal link.
-- [ ] Treat external links separately from Wikipedia links.
-- [ ] Open external links safely and visually identify them.
-- [ ] Define behavior for red links and nonexistent pages.
-- [ ] Define behavior for special namespaces such as `Category:`, `File:`, and `Help:`.
+- [x] Detect internal Wikipedia article links during parsing.
+- [x] Rewrite internal article links to `/wiki/[title]` Lemma routes.
+- [x] Preserve and encode section hashes.
+- [x] Keep same-page section links inside the current article.
+- [x] Support browser back and forward navigation.
+- [x] Handle redirects after following an internal link.
+- [x] Treat external links separately from Wikipedia links.
+- [x] Open external links safely and visually identify them.
+- [x] Define behavior for red links and nonexistent pages.
+- [x] Define behavior for special namespaces such as `Category:`, `File:`, and `Help:`.
 
 **Acceptance criteria**
 
@@ -76,9 +76,9 @@ A prioritized roadmap for evolving Lemma into a robust, private, and personal Wi
 
 ### Improve citations and references
 
-- [ ] Ensure citation links jump to the correct reference.
+- [x] Ensure citation links jump to the correct reference.
 - [ ] Add a return link from a reference to its citation when available.
-- [ ] Style citations without disrupting line height.
+- [x] Style citations without disrupting line height.
 - [ ] Handle repeated citations pointing to one reference.
 - [ ] Verify reference lists are parsed and displayed consistently.
 
@@ -175,10 +175,10 @@ type LibraryEntry = {
 
 ### Improve motion preferences
 
-- [ ] Respect `prefers-reduced-motion` globally.
-- [ ] Disable or simplify landing-page text animations when reduced motion is enabled.
+- [x] Respect `prefers-reduced-motion` globally.
+- [x] Disable or simplify landing-page text animations when reduced motion is enabled.
 - [ ] Avoid animated scrolling when reduced motion is enabled.
-- [ ] Ensure content remains visible if animations fail or are disabled.
+- [x] Ensure content remains visible if animations fail or are disabled.
 
 ### Add a focused preferences interface
 
@@ -229,11 +229,11 @@ type LibraryEntry = {
 
 ### Refine search interaction
 
-- [ ] Add an explicit no-results state.
+- [x] Add an explicit no-results state.
 - [ ] Highlight matching text in suggestions where appropriate.
-- [ ] Improve active-result ARIA semantics with `aria-activedescendant`.
-- [ ] Ensure mouse hover and keyboard selection stay synchronized.
-- [ ] Cancel the active search when the query changes.
+- [x] Improve active-result ARIA semantics with `aria-activedescendant`.
+- [x] Ensure mouse hover and keyboard selection stay synchronized.
+- [x] Cancel the active search when the query changes.
 - [ ] Consider showing the active Wikipedia language in search.
 
 ### Add a command palette
@@ -259,13 +259,13 @@ type LibraryEntry = {
 
 ### Add article-specific metadata
 
-- [ ] Set a dynamic page title for each article.
+- [x] Set a dynamic page title for each article.
 - [ ] Add an article-specific description where available.
 - [ ] Set a canonical source URL.
 - [ ] Add Open Graph metadata for articles.
 - [ ] Use the article lead image when suitable.
 - [ ] Add Twitter/X card metadata if desired.
-- [ ] Ensure error and missing-page routes are not indexed improperly.
+- [x] Ensure error and missing-page routes are not indexed improperly.
 
 ### Add print and PDF-friendly styles
 
@@ -310,32 +310,32 @@ type LibraryEntry = {
 
 ### Establish a test suite
 
-- [ ] Add a unit-test runner compatible with SvelteKit and TypeScript.
-- [ ] Add DOM support for article parser tests.
+- [x] Add a unit-test runner compatible with SvelteKit and TypeScript.
+- [x] Add DOM support for article parser tests.
 - [ ] Add browser-level end-to-end tests for critical flows.
 - [ ] Add `test`, `test:unit`, and `test:e2e` scripts.
 - [ ] Run tests and type checks in CI.
 
 ### Test article parsing with fixtures
 
-- [ ] Add a fixture for an ordinary article.
+- [x] Add a fixture for an ordinary article.
 - [ ] Add a fixture for a redirect.
-- [ ] Add fixtures with nested headings.
+- [x] Add fixtures with nested headings.
 - [ ] Add fixtures for references and repeated citations.
-- [ ] Add fixtures for ordered, unordered, and nested lists.
+- [x] Add fixtures for ordered, unordered, and nested lists.
 - [ ] Add fixtures for images and galleries.
 - [ ] Add an infobox-heavy article fixture.
 - [ ] Add a missing-page response fixture.
-- [ ] Add fixtures with internal, external, section, and red links.
-- [ ] Verify unwanted markup and unsafe attributes are removed.
+- [x] Add fixtures with internal, external, section, and red links.
+- [x] Verify unwanted markup and unsafe attributes are removed.
 
 ### Test article navigation utilities
 
-- [ ] Test heading ancestry.
-- [ ] Test block ancestry.
-- [ ] Test collapsible heading detection.
-- [ ] Test hidden blocks for collapsed sections.
-- [ ] Test malformed or skipped heading levels.
+- [x] Test heading ancestry.
+- [x] Test block ancestry.
+- [x] Test collapsible heading detection.
+- [x] Test hidden blocks for collapsed sections.
+- [x] Test malformed or skipped heading levels.
 
 ### Add component and end-to-end coverage
 
@@ -352,10 +352,10 @@ type LibraryEntry = {
 
 ### Add accessibility checks
 
-- [ ] Verify heading hierarchy.
+- [x] Verify heading hierarchy.
 - [ ] Verify all interactive controls are keyboard accessible.
 - [ ] Verify visible focus states.
-- [ ] Verify search combobox/listbox semantics.
+- [x] Verify search combobox/listbox semantics.
 - [ ] Announce loading, error, and copy-success states appropriately.
 - [ ] Check color contrast in light and dark themes.
 - [ ] Test at increased browser zoom and text size.
@@ -378,24 +378,24 @@ type LibraryEntry = {
 - [ ] Run unit and end-to-end tests.
 - [ ] Build the production app.
 - [ ] Add dependency update automation if desired.
-- [ ] Keep deployment adapter configuration explicit.
+- [x] Keep deployment adapter configuration explicit.
 
 ### Keep documentation current
 
 - [ ] Document local storage behavior and privacy guarantees.
 - [ ] Document supported Wikipedia languages.
 - [ ] Document offline storage behavior and limits.
-- [ ] Add architecture notes for parsing and link rewriting.
-- [ ] Keep the README structure in sync with the project.
+- [x] Add architecture notes for parsing and link rewriting.
+- [x] Keep the README structure in sync with the project.
 
 ---
 
 ## Suggested implementation order
 
-1. [ ] Robust API errors, typed responses, cancellation, and retry UI.
-2. [ ] Sanitization and normalization of article HTML.
-3. [ ] Internal article links, section links, and citation navigation.
-4. [ ] Parser fixtures and navigation utility tests.
+1. [x] Robust API errors, typed responses, cancellation, and retry UI.
+2. [x] Sanitization and normalization of article HTML.
+3. [x] Internal article links, section links, and citation navigation.
+4. [x] Parser fixtures and navigation utility tests.
 5. [ ] Local persistence foundation.
 6. [ ] Reading history and recent articles.
 7. [ ] Bookmarks and the `/library` page.
