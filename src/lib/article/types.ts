@@ -1,5 +1,4 @@
 export type ArticleHeadingTag = "H1" | "H2" | "H3" | "H4" | "H5" | "H6";
-export type ArticleListTag = "UL" | "OL";
 
 export interface ArticleHeading {
   id: string;
@@ -8,38 +7,46 @@ export interface ArticleHeading {
   level: number;
   parentId: string | null;
   childIds: string[];
+  /** Every enclosing heading in the outline, nearest last. */
+  ancestorIds: string[];
 }
 
-export interface ParagraphBlock {
-  type: "paragraph";
-  html: string;
+interface BaseBlock {
+  /** Foldable headings (H1–H4) this block sits under, outermost first. */
+  sectionIds: string[];
 }
 
-export interface HeadingBlock {
+export interface HeadingBlock extends BaseBlock {
   type: "heading";
   heading: ArticleHeading;
 }
 
-export interface ImageBlock {
-  type: "image";
+export interface ArticleImage {
   src: string;
   alt: string;
+  /** Sanitized caption HTML, or an empty string. */
+  caption: string;
+  width?: number;
+  height?: number;
+  /** Wikipedia marked the image as safe to invert in dark mode (diagrams, formulas). */
+  invertInDarkMode: boolean;
 }
 
-export interface LinkBlock {
-  type: "link";
-  text: string;
-  href: string;
+export interface ImagesBlock extends BaseBlock {
+  type: "images";
+  images: ArticleImage[];
 }
 
-export interface ListBlock {
-  type: "list";
-  tag: ArticleListTag;
-  ordered: boolean;
+export type HtmlBlockKind = "paragraph" | "list" | "references" | "table" | "quote";
+
+export interface HtmlBlock extends BaseBlock {
+  type: "html";
+  kind: HtmlBlockKind;
+  /** Sanitized outer HTML of the source element. */
   html: string;
 }
 
-export type ArticleBlock = ParagraphBlock | HeadingBlock | ImageBlock | LinkBlock | ListBlock;
+export type ArticleBlock = HeadingBlock | ImagesBlock | HtmlBlock;
 
 export interface ArticleStats {
   words: number;
@@ -49,16 +56,11 @@ export interface ArticleStats {
 
 export interface ParsedArticle {
   title: string;
+  /** Wikipedia's short description, or an empty string. */
+  description: string;
   blocks: ArticleBlock[];
   headings: ArticleHeading[];
-  firstImage: string;
   stats: ArticleStats;
-  scrollTarget: string;
-}
-
-export interface WikipediaPageContent {
-  title: string;
-  text: {
-    "*": string;
-  };
+  /** Maps element ids (headings, citations, references) to the index of the block containing them. */
+  anchors: Record<string, number>;
 }
