@@ -48,8 +48,6 @@ export interface HtmlBlock extends BaseBlock {
   kind: HtmlBlockKind;
   /** Sanitized outer HTML of the source element. */
   html: string;
-  /** Viewer images inside the HTML (galleries); their buttons carry data-lightbox-index. */
-  images?: ArticleImage[];
 }
 
 export type ArticleBlock = HeadingBlock | ImagesBlock | HtmlBlock;

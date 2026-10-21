@@ -291,32 +291,29 @@ describe("parseArticle edit affordances", () => {
 
 describe("parseArticle images", () => {
   const article = parse(GALLERY_ARTICLE, "Bridges");
-  const gallery = htmlBlocks(article).find((block) => block.html.includes("gallery"))!;
+  const imageGroup = (alt: string) => imageBlocks(article).find((block) => block.images.some((image) => image.alt === alt))!;
+  const gallery = imageGroup("A stone bridge");
 
-  it("turns gallery photos into viewer buttons, captioned by their gallery text", () => {
-    expect(gallery.images?.map((image) => image.alt)).toEqual(["A stone bridge", ""]);
-    expect(gallery.images?.[0].caption).toContain('href="/wiki/Old_Bridge"');
-    expect(gallery.images?.[1].caption).toBe("Its plan");
-    expect(gallery.html).toContain('<button type="button" class="zoom-image" data-lightbox-index="0" aria-label="View full screen: A stone bridge">');
-    expect(gallery.html).toContain('data-lightbox-index="1" aria-label="View image full screen"');
-    // a click should zoom, not open the File: page
-    expect(gallery.html).not.toContain("mw-file-description");
+  it("turns galleries into their own image group (a fan), captioned by their gallery text", () => {
+    expect(gallery.images.map((image) => image.alt)).toEqual(["A stone bridge", ""]);
+    expect(gallery.images[0].caption).toContain('href="/wiki/Old_Bridge"');
+    expect(gallery.images[1].caption).toBe("Its plan");
+    // no longer rendered as an HTML list
+    expect(htmlBlocks(article).some((block) => block.html.includes("gallery"))).toBe(false);
+    // the figures that follow start a new group instead of joining the gallery's fan
+    expect(imageGroup("A map")).not.toBe(gallery);
   });
 
   it("records each image's file", () => {
-    expect(gallery.images?.map((image) => image.fileName)).toEqual(["Bridge.jpg", "Bridge_plan.svg"]);
+    expect(gallery.images.map((image) => image.fileName)).toEqual(["Bridge.jpg", "Bridge_plan.svg"]);
   });
 
   it("puts possibly transparent images, but not photos or invertible ones, on a light backing", () => {
-    const [map, graph] = imageBlocks(article)[0].images;
+    const [map, graph] = imageGroup("A map").images;
     expect(map.lightBacking).toBe(true);
     expect(graph.invertInDarkMode).toBe(true);
     expect(graph.lightBacking).toBe(false);
-    expect(gallery.images?.map((image) => image.lightBacking)).toEqual([false, true]);
-    expect(gallery.html).toMatch(/Bridge_plan\.svg[^>]*class="light-backing"|class="light-backing"[^>]*Bridge_plan\.svg/);
+    expect(gallery.images.map((image) => image.lightBacking)).toEqual([false, true]);
   });
 
-  it("leaves blocks without viewer images alone", () => {
-    expect(htmlBlocks(article).find((block) => block.kind === "paragraph")).not.toHaveProperty("images");
-  });
 });

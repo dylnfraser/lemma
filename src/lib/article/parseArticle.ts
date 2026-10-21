@@ -22,7 +22,6 @@ import type {
   ImagesBlock,
   ParsedArticle,
 } from "./types";
-import { makeImagesZoomable } from "./zoomableImages";
 
 const WORDS_PER_MINUTE = 230;
 const BLOCK_SELECTOR = "p, h1, h2, h3, h4, h5, h6, ul, ol, dl, blockquote, table, img";
@@ -156,16 +155,20 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
   markInlineIcons(root);
   markLightBackings(root);
 
-  // Gallery photos open the viewer; each one's caption is its gallery text rather than a figcaption.
+  // Galleries become image blocks, so they stack into a fan like any other image group. Each photo's caption is its
+  // gallery text rather than a figcaption.
   const galleryImages = new Map<Element, ArticleImage[]>();
   root.querySelectorAll("ul.gallery").forEach((gallery) => {
-    const images = makeImagesZoomable(gallery, (element) => {
+    const images = [...gallery.querySelectorAll("img")].flatMap((element) => {
       const image = toArticleImage(element);
+      if (!image) return [];
       const text = element.closest(".gallerybox")?.querySelector(".gallerytext")?.innerHTML.trim();
-      return image && text ? { ...image, caption: text } : image;
+      return [text ? { ...image, caption: text } : image];
     });
     if (images.length > 0) galleryImages.set(gallery, images);
   });
+  // A gallery is its own group: images that follow it start a new one rather than joining its fan.
+  const galleryBlocks = new Set<ImagesBlock>();
 
   const blocks: ArticleBlock[] = [];
   const headings: ArticleHeading[] = [];
@@ -192,7 +195,7 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
       if (!image) continue;
 
       const previous = blocks.at(-1);
-      if (previous?.type === "images") {
+      if (previous?.type === "images" && !galleryBlocks.has(previous)) {
         previous.images.push(image);
       } else {
         blocks.push({ type: "images", images: [image], sectionIds: sectionIds() } satisfies ImagesBlock);
@@ -224,13 +227,17 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
       outlineStack.push(heading);
       if (isFoldableHeadingLevel(level)) foldStack.push(heading);
       words += countWords(text);
+    } else if (galleryImages.has(element)) {
+      registerAnchors(element, blocks.length);
+      const block: ImagesBlock = { type: "images", images: galleryImages.get(element)!, sectionIds: sectionIds() };
+      galleryBlocks.add(block);
+      blocks.push(block);
     } else {
       const kind = getHtmlBlockKind(element);
       if (!kind) continue;
 
       registerAnchors(element, blocks.length);
-      const images = galleryImages.get(element);
-      blocks.push({ type: "html", kind, html: element.outerHTML, sectionIds: sectionIds(), ...(images && { images }) });
+      blocks.push({ type: "html", kind, html: element.outerHTML, sectionIds: sectionIds() });
 
       if (kind !== "references") {
         links += countLinks(element);

@@ -3,7 +3,7 @@
     import { isFoldableHeadingLevel } from "$lib/article/articleUtils";
     import type { ArticleBlock } from "$lib/article/types";
     import { isKeyboardClick, preventMouseFocus } from "$lib/focus";
-    import { openLightbox, openLightboxFromClick, preventMouseFocusOnZoomImages } from "$lib/lightbox.svelte";
+    import { openLightbox } from "$lib/lightbox.svelte";
     import { fold } from "$lib/motion";
     import ChevronIcon from "../icons/ChevronIcon.svelte";
     import ImageFan from "./ImageFan.svelte";
@@ -109,17 +109,6 @@
                 </div>
             {:else if block.kind === "table"}
                 <div class="table-scroll" transition:fold>{@html block.html}</div>
-            {:else if block.images}
-                {@const images = block.images}
-                <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions (delegates clicks from the gallery's image buttons) -->
-                <div
-                    class="block {block.kind}"
-                    transition:fold
-                    onmousedown={preventMouseFocusOnZoomImages}
-                    onclick={(event) => openLightboxFromClick(event, images)}
-                >
-                    {@html block.html}
-                </div>
             {:else}
                 <!-- spacing lives on this wrapper (not the HTML inside) so folding never jumps by a collapsed margin -->
                 <div class="block {block.kind}" class:lead={i === leadIndex} transition:fold>{@html block.html}</div>
@@ -136,6 +125,8 @@
     /* ---------- body text ---------- */
 
     .article-body {
+        /* fewer lone words on a paragraph's last line (inherited by lists, quotes and captions) */
+        text-wrap: pretty;
         font-size: 1.0625rem;
         line-height: var(--leading);
         font-variant-numeric: oldstyle-nums proportional-nums;
@@ -470,6 +461,11 @@
     .block {
         margin: 0 0 1.15em;
 
+        /* the opening paragraph stands apart from the rest of the article */
+        &.lead {
+            margin-bottom: 2.25em;
+        }
+
         &.quote {
             margin: 1.75em 0;
         }
@@ -765,71 +761,5 @@
             ) {
             color: oklch(0.25 0.02 var(--hue));
         }
-    }
-
-    /* ---------- galleries ---------- */
-
-    .article-body :global(ul.gallery) {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
-        gap: 1.25rem;
-        margin: 2rem 0;
-        padding: 0;
-    }
-
-    .article-body :global(li.gallerybox) {
-        display: flex;
-        flex-direction: column;
-        gap: 0.65rem;
-        width: auto !important;
-        margin: 0 !important;
-        padding: 0;
-        list-style: none;
-        line-height: 1.4;
-    }
-
-    .article-body :global(li.gallerybox .thumb),
-    .article-body :global(li.gallerybox .thumbinner),
-    .article-body :global(li.gallerybox figure) {
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        border: 0 !important;
-        background: none !important;
-    }
-
-    .article-body :global(li.gallerybox .zoom-image) {
-        display: block;
-        width: 100%;
-        border-radius: 8px;
-    }
-
-    .article-body :global(li.gallerybox img) {
-        display: block;
-        width: 100% !important;
-        max-width: 100% !important;
-        height: auto !important;
-        aspect-ratio: 4 / 3;
-        object-fit: cover;
-        border-radius: 8px;
-        outline: 1px solid color-mix(in oklch, var(--text-color) 8%, transparent);
-        outline-offset: -1px;
-    }
-
-    .article-body :global(li.gallerybox .gallerytext),
-    .article-body :global(li.gallerybox .thumbcaption) {
-        padding: 0 !important;
-        margin-top: 0.5rem;
-        min-height: 2rem;
-        text-align: center;
-        font-size: 0.75rem;
-        line-height: 1.4;
-        color: var(--muted);
-        text-wrap: pretty;
-    }
-
-    .article-body :global(li.gallerybox p) {
-        margin: 0;
     }
 </style>
