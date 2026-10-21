@@ -4,7 +4,7 @@
     let { seed }: { seed: string } = $props();
 
     // Lines per paragraph, and how many entries the placeholder outline shows.
-    const PARAGRAPHS = [4, 5, 3];
+    const PARAGRAPHS = [5, 7, 6, 4];
     const OUTLINE_ENTRIES = 9;
 
     // Stable, title-seeded widths (as percentages) so the skeleton doesn't jitter between renders.
@@ -83,7 +83,9 @@
         position: relative;
     }
 
-    .skeleton {
+    /* a bar paints its strip on ::before (below); everything else paints its own box */
+    .skeleton:not(.bar),
+    .bar::before {
         background: linear-gradient(
             90deg,
             color-mix(in oklch, var(--secondary) 65%, transparent) 25%,
@@ -101,16 +103,21 @@
 
     /*
      * A bar takes up a whole line box (--line) like the text it stands in for, but only paints a --bar-thick strip in
-     * its middle. Padding rather than margins, so neighbouring bars' spacing never collapses.
+     * its middle. The strip is its own box rather than a content-box-clipped background: a border-radius on the whole
+     * line box would leave the strip with flattened, elliptical ends.
      */
     .bar {
         display: block;
-        box-sizing: border-box;
+        position: relative;
         width: var(--width, 100%);
         height: var(--line);
-        padding-block: calc((var(--line) - var(--bar)) / 2);
-        background-clip: content-box;
-        border-radius: 999px;
+
+        &::before {
+            content: "";
+            position: absolute;
+            inset: calc((var(--line) - var(--bar)) / 2) 0;
+            border-radius: 999px;
+        }
     }
 
     /* the same boxes as .article-header in ArticleView */
@@ -128,7 +135,7 @@
 
     .description {
         --line: calc(1.15rem * 1.4);
-        --bar: 0.85rem;
+        --bar: 0.7rem;
         width: min(55%, 17rem);
         margin-top: 0.6rem;
     }
@@ -146,7 +153,7 @@
 
     .line {
         --line: calc(1em * var(--leading));
-        --bar: 0.85em;
+        --bar: 0.6em;
     }
 
     /* the opening paragraph reads as a standfirst on wider screens, as in ArticleContent */
