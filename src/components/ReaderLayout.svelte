@@ -87,6 +87,8 @@
         align-self: start;
         position: sticky;
         top: calc(var(--nav-height) + 2rem);
+        /* level with the margin infobox: the article header's 1.5rem top margin plus the infobox's 1.5rem offset */
+        margin-top: 3rem;
         display: flex;
         flex-direction: column;
         width: min(100%, 17rem);
@@ -114,6 +116,7 @@
             z-index: 25;
             left: 0;
             top: calc(var(--nav-height) + 1rem);
+            margin-top: 0;
             width: min(85vw, 300px);
             max-height: min(72dvh, 620px);
             box-sizing: border-box;

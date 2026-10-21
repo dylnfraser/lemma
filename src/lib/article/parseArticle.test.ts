@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseArticle } from "./parseArticle";
-import { DUPLICATE_HEADINGS, INFOBOX_ARTICLE, ORDINARY_ARTICLE, SKIPPED_LEVELS } from "./fixtures/articles";
-import type { HtmlBlock, ImagesBlock, ParsedArticle } from "./types";
+import { DUPLICATE_HEADINGS, EDIT_AFFORDANCES, GALLERY_ARTICLE, INFOBOX_ARTICLE, ORDINARY_ARTICLE, SKIPPED_LEVELS } from "./fixtures/articles";
+import type { HtmlBlock, ImagesBlock, InfoboxRow, ParsedArticle } from "./types";
 
 const parse = (text: string, title = "Pi") => parseArticle({ title, text });
 
@@ -179,6 +179,9 @@ describe("parseArticle headings", () => {
 
 describe("parseArticle infobox", () => {
   const { infobox, blocks } = parse(INFOBOX_ARTICLE, "Poland");
+  // succession rows hold structured entries instead of HTML
+  const rowHtml = (row: InfoboxRow | undefined) => (row && "html" in row ? row.html : "");
+  const dataRow = (label: string) => infobox!.rows.find((row) => row.kind === "data" && row.label === label);
 
   it("lifts the infobox out of the article body", () => {
     expect(infobox).not.toBeNull();
@@ -188,15 +191,25 @@ describe("parseArticle infobox", () => {
   it("reads the title and the rows in order", () => {
     expect(infobox!.title).toContain("Republic of Poland");
     expect(infobox!.title).toContain("Rzeczpospolita Polska");
-    expect(infobox!.rows.map((row) => row.kind)).toEqual(["full", "full", "full", "data", "header", "data", "data", "data"]);
+    expect(infobox!.rows.map((row) => row.kind)).toEqual([
+      "full",
+      "full",
+      "full",
+      "data",
+      "header",
+      "data",
+      "data",
+      "data",
+      "succession",
+    ]);
 
-    const capital = infobox!.rows.find((row) => row.kind === "data")!;
+    const capital = infobox!.rows.find((row) => row.kind === "data");
     expect(capital).toMatchObject({ kind: "data", label: "Capital" });
-    expect(capital.html).toContain('href="/wiki/Warsaw"');
+    expect(rowHtml(capital)).toContain('href="/wiki/Warsaw"');
   });
 
   it("drops players, hidden rows, empty rows and extra switcher maps", () => {
-    const html = infobox!.rows.map((row) => row.html).join("");
+    const html = infobox!.rows.map(rowHtml).join("");
     expect(html).not.toContain("<audio");
     expect(html).not.toContain("secret");
     expect(html).not.toContain("Show globe");
@@ -205,26 +218,105 @@ describe("parseArticle infobox", () => {
   });
 
   it("unwraps image links and indexes article-sized images for the viewer", () => {
-    const html = infobox!.rows.map((row) => row.html).join("");
+    const html = infobox!.rows.map(rowHtml).join("");
     expect(html).not.toContain("mw-file-description");
     expect(infobox!.images.map((image) => image.alt)).toEqual(["Flag", "Globe"]);
-    expect(html).toContain('data-lightbox-index="0"');
+    expect(html).toContain('<button type="button" class="zoom-image" data-lightbox-index="0" aria-label="View full screen: Flag">');
     expect(html).toContain('data-lightbox-index="1"');
     // the 16px coordinates icon is an inline icon, not a viewer image
     expect(html).toMatch(/Coords\.svg[^>]*class="inline-icon"|class="inline-icon"[^>]*Coords\.svg/);
   });
 
   it("shows short collapsible lists plainly and turns long ones into <details>", () => {
-    const languages = infobox!.rows.find((row) => row.kind === "data" && row.label === "Regional languages")!;
-    expect(languages.html).not.toContain(">List<");
-    expect(languages.html).toContain("Belarusian");
-    expect(languages.html).not.toContain("<details");
+    const languages = rowHtml(dataRow("Regional languages"));
+    expect(languages).not.toContain(">List<");
+    expect(languages).toContain("Belarusian");
+    expect(languages).not.toContain("<details");
 
-    const cities = infobox!.rows.find((row) => row.kind === "data" && row.label === "Cities")!;
-    expect(cities.html).toContain('<details class="infobox-collapsible"><summary>Major cities (7)</summary>');
+    expect(rowHtml(dataRow("Cities"))).toContain('<details class="infobox-collapsible"><summary>Major cities (7)</summary>');
+  });
+
+  it("reads preceded-by / succeeded-by blocks into flag + name entries", () => {
+    const succession = infobox!.rows.find((row) => row.kind === "succession")!;
+    if (succession.kind !== "succession") throw new Error("expected a succession row");
+
+    expect(succession.before.map((entry) => entry.html)).toEqual([
+      '<a href="/wiki/Kingdom_of_Poland">Kingdom of Poland</a>',
+      '<a href="/wiki/German_Empire">German Empire</a>',
+    ]);
+    expect(succession.before[0].icon).toContain("Flag_A.svg");
+    // the flag sits after the name on this side in Wikipedia's markup; it's still picked up as the icon
+    expect(succession.after).toEqual([{ icon: expect.stringContaining("Flag_C.svg"), html: '<a href="/wiki/Soviet_Union">Soviet Union</a>' }]);
   });
 
   it("is null for articles without one", () => {
     expect(parse(SKIPPED_LEVELS).infobox).toBeNull();
+  });
+});
+
+describe("parseArticle edit affordances", () => {
+  const article = parse(EDIT_AFFORDANCES, "Bee");
+  const html = allHtml(article);
+  const infoboxHtml = [
+    article.infobox!.title,
+    ...article.infobox!.rows.map((row) => (row.kind === "data" ? row.label + row.html : "html" in row ? row.html : "")),
+  ].join("");
+
+  it("removes section edit links, update prompts and template bars", () => {
+    expect(html).not.toMatch(/action=edit(?!.*redlink)/);
+    expect(html).not.toContain("[update]");
+    expect(html).not.toContain("mw-editsection");
+    expect(html).not.toContain("Template:Bees");
+  });
+
+  it("removes Wikidata and taxonomy pencils, in the body and the infobox", () => {
+    expect(html).not.toContain("Edit this");
+    expect(html).not.toContain("wikidata.org");
+    expect(infoboxHtml).not.toContain("Edit this");
+    expect(infoboxHtml).not.toContain("Template:Taxonomy");
+    expect(infoboxHtml).toContain("Rusty patched bumble bee");
+    expect(infoboxHtml).toContain("example.org");
+  });
+
+  it("removes editor-only citation maintenance notes but keeps the citation", () => {
+    expect(html).not.toContain("CS1 maint");
+    expect(html).toContain("Bee book.");
+  });
+
+  it("keeps red links as text and images that merely mention editing", () => {
+    expect(html).toContain("an unwritten bee</span>");
+    expect(html).toContain("Edith Bee portrait");
+  });
+});
+
+describe("parseArticle images", () => {
+  const article = parse(GALLERY_ARTICLE, "Bridges");
+  const gallery = htmlBlocks(article).find((block) => block.html.includes("gallery"))!;
+
+  it("turns gallery photos into viewer buttons, captioned by their gallery text", () => {
+    expect(gallery.images?.map((image) => image.alt)).toEqual(["A stone bridge", ""]);
+    expect(gallery.images?.[0].caption).toContain('href="/wiki/Old_Bridge"');
+    expect(gallery.images?.[1].caption).toBe("Its plan");
+    expect(gallery.html).toContain('<button type="button" class="zoom-image" data-lightbox-index="0" aria-label="View full screen: A stone bridge">');
+    expect(gallery.html).toContain('data-lightbox-index="1" aria-label="View image full screen"');
+    // a click should zoom, not open the File: page
+    expect(gallery.html).not.toContain("mw-file-description");
+  });
+
+  it("records each image's file", () => {
+    expect(gallery.images?.map((image) => image.fileName)).toEqual(["Bridge.jpg", "Bridge_plan.svg"]);
+  });
+
+  it("puts possibly transparent images, but not photos or invertible ones, on a light backing", () => {
+    const [map, graph] = imageBlocks(article)[0].images;
+    expect(map.lightBacking).toBe(true);
+    expect(graph.invertInDarkMode).toBe(true);
+    expect(graph.lightBacking).toBe(false);
+    expect(gallery.images?.map((image) => image.lightBacking)).toEqual([false, true]);
+    expect(gallery.html).toMatch(/Bridge_plan\.svg[^>]*class="light-backing"|class="light-backing"[^>]*Bridge_plan\.svg/);
+  });
+
+  it("leaves blocks without viewer images alone", () => {
+    expect(htmlBlocks(article).find((block) => block.kind === "paragraph")).not.toHaveProperty("images");
   });
 });

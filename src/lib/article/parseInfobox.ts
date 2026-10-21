@@ -1,12 +1,13 @@
-import type { ArticleImage, Infobox, InfoboxRow } from "./types";
+import { EDIT_AFFORDANCE_SELECTOR } from "./articleUtils";
+import type { ArticleImage, Infobox, InfoboxRow, SuccessionEntry } from "./types";
+import { makeImagesZoomable } from "./zoomableImages";
 
-// Interactive or edit-only parts of infoboxes that don't work (or mean nothing) outside Wikipedia.
+// Interactive or editing parts of infoboxes that don't work (or mean nothing) outside Wikipedia.
 const INFOBOX_JUNK_SELECTOR = [
   "audio",
   "video",
   ".mw-tmh-player",
-  ".mw-editsection",
-  ".navbar",
+  EDIT_AFFORDANCE_SELECTOR,
   ".switcher-label",
   "[style*='display:none']",
   "[style*='display: none']",
@@ -55,6 +56,36 @@ function unwrapImageLinks(table: HTMLElement) {
   table.querySelectorAll("a.mw-file-description, a.image").forEach((link) => link.replaceWith(...link.childNodes));
 }
 
+/** One side of a succession block: a nested table of flag | name rows. */
+function readSuccessionEntries(cell: Element | undefined): SuccessionEntry[] {
+  if (!cell) return [];
+  return [...cell.querySelectorAll("tr")]
+    .map((row) => {
+      const icon = row.querySelector("img");
+      const name = [...row.querySelectorAll("td")].find((td) => !td.querySelector("img") && td.textContent?.trim());
+      return { icon: icon?.outerHTML ?? "", html: name?.innerHTML.trim() ?? "" };
+    })
+    .filter((entry) => entry.html);
+}
+
+/**
+ * Former-country infoboxes mark their "Preceded by / Succeeded by" header row with #before-after; the next row holds
+ * one nested table per side. On Wikipedia both rows sit in a table nested inside one full-width infobox row.
+ */
+function readSuccession(table: HTMLElement) {
+  const header = table.querySelector("#before-after")?.closest("tr");
+  const body = header?.nextElementSibling;
+  if (!header || !body) return null;
+
+  const [beforeCell, afterCell] = body.querySelectorAll(":scope > td");
+  const row: InfoboxRow = {
+    kind: "succession",
+    before: readSuccessionEntries(beforeCell),
+    after: readSuccessionEntries(afterCell),
+  };
+  return { header, body, row };
+}
+
 function isEmpty(element: Element) {
   return !element.textContent?.trim() && !element.querySelector("img");
 }
@@ -69,18 +100,19 @@ export function parseInfobox(table: HTMLElement, toImage: (image: HTMLImageEleme
   convertCollapsibleLists(table);
   unwrapImageLinks(table);
 
-  const images: ArticleImage[] = [];
-  table.querySelectorAll("img").forEach((element) => {
-    const image = toImage(element as HTMLImageElement);
-    if (!image) return;
-    element.setAttribute("data-lightbox-index", String(images.length));
-    images.push(image);
-  });
+  const images = makeImagesZoomable(table, toImage);
 
   let title = table.querySelector(":scope > caption")?.innerHTML.trim() ?? "";
   const rows: InfoboxRow[] = [];
+  const succession = readSuccession(table);
 
   for (const row of table.querySelectorAll(":scope > tbody > tr, :scope > tr")) {
+    // the infobox row that holds the succession block (or is its header, when not nested) becomes one structured row
+    if (succession && (row === succession.header || row.contains(succession.header))) {
+      rows.push(succession.row);
+      continue;
+    }
+    if (succession && row === succession.body) continue;
     if (isEmpty(row)) continue;
     const header = row.querySelector(":scope > th");
     const cells = row.querySelectorAll(":scope > td");

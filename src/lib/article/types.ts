@@ -30,6 +30,10 @@ export interface ArticleImage {
   height?: number;
   /** Wikipedia marked the image as safe to invert in dark mode (diagrams, formulas). */
   invertInDarkMode: boolean;
+  /** May be partly transparent (PNG, SVG, GIF), so it sits on a light backing in dark mode. */
+  lightBacking: boolean;
+  /** The Wikimedia file it shows, for its File: page and credits; null when it isn't an upload. */
+  fileName: string | null;
 }
 
 export interface ImagesBlock extends BaseBlock {
@@ -44,9 +48,18 @@ export interface HtmlBlock extends BaseBlock {
   kind: HtmlBlockKind;
   /** Sanitized outer HTML of the source element. */
   html: string;
+  /** Viewer images inside the HTML (galleries); their buttons carry data-lightbox-index. */
+  images?: ArticleImage[];
 }
 
 export type ArticleBlock = HeadingBlock | ImagesBlock | HtmlBlock;
+
+export interface SuccessionEntry {
+  /** Flag or emblem <img> HTML, or an empty string. */
+  icon: string;
+  /** The state's name (usually a link). */
+  html: string;
+}
 
 export type InfoboxRow =
   /** Section heading inside the infobox ("Government", "Area"). */
@@ -54,13 +67,15 @@ export type InfoboxRow =
   /** A label/value pair. */
   | { kind: "data"; label: string; html: string }
   /** A full-width row: images, maps, captions, subheaders. */
-  | { kind: "full"; html: string };
+  | { kind: "full"; html: string }
+  /** "Preceded by / Succeeded by" in former-country infoboxes. */
+  | { kind: "succession"; before: SuccessionEntry[]; after: SuccessionEntry[] };
 
 export interface Infobox {
   /** Sanitized title HTML (may include a native-language name). */
   title: string;
   rows: InfoboxRow[];
-  /** Images in the infobox, in order, for the full-screen viewer; their <img> tags carry data-lightbox-index. */
+  /** Images in the infobox, in order, for the full-screen viewer; their zoom buttons carry data-lightbox-index. */
   images: ArticleImage[];
 }
 

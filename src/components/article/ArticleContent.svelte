@@ -3,7 +3,7 @@
     import { isFoldableHeadingLevel } from "$lib/article/articleUtils";
     import type { ArticleBlock } from "$lib/article/types";
     import { isKeyboardClick, preventMouseFocus } from "$lib/focus";
-    import { openLightbox } from "$lib/lightbox.svelte";
+    import { openLightbox, openLightboxFromClick, preventMouseFocusOnZoomImages } from "$lib/lightbox.svelte";
     import { fold } from "$lib/motion";
     import ChevronIcon from "../icons/ChevronIcon.svelte";
     import ImageFan from "./ImageFan.svelte";
@@ -97,6 +97,7 @@
                                 width={image.width}
                                 height={image.height}
                                 class:invert-dark={image.invertInDarkMode}
+                                class:light-backing={image.lightBacking}
                                 loading="lazy"
                                 decoding="async"
                             />
@@ -108,6 +109,17 @@
                 </div>
             {:else if block.kind === "table"}
                 <div class="table-scroll" transition:fold>{@html block.html}</div>
+            {:else if block.images}
+                {@const images = block.images}
+                <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions (delegates clicks from the gallery's image buttons) -->
+                <div
+                    class="block {block.kind}"
+                    transition:fold
+                    onmousedown={preventMouseFocusOnZoomImages}
+                    onclick={(event) => openLightboxFromClick(event, images)}
+                >
+                    {@html block.html}
+                </div>
             {:else}
                 <!-- spacing lives on this wrapper (not the HTML inside) so folding never jumps by a collapsed margin -->
                 <div class="block {block.kind}" class:lead={i === leadIndex} transition:fold>{@html block.html}</div>
@@ -180,12 +192,15 @@
         }
 
         :global(a.external::after) {
-            content: "↗";
+            content: "";
             display: inline-block;
-            margin-left: 0.12em;
-            font-size: 0.7em;
-            color: var(--muted);
-            text-decoration: none;
+            width: 0.62em;
+            height: 0.62em;
+            margin-left: 0.15em;
+            vertical-align: 0.05em;
+            background-color: var(--muted);
+            mask: var(--icon-arrow-up-right) center / contain no-repeat;
+            -webkit-mask: var(--icon-arrow-up-right) center / contain no-repeat;
         }
 
         :global(.redlink) {
@@ -487,6 +502,22 @@
         letter-spacing: -0.005em;
     }
 
+    /* The section rule is the h2's own border: flash only the heading text below it, not the rule and padding. */
+    .article-body :global(h2.jump-flash) {
+        isolation: isolate;
+        border-radius: 0;
+        animation: none;
+
+        &::before {
+            content: "";
+            position: absolute;
+            inset: calc(1em + 1px) 0 0;
+            z-index: -1;
+            border-radius: 4px;
+            animation: jump-flash 1.6s var(--ease-out);
+        }
+    }
+
     .article-body :global(h3) {
         margin-top: 2em;
         font-size: 1.4rem;
@@ -766,6 +797,12 @@
         padding: 0 !important;
         border: 0 !important;
         background: none !important;
+    }
+
+    .article-body :global(li.gallerybox .zoom-image) {
+        display: block;
+        width: 100%;
+        border-radius: 8px;
     }
 
     .article-body :global(li.gallerybox img) {

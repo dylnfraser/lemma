@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { countWords, getArticlePath, getBestImageSrc, resizeWikimediaThumb, safeDecodeURIComponent } from "./articleUtils";
+import {
+  countWords,
+  getArticlePath,
+  getBestImageSrc,
+  getImageFileName,
+  mayHaveTransparency,
+  resizeWikimediaThumb,
+  safeDecodeURIComponent,
+} from "./articleUtils";
 
 function image(attributes: Record<string, string>): HTMLImageElement {
   const element = document.createElement("img");
@@ -53,5 +61,25 @@ describe("helpers", () => {
   it("decodes safely", () => {
     expect(safeDecodeURIComponent("Fr%C3%BChe")).toBe("Frühe");
     expect(safeDecodeURIComponent("100%")).toBe("100%");
+  });
+});
+
+describe("getImageFileName", () => {
+  it("reads the original file from thumbnails and direct uploads", () => {
+    expect(getImageFileName(`${base}/Diagram.svg/250px-Diagram.svg.png`)).toBe("Diagram.svg");
+    expect(getImageFileName("https://upload.wikimedia.org/wikipedia/en/c/cd/Caf%C3%A9_logo.png")).toBe("Café_logo.png");
+  });
+
+  it("is null for images that aren't uploads", () => {
+    expect(getImageFileName("https://wikimedia.org/api/rest_v1/media/math/render/svg/abc")).toBeNull();
+    expect(getImageFileName("not a url")).toBeNull();
+  });
+});
+
+describe("mayHaveTransparency", () => {
+  it("goes by the original file's format, not the thumbnail's", () => {
+    expect(mayHaveTransparency(`${base}/Diagram.svg/250px-Diagram.svg.png`)).toBe(true);
+    expect(mayHaveTransparency(`${base}/Map.png/250px-Map.png`)).toBe(true);
+    expect(mayHaveTransparency(`${base}/Photo.jpg/250px-Photo.jpg`)).toBe(false);
   });
 });

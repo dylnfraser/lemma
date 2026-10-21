@@ -4,12 +4,15 @@ import { rewriteArticleLink } from "./articleLinks";
 import { parseInfobox } from "./parseInfobox";
 import {
   countWords,
+  EDIT_AFFORDANCE_SELECTOR,
   EXCLUDED_CONTENT_SELECTOR,
   getBestImageSrc,
   getHeadingLevel,
+  getImageFileName,
   isArticleHeadingTag,
   isBlockedArticleImage,
   isFoldableHeadingLevel,
+  mayHaveTransparency,
 } from "./articleUtils";
 import type {
   ArticleBlock,
@@ -19,6 +22,7 @@ import type {
   ImagesBlock,
   ParsedArticle,
 } from "./types";
+import { makeImagesZoomable } from "./zoomableImages";
 
 const WORDS_PER_MINUTE = 230;
 const BLOCK_SELECTOR = "p, h1, h2, h3, h4, h5, h6, ul, ol, dl, blockquote, table, img";
@@ -45,7 +49,7 @@ function parseDocument(html: string): Document {
 
 function removeClutter(root: HTMLElement) {
   root.querySelectorAll(EXCLUDED_CONTENT_SELECTOR).forEach((element) => element.remove());
-  root.querySelectorAll('img[alt*="Edit"]').forEach((image) => image.remove());
+  root.querySelectorAll(EDIT_AFFORDANCE_SELECTOR).forEach((element) => element.remove());
 
   const contentRoot = root.firstElementChild;
   contentRoot?.querySelectorAll(":scope > .plainlist").forEach((element) => element.remove());
@@ -59,6 +63,19 @@ function markInlineIcons(root: HTMLElement) {
   });
 }
 
+function isInvertedInDarkMode(image: HTMLImageElement): boolean {
+  return image.matches(".mw-invert, .skin-invert") || !!image.closest("figure")?.matches(".skin-invert-image, .mw-invert-image");
+}
+
+/** Tags images that may be see-through (diagrams, maps) so dark mode can put a light sheet behind them. */
+function markLightBackings(root: HTMLElement) {
+  root.querySelectorAll("img:not(.inline-icon)").forEach((image) => {
+    if (!isInvertedInDarkMode(image as HTMLImageElement) && mayHaveTransparency(image.getAttribute("src") ?? "")) {
+      image.classList.add("light-backing");
+    }
+  });
+}
+
 function toArticleImage(image: HTMLImageElement): ArticleImage | null {
   const src = getBestImageSrc(image);
   if (!src || isBlockedArticleImage(src)) return null;
@@ -68,10 +85,18 @@ function toArticleImage(image: HTMLImageElement): ArticleImage | null {
   const width = Number(image.getAttribute("width")) || undefined;
   const height = Number(image.getAttribute("height")) || undefined;
   if (Math.max(width ?? Infinity, height ?? Infinity) < MIN_ARTICLE_IMAGE_SIZE) return null;
-  const invertInDarkMode =
-    image.matches(".mw-invert, .skin-invert") || !!figure?.matches(".skin-invert-image, .mw-invert-image");
+  const invertInDarkMode = isInvertedInDarkMode(image);
 
-  return { src, alt: image.getAttribute("alt") ?? "", caption, width, height, invertInDarkMode };
+  return {
+    src,
+    alt: image.getAttribute("alt") ?? "",
+    caption,
+    width,
+    height,
+    invertInDarkMode,
+    lightBacking: !invertInDarkMode && mayHaveTransparency(src),
+    fileName: getImageFileName(src),
+  };
 }
 
 function getHtmlBlockKind(element: Element): HtmlBlockKind | null {
@@ -122,12 +147,25 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
   if (infoboxTable) {
     infoboxTable.querySelectorAll("a").forEach(rewriteArticleLink);
     markInlineIcons(infoboxTable);
+    markLightBackings(infoboxTable);
     infobox = parseInfobox(infoboxTable, toArticleImage);
   }
 
   removeClutter(root);
   root.querySelectorAll("a").forEach(rewriteArticleLink);
   markInlineIcons(root);
+  markLightBackings(root);
+
+  // Gallery photos open the viewer; each one's caption is its gallery text rather than a figcaption.
+  const galleryImages = new Map<Element, ArticleImage[]>();
+  root.querySelectorAll("ul.gallery").forEach((gallery) => {
+    const images = makeImagesZoomable(gallery, (element) => {
+      const image = toArticleImage(element);
+      const text = element.closest(".gallerybox")?.querySelector(".gallerytext")?.innerHTML.trim();
+      return image && text ? { ...image, caption: text } : image;
+    });
+    if (images.length > 0) galleryImages.set(gallery, images);
+  });
 
   const blocks: ArticleBlock[] = [];
   const headings: ArticleHeading[] = [];
@@ -191,7 +229,8 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
       if (!kind) continue;
 
       registerAnchors(element, blocks.length);
-      blocks.push({ type: "html", kind, html: element.outerHTML, sectionIds: sectionIds() });
+      const images = galleryImages.get(element);
+      blocks.push({ type: "html", kind, html: element.outerHTML, sectionIds: sectionIds(), ...(images && { images }) });
 
       if (kind !== "references") {
         links += countLinks(element);

@@ -1,17 +1,19 @@
 <script lang="ts">
     import { MediaQuery } from "svelte/reactivity";
     import type { Infobox } from "$lib/article/types";
-    import { openLightbox } from "$lib/lightbox.svelte";
+    import { openLightboxFromClick, preventMouseFocusOnZoomImages } from "$lib/lightbox.svelte";
     import { DURATION, fold } from "$lib/motion";
+    import Icon from "../icons/Icon.svelte";
 
-    let { infobox }: { infobox: Infobox } = $props();
+    // `expanded` is bindable so the article can keep it across back/forward navigation.
+    let { infobox, expanded = $bindable(false) }: { infobox: Infobox; expanded?: boolean } = $props();
 
     // In the right margin (wide screens) the whole infobox shows; inline (narrow) it starts as a short preview.
     const wide = new MediaQuery("min-width: 1280px");
     const PREVIEW_DATA_ROWS = 5;
 
-    let expanded = $state(false);
-    let card = $state<HTMLElement>();
+    // Rows only animate in when the reader toggles; restoring from back/forward lays them out instantly.
+    let animateRows = $state(false);
 
     // Preview: everything up to and including the first few label/value rows (keeps the lead image and map).
     let previewLength = $derived.by(() => {
@@ -23,28 +25,46 @@
     let rows = $derived(showAll ? infobox.rows : infobox.rows.slice(0, previewLength));
     let hiddenCount = $derived(infobox.rows.length - previewLength);
 
-    // Infobox images open the full-screen viewer.
-    function handleClick(event: MouseEvent) {
-        const image = (event.target as Element).closest<HTMLImageElement>("img[data-lightbox-index]");
-        if (!image || !card) return;
-        event.preventDefault();
-        const sources = [...card.querySelectorAll<HTMLElement>("img[data-lightbox-index]")];
-        openLightbox(infobox.images, Number(image.dataset.lightboxIndex), sources);
-    }
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions (image zoom is a mouse shortcut; every image is also reachable in the article) -->
-<aside class="infobox" class:inline={!wide.current} aria-label="Quick facts" bind:this={card} onclick={handleClick}>
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions (delegates clicks from the image buttons inside; see zoomableImages.ts) -->
+<aside
+    class="infobox"
+    class:inline={!wide.current}
+    aria-label="Quick facts"
+    onmousedown={preventMouseFocusOnZoomImages}
+    onclick={(event) => openLightboxFromClick(event, infobox.images)}
+>
     {#if infobox.title}
         <div class="title">{@html infobox.title}</div>
     {/if}
 
     <div class="rows">
         {#each rows as row, i (i)}
-            <div class="row {row.kind}" transition:fold={{ duration: DURATION.base }}>
+            <div class="row {row.kind}" transition:fold={{ duration: animateRows ? DURATION.base : 0 }}>
                 {#if row.kind === "data"}
                     <div class="label">{@html row.label}</div>
                     <div class="value">{@html row.html}</div>
+                {:else if row.kind === "succession"}
+                    {#each [{ label: "Preceded by", before: true, entries: row.before }, { label: "Succeeded by", before: false, entries: row.after }] as group (group.label)}
+                        {#if group.entries.length}
+                            <div class="succession-group">
+                                <div class="succession-label">
+                                    {#if group.before}<Icon name="arrow-left" />{/if}
+                                    {group.label}
+                                    {#if !group.before}<Icon name="arrow-right" />{/if}
+                                </div>
+                                <ul>
+                                    {#each group.entries as entry}
+                                        <li>
+                                            <span class="flag">{@html entry.icon}</span>
+                                            <span>{@html entry.html}</span>
+                                        </li>
+                                    {/each}
+                                </ul>
+                            </div>
+                        {/if}
+                    {/each}
                 {:else}
                     {@html row.html}
                 {/if}
@@ -53,7 +73,15 @@
     </div>
 
     {#if !wide.current && hiddenCount > 0}
-        <button type="button" class="toggle" aria-expanded={expanded} onclick={() => (expanded = !expanded)}>
+        <button
+            type="button"
+            class="toggle"
+            aria-expanded={expanded}
+            onclick={() => {
+                animateRows = true;
+                expanded = !expanded;
+            }}
+        >
             {expanded ? "Show fewer facts" : `Show all facts (${hiddenCount} more)`}
         </button>
     {/if}
@@ -132,16 +160,17 @@
 
     .value {
         color: var(--text-color);
+    }
 
-        :global(ul),
-        :global(ol) {
-            padding-left: 0;
-            list-style: none;
-        }
+    /* top-level lists in a value sit flush with the column (nested lists keep their indent) */
+    .infobox .value > :global(:is(ul, ol)),
+    .infobox .value > :global(div > :is(ul, ol)) {
+        padding-left: 0;
+        list-style: none;
+    }
 
-        :global(li + li) {
-            margin-top: 0.15rem;
-        }
+    .infobox .value :global(li + li) {
+        margin-top: 0.15rem;
     }
 
     .row.header {
@@ -158,6 +187,61 @@
     .row.full {
         text-align: center;
         color: color-mix(in oklch, var(--text-color) 85%, var(--page-bg));
+    }
+
+    /* "Preceded by / Succeeded by": two labelled groups, side by side when the card has room */
+    .row.succession {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+        gap: 0.75rem 1rem;
+        margin-top: 0.2rem;
+        padding-top: 0.65rem;
+    }
+
+    .succession-label {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        margin-bottom: 0.4rem;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+
+    .succession-group ul {
+        display: grid;
+        gap: 0.35rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .succession-group li {
+        display: grid;
+        grid-template-columns: 1.4rem minmax(0, 1fr);
+        align-items: start;
+        gap: 0.45rem;
+        line-height: 1.35;
+    }
+
+    /* every flag in the same slot, aligned with the first line of its name */
+    .flag {
+        display: grid;
+        place-items: center;
+        height: 1.35em;
+
+        :global(img) {
+            display: block;
+            width: auto;
+            max-width: 100%;
+            max-height: 0.95em;
+            margin: 0;
+            border-radius: 2px;
+            outline: 1px solid color-mix(in oklch, var(--text-color) 12%, transparent);
+            outline-offset: -1px;
+        }
     }
 
     .rows > .row:first-child {
@@ -181,9 +265,8 @@
             height: auto;
         }
 
-        :global(img[data-lightbox-index]) {
+        :global(.zoom-image img) {
             border-radius: 6px;
-            cursor: zoom-in;
         }
 
         :global(img.inline-icon) {
@@ -224,8 +307,12 @@
         }
 
         :global(details.infobox-collapsible summary::before) {
-            content: "▸";
-            font-size: 0.8em;
+            content: "";
+            width: 0.85em;
+            height: 0.85em;
+            background-color: currentColor;
+            mask: var(--icon-chevron-right) center / contain no-repeat;
+            -webkit-mask: var(--icon-chevron-right) center / contain no-repeat;
             transition: rotate var(--dur-fast) var(--ease-out);
         }
 

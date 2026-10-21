@@ -55,8 +55,37 @@ export const INFOBOX_ARTICLE = `<div class="mw-parser-output">
 <tr><th scope="row" class="infobox-label">• President</th><td class="infobox-data"><a href="/wiki/Karol_Nawrocki">Karol Nawrocki</a></td></tr>
 <tr><th scope="row" class="infobox-label">Regional languages</th><td class="infobox-data"><div class="collapsible-list mw-collapsible mw-collapsed"><div><div>List</div></div><ul class="mw-collapsible-content"><li>German<br />Belarusian<br />Lithuanian</li></ul></div></td></tr>
 <tr><th scope="row" class="infobox-label">Cities</th><td class="infobox-data"><div class="collapsible-list mw-collapsible mw-collapsed"><div><div>Major cities</div></div><ul class="mw-collapsible-content"><li>A</li><li>B</li><li>C</li><li>D</li><li>E</li><li>F</li><li>G</li></ul></div></td></tr>
+<tr><td colspan="2" class="infobox-full-data"><table><tbody>
+<tr><td style="text-align:center"><div id="before-after"></div> <b>Preceded by</b></td><td><b>Succeeded by</b></td></tr>
+<tr><td><table><tbody><tr><td><img src="${thumb("Flag_A.svg", 20, ".png")}" width="20" height="13" /></td><td><a href="/wiki/Kingdom_of_Poland">Kingdom of Poland</a></td></tr><tr><td><img src="${thumb("Flag_B.svg", 20, ".png")}" width="20" height="12" /></td><td><a href="/wiki/German_Empire">German Empire</a></td></tr></tbody></table></td>
+<td><table><tbody><tr><td><a href="/wiki/Soviet_Union">Soviet Union</a></td><td><img src="${thumb("Flag_C.svg", 20, ".png")}" width="20" height="13" /></td></tr></tbody></table></td></tr>
+</tbody></table></td></tr>
 <tr style="display:none"><th class="infobox-label">Hidden</th><td class="infobox-data">secret</td></tr>
 <tr><td colspan="2"></td></tr>
 </tbody></table>
 <p>Poland is a country.</p>
+</div>`;
+
+export const EDIT_AFFORDANCES = `<div class="mw-parser-output">
+<table class="infobox biota"><tbody>
+<tr><th colspan="2">Rusty patched bumble bee<span class="plainlinks taxobox-edit-taxonomy"><a href="/wiki/Template:Taxonomy/Bombus" title="Edit this classification"><img alt="Edit this classification" src="${thumb("Red_Pencil_Icon.png", 16, "")}" width="16" height="16" /></a></span></th></tr>
+<tr><th scope="row">Website</th><td><a href="https://example.org">example.org</a><span class="noprint"><a href="https://www.wikidata.org/wiki/Q1#P856" title="Edit this at Wikidata"><img alt="Edit this at Wikidata" src="${thumb("OOjs_UI_icon_edit-ltr.svg", 10, ".png")}" width="10" height="10" /></a></span></td></tr>
+</tbody></table>
+<div class="mw-heading mw-heading2"><h2 id="History">History</h2><span class="mw-editsection"><span class="mw-editsection-bracket">[</span><a href="/w/index.php?title=Bee&amp;action=edit&amp;section=1">edit</a><span class="mw-editsection-bracket">]</span></span></div>
+<p>Bees numbered 40 as of 2020<sup class="plainlinks noexcerpt noprint asof-tag update" style="display:none;"><a href="//en.wikipedia.org/w/index.php?title=Bee&amp;action=edit">[update]</a></sup> and <a href="/w/index.php?title=Unwritten_bee&amp;action=edit&amp;redlink=1">an unwritten bee</a>.</p>
+<ul class="references"><li id="cite_note-1"><cite>Bee book.</cite><span class="cs1-maint citation-comment"><code class="cs1-code">{{<a href="/wiki/Template:Cite_book" title="Template:Cite book">cite book</a>}}</code>: CS1 maint: multiple names</span></li></ul>
+<div class="sidebar"><div class="sidebar-navbar"><a href="/wiki/Template:Bees" title="View this template">v</a></div></div>
+<div class="navbar plainlinks hlist"><a href="/wiki/Template:Bees"><abbr title="Edit this template">e</abbr></a></div>
+<ul><li><a href="https://example.org">Official website</a> <span class="noprint"><a href="https://www.wikidata.org/wiki/Q1#P856" title="Edit this at Wikidata"><img alt="Edit this at Wikidata" src="${thumb("OOjs_UI_icon_edit-ltr.svg", 10, ".png")}" width="10" height="10" /></a></span></li></ul>
+<p>Edith the bee <img alt="Edith Bee portrait" src="${thumb("Edith.jpg", 20, "")}" width="20" height="20" /></p>
+</div>`;
+
+export const GALLERY_ARTICLE = `<div class="mw-parser-output">
+<p>Some <a href="/wiki/Bridges">bridges</a>.</p>
+<ul class="gallery mw-gallery-traditional">
+<li class="gallerybox"><div class="thumb"><span typeof="mw:File"><a href="/wiki/File:Bridge.jpg" class="mw-file-description"><img alt="A stone bridge" src="${thumb("Bridge.jpg", 120)}" width="120" height="90" data-file-width="3000" /></a></span></div><div class="gallerytext">The <a href="/wiki/Old_Bridge">Old Bridge</a></div></li>
+<li class="gallerybox"><div class="thumb"><span typeof="mw:File"><a href="/wiki/File:Bridge_plan.svg" class="mw-file-description"><img alt="" src="${thumb("Bridge_plan.svg", 120, ".png")}" width="120" height="90" data-file-width="800" /></a></span></div><div class="gallerytext">Its plan</div></li>
+</ul>
+<figure typeof="mw:File/Thumb"><img alt="A map" src="${thumb("Map.png", 250)}" width="250" height="200" data-file-width="2000" /><figcaption>A map</figcaption></figure>
+<figure class="skin-invert-image" typeof="mw:File/Thumb"><img alt="A graph" src="${thumb("Graph.svg", 250, ".png")}" width="250" height="200" data-file-width="500" /><figcaption></figcaption></figure>
 </div>`;

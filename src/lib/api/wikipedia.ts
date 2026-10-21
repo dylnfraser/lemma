@@ -127,6 +127,97 @@ export async function fetchArticle(title: string, options: RequestOptions = {}):
   };
 }
 
+type RevisionsResponse = {
+  query?: { pages?: { revisions?: { timestamp?: string }[] }[] };
+};
+
+/**
+ * When the article was last edited, for the attribution footer. The parse API doesn't report it, so this is a separate,
+ * best-effort request: any failure (including a caller abort) resolves to null rather than throwing.
+ */
+export async function fetchLastEdited(title: string, options: RequestOptions = {}): Promise<Date | null> {
+  const url = new URL("/w/api.php", WIKIPEDIA_ORIGIN);
+  url.search = new URLSearchParams({
+    action: "query",
+    prop: "revisions",
+    rvprop: "timestamp",
+    titles: title,
+    redirects: "1",
+    format: "json",
+    formatversion: "2",
+    origin: "*",
+  }).toString();
+
+  try {
+    const json = await requestJson<RevisionsResponse>(url, options);
+    const timestamp = json.query?.pages?.[0]?.revisions?.[0]?.timestamp;
+    const date = timestamp ? new Date(timestamp) : null;
+    return date && !Number.isNaN(date.getTime()) ? date : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Where a reader can see an article's contributors, as CC BY-SA attribution asks. */
+export function getWikipediaHistoryUrl(title: string): string {
+  const url = new URL("/w/index.php", WIKIPEDIA_ORIGIN);
+  url.search = new URLSearchParams({ title: title.replaceAll(" ", "_"), action: "history" }).toString();
+  return url.href;
+}
+
+export type ImageCredit = {
+  /** Plain-text author ("Jane Doe", "Unknown author"), or an empty string. */
+  artist: string;
+  /** Short license name ("CC BY-SA 4.0", "Public domain"), or an empty string. */
+  license: string;
+  /** An http(s) link to the license, or an empty string. */
+  licenseUrl: string;
+};
+
+type ImageInfoResponse = {
+  query?: { pages?: { imageinfo?: { extmetadata?: Record<string, { value?: unknown } | undefined> }[] }[] };
+};
+
+/** Commons metadata values are HTML ("<a href=…>Jane Doe</a>"); only their text is shown. */
+function metadataText(value: unknown): string {
+  if (typeof value !== "string") return "";
+  // DOMParser documents are inert, so reading text from untrusted HTML this way runs nothing.
+  return new DOMParser().parseFromString(value, "text/html").body.textContent?.replaceAll(/\s+/g, " ").trim() ?? "";
+}
+
+/**
+ * Who made an image and under which license, for the viewer's credit line. Best-effort like `fetchLastEdited`: any
+ * failure resolves to null.
+ */
+export async function fetchImageCredit(fileName: string, options: RequestOptions = {}): Promise<ImageCredit | null> {
+  const url = new URL("/w/api.php", WIKIPEDIA_ORIGIN);
+  url.search = new URLSearchParams({
+    action: "query",
+    prop: "imageinfo",
+    iiprop: "extmetadata",
+    iiextmetadatafilter: "Artist|LicenseShortName|LicenseUrl",
+    titles: `File:${fileName}`,
+    format: "json",
+    formatversion: "2",
+    origin: "*",
+  }).toString();
+
+  try {
+    const json = await requestJson<ImageInfoResponse>(url, options);
+    const metadata = json.query?.pages?.[0]?.imageinfo?.[0]?.extmetadata;
+    if (!metadata) return null;
+
+    const licenseUrl = normalizeProtocol(metadataText(metadata.LicenseUrl?.value));
+    return {
+      artist: metadataText(metadata.Artist?.value),
+      license: metadataText(metadata.LicenseShortName?.value),
+      licenseUrl: /^https?:\/\//.test(licenseUrl) ? licenseUrl : "",
+    };
+  } catch {
+    return null;
+  }
+}
+
 function normalizeProtocol(url: string): string {
   return url.startsWith("//") ? `https:${url}` : url;
 }

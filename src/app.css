@@ -264,6 +264,28 @@ kbd {
     display: none;
 }
 
+/*
+ * Diagrams and maps are usually dark line art on transparency, which disappears on a dark page; give them the light
+ * sheet they were drawn for. Only formats that can be see-through are tagged (see mayHaveTransparency).
+ */
+@media (prefers-color-scheme: dark) {
+    img.light-backing {
+        background-color: oklch(0.95 0.006 var(--hue));
+    }
+}
+
+/* Images inside Wikipedia's HTML (galleries, the infobox) that open the viewer; see zoomableImages.ts */
+.zoom-image {
+    display: inline-block;
+    max-width: 100%;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    line-height: 0;
+    cursor: zoom-in;
+}
+
 /* jumping to a citation or section briefly lights it up, then fades (see ArticleView) */
 .jump-flash {
     border-radius: 4px;

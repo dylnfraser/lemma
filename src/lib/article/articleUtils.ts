@@ -8,12 +8,29 @@ export const EXCLUDED_CONTENT_SELECTOR = [
   ".metadata",
   ".ambox",
   ".hatnote",
-  ".mw-editsection",
   ".mw-empty-elt",
   ".shortdescription",
   // Alternate renderings that Wikipedia hides with TemplateStyles (e.g. the static frame behind an animation).
   ".calculator-value-false",
   "table:not(.wikitable)",
+].join(", ");
+
+/**
+ * Lemma is a reader, so everything that invites editing goes: section [edit] links, v·t·e template bars, Wikidata and
+ * taxonomy pencils, "[update]" prompts, editor-only citation maintenance notes, and any other link into the editor.
+ * Red links (also `action=edit`) are kept here and turned into plain text by `rewriteArticleLink`.
+ */
+export const EDIT_AFFORDANCE_SELECTOR = [
+  ".mw-editsection",
+  ".navbar",
+  ".sidebar-navbar",
+  ".taxobox-edit-taxonomy",
+  ".asof-tag",
+  ".citation-comment",
+  'a[href*="action=edit"]:not([href*="redlink=1"])',
+  'a[href*="veaction=edit"]',
+  'a[title^="Edit this"]',
+  'img[alt^="Edit this"]',
 ].join(", ");
 
 export const IMAGE_TARGET_WIDTH = 960;
@@ -47,6 +64,31 @@ export function resizeWikimediaThumb(src: string, targetWidth = IMAGE_TARGET_WID
 
   const resizedFileName = parts.fileName.replace(/^\d+px-/, `${targetWidth}px-`);
   return `${parts.origin}${parts.directory}/${resizedFileName}${parts.search}`;
+}
+
+/**
+ * The uploaded file an image shows ("Diagram.svg" for any thumbnail of it), for its File: page and credits.
+ * Null for images that aren't Wikimedia uploads (e.g. rendered math).
+ */
+export function getImageFileName(src: string): string | null {
+  try {
+    const url = new URL(normalizeImageSrc(src));
+    if (!WIKIMEDIA_THUMB_HOSTS.has(url.hostname)) return null;
+    const pathParts = url.pathname.split("/");
+    // thumbnails live at …/thumb/a/ab/<file>/<width>px-<file>; originals at …/a/ab/<file>
+    const fileName = url.pathname.includes("/thumb/") ? pathParts.at(-2) : pathParts.at(-1);
+    return fileName ? safeDecodeURIComponent(fileName) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Formats that can have see-through areas. Wikipedia's diagrams are mostly dark line art on transparency, which
+ * vanishes on a dark page, so these get a light backing in dark mode. (Photos are JPEGs and never need one.)
+ */
+export function mayHaveTransparency(src: string): boolean {
+  return /\.(?:png|svg|gif|webp)$/i.test(getImageFileName(src) ?? "");
 }
 
 /**

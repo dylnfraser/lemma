@@ -220,6 +220,7 @@
                             width={image.width}
                             height={image.height}
                             class:invert-dark={image.invertInDarkMode}
+                            class:light-backing={image.lightBacking}
                             decoding="async"
                         />
                     </button>
@@ -255,6 +256,7 @@
                         alt=""
                         src={image.src}
                         class:invert-dark={image.invertInDarkMode}
+                        class:light-backing={image.lightBacking}
                         loading="lazy"
                         decoding="async"
                     />

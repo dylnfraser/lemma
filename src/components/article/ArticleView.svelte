@@ -1,5 +1,10 @@
 <script lang="ts" module>
-    export type ArticleViewState = { scrollY: number; collapsedSections: string[] };
+    export type ArticleViewState = {
+        scrollY: number;
+        collapsedSections: string[];
+        /** Whether the inline infobox was showing all facts (optional: older snapshots don't have it). */
+        infoboxExpanded?: boolean;
+    };
 </script>
 
 <script lang="ts">
@@ -14,6 +19,8 @@
     import ReaderLayout from "../ReaderLayout.svelte";
     import ArticleBreadcrumbs from "./ArticleBreadcrumbs.svelte";
     import ArticleContent from "./ArticleContent.svelte";
+    import Icon from "../icons/Icon.svelte";
+    import ArticleFooter from "./ArticleFooter.svelte";
     import ArticleInfobox from "./ArticleInfobox.svelte";
     import Lightbox from "./Lightbox.svelte";
 
@@ -47,9 +54,12 @@
     let articleElement: HTMLElement;
     let frame = 0;
     let restoredFrom: ArticleViewState | null = null;
+    let infoboxExpanded = $state(false);
+    // Set when goToAnchor changes the hash itself, so the hashchange listener doesn't handle that jump twice.
+    let ownHashChange: string | null = null;
 
     export function captureState(): ArticleViewState {
-        return { scrollY: window.scrollY, collapsedSections: [...collapsedSections] };
+        return { scrollY: window.scrollY, collapsedSections: [...collapsedSections], infoboxExpanded };
     }
 
     function toggle(set: Set<string>, id: string) {
@@ -147,6 +157,7 @@
             element.scrollIntoView();
         } else {
             // A native hash change scrolls (respecting scroll-margin), sets :target and adds a history entry.
+            ownHashChange = id;
             location.hash = id;
         }
         flash(element);
@@ -188,10 +199,33 @@
         replaceState(`${canonicalPath}${page.url.search}${hash}`, page.state);
     }
 
+    /** Unfolds whatever hides `id`, then scrolls to it and flashes it. */
+    async function showTarget(id: string) {
+        const element = await reveal(id);
+        if (!element) return;
+        element.scrollIntoView();
+        flash(element);
+        if (headingsById.has(id)) setActiveHeading(id);
+        else scheduleActiveUpdate();
+    }
+
+    // Back/forward between hash entries: the target may sit in a section folded since, which the browser can't reach.
+    function handleHashChange() {
+        const id = safeDecodeURIComponent(location.hash.slice(1));
+        if (!id) return;
+        if (id === ownHashChange) {
+            ownHashChange = null;
+            return;
+        }
+        showTarget(id);
+    }
+
     async function applyRestoreState(state: ArticleViewState) {
         restoredFrom = state;
         collapsedSections.clear();
         state.collapsedSections.forEach((id) => collapsedSections.add(id));
+        // restore the infobox's height before the scroll position, or the page could be too short to scroll back
+        infoboxExpanded = state.infoboxExpanded ?? false;
         await tick();
         window.scrollTo({ top: state.scrollY });
         scheduleActiveUpdate();
@@ -208,12 +242,7 @@
         canonicalizeUrl(fragment);
 
         if (!restoreState && fragment) {
-            reveal(fragment).then((element) => {
-                element?.scrollIntoView();
-                if (element) flash(element);
-                if (headingsById.has(fragment)) setActiveHeading(fragment);
-                else scheduleActiveUpdate();
-            });
+            showTarget(fragment);
         } else {
             scheduleActiveUpdate();
         }
@@ -235,7 +264,7 @@
     <title>{title} • Lemma</title>
 </svelte:head>
 
-<svelte:window onscroll={scheduleActiveUpdate} onresize={scheduleActiveUpdate} />
+<svelte:window onscroll={scheduleActiveUpdate} onresize={scheduleActiveUpdate} onhashchange={handleHashChange} />
 
 <div class="reading-progress" aria-hidden="true"></div>
 <Lightbox />
@@ -257,7 +286,8 @@
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions (delegates clicks on same-page links in the body and infobox) -->
     <article bind:this={articleElement} lang="en" onclick={handleArticleClick}>
         <header class="article-header">
-            <h1 id="title">{title}</h1>
+            <!-- focusable so "Back to top" can move keyboard focus here -->
+            <h1 id="title" tabindex="-1">{title}</h1>
             {#if description}
                 <p class="description">{description}</p>
             {/if}
@@ -266,14 +296,14 @@
                 <span>{stats.readingMinutes} min read</span>
                 <span>{stats.links.toLocaleString()} links</span>
                 <a class="source-link" href={getWikipediaArticleUrl(title)} target="_blank" rel="noopener noreferrer"
-                    >Wikipedia<span aria-hidden="true"> ↗</span><span class="sr-only"> (opens in a new tab)</span></a
+                    >Wikipedia <Icon name="arrow-up-right" size="0.85em" /><span class="sr-only"> (opens in a new tab)</span></a
                 >
             </p>
         </header>
 
         {#if article.infobox}
             <div class="infobox-slot">
-                <ArticleInfobox infobox={article.infobox} />
+                <ArticleInfobox infobox={article.infobox} bind:expanded={infoboxExpanded} />
             </div>
         {/if}
 
@@ -282,6 +312,8 @@
             collapsedSectionIds={collapsedSections}
             onToggleSection={toggleSection}
         />
+
+        <ArticleFooter {title} />
     </article>
 </ReaderLayout>
 
