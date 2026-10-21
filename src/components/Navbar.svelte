@@ -1,6 +1,7 @@
 <script lang="ts">
     import { page } from "$app/state";
     import { openSearch } from "$lib/search/searchOverlay.svelte";
+    import RandomButton from "./RandomButton.svelte";
     import SearchIcon from "./icons/SearchIcon.svelte";
 
     const wordmark = [..."Lemma"];
@@ -24,6 +25,7 @@
                 <kbd aria-hidden="true">/</kbd>
             </button>
         {/if}
+        <RandomButton />
     </nav>
 </header>
 
@@ -36,7 +38,9 @@
         align-items: center;
         justify-content: space-between;
         height: var(--nav-height);
-        padding: 0 20px 0 8px;
+        /* symmetric insets: the logo and the search button each sit 8px from their edge (and from top and bottom) */
+        --inset: 8px;
+        padding: 0 var(--inset);
         box-sizing: border-box;
         user-select: none;
         background: color-mix(in oklch, var(--page-bg) 80%, transparent);
@@ -82,24 +86,22 @@
     nav {
         display: flex;
         align-items: center;
-        gap: 20px;
+        gap: 4px;
 
-        a,
         button {
             font-size: 0.85rem;
             color: inherit;
         }
-
-        a[aria-current="page"] {
-            text-decoration-thickness: 2px;
-        }
     }
 
+    /* the same 36px box as the logo, so both ends of the bar mirror each other */
     .search-button {
         display: flex;
         align-items: center;
         gap: 0.3rem;
-        padding: 0.25rem 0.4rem 0.25rem 0.2rem;
+        box-sizing: border-box;
+        height: 36px;
+        padding: 0 0.5rem 0 0.4rem;
         background: none;
         border: 1px solid transparent;
         border-radius: 8px;
