@@ -15,14 +15,18 @@
     import { getWikipediaArticleUrl } from "$lib/api/wikipedia";
     import { getCollapsibleHeadingIds } from "$lib/article/articleNavigation";
     import { getArticlePath, safeDecodeURIComponent } from "$lib/article/articleUtils";
-    import type { ParsedArticle } from "$lib/article/types";
+    import type { ArticleMeta, ParsedArticle } from "$lib/article/types";
     import ReaderLayout from "../ReaderLayout.svelte";
     import ArticleBreadcrumbs from "./ArticleBreadcrumbs.svelte";
     import ArticleContent from "./ArticleContent.svelte";
     import Icon from "../icons/Icon.svelte";
     import ArticleFooter from "./ArticleFooter.svelte";
     import ArticleInfobox from "./ArticleInfobox.svelte";
+    import ArticleLanguages from "./ArticleLanguages.svelte";
+    import ArticleReadNext from "./ArticleReadNext.svelte";
+    import ArticleRelated from "./ArticleRelated.svelte";
     import Lightbox from "./Lightbox.svelte";
+    import LinkPreview from "./LinkPreview.svelte";
 
     interface Props {
         article: ParsedArticle;
@@ -30,9 +34,15 @@
         redirectFragment?: string;
         /** Scroll position and folds from a back/forward snapshot. */
         restoreState?: ArticleViewState | null;
+        meta?: ArticleMeta;
     }
 
-    let { article, redirectFragment = "", restoreState = null }: Props = $props();
+    let {
+        article,
+        redirectFragment = "",
+        restoreState = null,
+        meta = { redirectedFrom: "", languages: [], categories: [] },
+    }: Props = $props();
 
     // A heading counts as "current" once its top passes this far below the viewport top (under the navbar).
     const ACTIVE_OFFSET = 140;
@@ -121,6 +131,20 @@
             frame = 0;
             updateActiveHeading();
         });
+    }
+
+    // Reference text for citation previews, read from the parsed article so it works while the list is folded away.
+    const references = new Map<string, string | null>();
+    function referenceHtml(id: string): string | null {
+        if (references.has(id)) return references.get(id)!;
+        let html: string | null = null;
+        const block = blocks[anchors[id]];
+        if (block?.type === "html") {
+            const item = new DOMParser().parseFromString(block.html, "text/html").getElementById(id);
+            html = (item?.querySelector(".reference-text") ?? item)?.innerHTML.trim() || null;
+        }
+        references.set(id, html);
+        return html;
     }
 
     /** Briefly lights up the element the reader jumped to, so the eye can find it after the scroll. */
@@ -268,6 +292,7 @@
 
 <div class="reading-progress" aria-hidden="true"></div>
 <Lightbox />
+<LinkPreview currentTitle={title} getReference={referenceHtml} />
 
 <ReaderLayout>
     {#snippet outline({ close })}
@@ -291,10 +316,19 @@
             {#if description}
                 <p class="description">{description}</p>
             {/if}
+            {#if meta.redirectedFrom && meta.redirectedFrom !== title}
+                <p class="redirected">
+                    <Icon name="corner-down-right" size="0.9em" />
+                    Redirected from <span class="from">{meta.redirectedFrom}</span>
+                </p>
+            {/if}
             <p class="article-meta">
                 <span>{stats.words.toLocaleString()} words</span>
                 <span>{stats.readingMinutes} min read</span>
                 <span>{stats.links.toLocaleString()} links</span>
+                {#if meta.languages.length > 0}
+                    <ArticleLanguages languages={meta.languages} />
+                {/if}
                 <a class="source-link" href={getWikipediaArticleUrl(title)} target="_blank" rel="noopener noreferrer"
                     >Wikipedia <Icon name="arrow-up-right" size="0.85em" /><span class="sr-only"> (opens in a new tab)</span></a
                 >
@@ -311,7 +345,14 @@
             {blocks}
             collapsedSectionIds={collapsedSections}
             onToggleSection={toggleSection}
+            styles={article.styles}
         />
+
+        {#if article.related.length > 0}
+            <ArticleRelated topics={article.related} />
+        {/if}
+
+        <ArticleReadNext {title} categories={meta.categories} />
 
         <ArticleFooter {title} />
     </article>
@@ -396,6 +437,20 @@
         text-wrap: balance;
     }
 
+    .redirected {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin: 0.5rem 0 0;
+        font-size: 0.8rem;
+        line-height: 1.4;
+        color: var(--muted);
+
+        .from {
+            font-style: italic;
+        }
+    }
+
     .article-meta {
         display: flex;
         flex-wrap: wrap;
@@ -409,7 +464,8 @@
         color: var(--muted);
         font-variant-numeric: tabular-nums lining-nums;
 
-        > :not(:last-child)::after {
+        /* global: items can come from child components (the languages button) */
+        > :global(:not(:last-child))::after {
             content: "·";
             margin: 0 0.55em;
             opacity: 0.7;
