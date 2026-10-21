@@ -21,6 +21,15 @@ body *::-webkit-scrollbar {
     height: 6px;
 }
 
+/* The page's own scrollbar is drawn by PageScrollbar.svelte as an overlay; hide the native one. */
+html {
+    scrollbar-width: none;
+}
+
+html::-webkit-scrollbar {
+    display: none;
+}
+
 body *::-webkit-scrollbar-thumb {
     background: var(--secondary);
     border-radius: 10px;

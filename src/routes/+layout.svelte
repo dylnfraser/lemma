@@ -2,6 +2,7 @@
     import "../app.css";
     import { page } from "$app/state";
     import Navbar from "../components/Navbar.svelte";
+    import PageScrollbar from "../components/PageScrollbar.svelte";
     import GlobalSearch from "../components/search/GlobalSearch.svelte";
 
     let { children } = $props();
@@ -16,6 +17,7 @@
 
 <a class="skip-link" href="#main">Skip to content</a>
 <Navbar />
+<PageScrollbar />
 {#if page.route.id !== "/"}
     <!-- The landing page has its own search box, so the overlay would only duplicate it. -->
     <GlobalSearch />
