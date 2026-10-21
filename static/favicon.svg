@@ -1,4 +1,11 @@
 <svg width="108" height="108" viewBox="0 0 108 108" fill="none" xmlns="http://www.w3.org/2000/svg">
+<style>
+  /* follows the page theme (navbar image) or the browser/OS theme (favicon) */
+  @media (prefers-color-scheme: dark) {
+    rect { fill: #2A2622; }
+    stop { stop-color: #EFE1C9; }
+  }
+</style>
 <rect width="108" height="108" rx="32" fill="#F9F6F1"/>
 <path d="M22 22H86V86H47.6C38.6392 86 34.1587 86 30.7362 84.2561C27.7256 82.7221 25.2779 80.2744 23.7439 77.2638C22 73.8413 22 69.3608 22 60.4V22Z" stroke="url(#paint0_linear_2_66)" stroke-width="6" stroke-linejoin="round"/>
 <path d="M22 22H86V86H47.6C38.6392 86 34.1587 86 30.7362 84.2561C27.7256 82.7221 25.2779 80.2744 23.7439 77.2638C22 73.8413 22 69.3608 22 60.4V22Z" stroke="url(#paint1_linear_2_66)" stroke-width="6" stroke-linejoin="round"/>
