@@ -15,7 +15,7 @@
 <style>
     svg {
         display: block;
-        transition: transform 0.15s ease;
+        transition: transform var(--dur-base) var(--ease-spring);
 
         @media (prefers-reduced-motion: reduce) {
             transition: none;

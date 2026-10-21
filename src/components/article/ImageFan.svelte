@@ -273,7 +273,7 @@
             0 14px 34px -12px var(--shadow-color);
         transform: translate(var(--x), var(--y)) rotate(var(--r));
         transform-origin: 50% 90%;
-        transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.64, 1);
+        transition: transform 0.35s var(--ease-spring);
 
         img {
             display: block;
