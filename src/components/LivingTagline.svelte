@@ -16,23 +16,23 @@
     let { tagline, feed, paused = false }: Props = $props();
 
     const HOLD_MS = 7000;
-    const MAX_CHARS = 90;
+    const MAX_CHARS = 72;
     const EVENTS = 3;
 
     type Line = { text: string; href?: string };
 
     const shorten = (text: string) => (text.length > MAX_CHARS ? `${text.slice(0, MAX_CHARS).replace(/\s+\S*$/, "")}…` : text);
-    const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
 
     let lines = $derived.by<Line[]>(() => {
         const result: Line[] = [{ text: tagline }];
         if (!feed) return result;
         if (feed.featured) {
             const { title, description } = feed.featured;
-            result.push({ text: shorten(`Today: ${title}${description ? `, ${lowerFirst(description)}` : ""}`), href: getArticlePath(title) });
+            // Wikipedia's own capitalisation is kept (descriptions often start with a name: "American actor")
+            result.push({ text: shorten(`Today: ${title}${description ? ` — ${description}` : ""}`), href: getArticlePath(title) });
         }
         for (const event of feed.onThisDay.filter((event) => event.year !== null).slice(0, EVENTS)) {
-            result.push({ text: shorten(`On this day in ${event.year}, ${lowerFirst(event.text)}`), href: event.pages[0] ? getArticlePath(event.pages[0].title) : undefined });
+            result.push({ text: shorten(`On this day in ${event.year}: ${event.text}`), href: event.pages[0] ? getArticlePath(event.pages[0].title) : undefined });
             result.push({ text: tagline }); // back home between facts
         }
         return result;
@@ -92,18 +92,29 @@
 </p>
 
 <style>
-    /* lines cross over in one cell, so the page doesn't shift between them */
+    /* Exactly one line tall whatever it says: lines cross over in one cell and never wrap (a long one ends in "…"),
+       so nothing on the page moves when the tagline changes. */
     .tagline {
         display: grid;
+        width: 100%;
+        height: 1lh;
         margin: 0;
         font-size: 1.05rem;
         line-height: 1.6;
-        text-wrap: balance;
         color: var(--muted);
     }
 
     .line {
         grid-area: 1 / 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+
+        /* the link wraps the words, so it carries the same single line */
+        a {
+            white-space: nowrap;
+        }
     }
 
     .word {
