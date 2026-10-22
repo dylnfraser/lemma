@@ -1,5 +1,5 @@
 import { WIKIPEDIA_ORIGIN } from "$lib/api/wikipedia";
-import { getArticlePath, safeDecodeURIComponent } from "./articleUtils";
+import { getArticlePath, getCategoryPath, getFilePath, safeDecodeURIComponent } from "./articleUtils";
 
 // Pages in these namespaces aren't articles, so Lemma sends readers to Wikipedia for them.
 const NON_ARTICLE_NAMESPACE =
@@ -30,7 +30,12 @@ function replaceWithRedLink(anchor: HTMLAnchorElement) {
 function rewriteWikiPath(anchor: HTMLAnchorElement, pathname: string, hash: string) {
   const title = safeDecodeURIComponent(pathname.slice("/wiki/".length)).replaceAll("_", " ");
 
-  if (!title || !isArticleTitle(title)) {
+  // categories and files have pages of their own in Lemma
+  const lemmaPath = /^Category:./i.test(title) ? getCategoryPath(title) : /^(File|Image):./i.test(title) ? getFilePath(title) : null;
+  if (lemmaPath) {
+    anchor.setAttribute("href", lemmaPath);
+    anchor.removeAttribute("target");
+  } else if (!title || !isArticleTitle(title)) {
     openInNewTab(anchor, `${WIKIPEDIA_ORIGIN}${pathname}${hash}`);
   } else {
     anchor.setAttribute("href", `${getArticlePath(title)}${hash}`);

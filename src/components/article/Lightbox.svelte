@@ -20,11 +20,10 @@
 <script lang="ts">
     import { tick } from "svelte";
     import { fade } from "svelte/transition";
-    import { getWikipediaArticleUrl } from "$lib/api/wikipedia";
-    import { resizeWikimediaThumb } from "$lib/article/articleUtils";
+    import { getFilePath, resizeWikimediaThumb } from "$lib/article/articleUtils";
     import { preventMouseFocus } from "$lib/focus";
     import { closeLightbox, lightbox } from "$lib/lightbox.svelte";
-    import { DURATION, EASE_OUT, motion } from "$lib/motion";
+    import { BLUR_PX, DURATION, EASE_OUT, motion } from "$lib/motion";
     import ChevronIcon from "../icons/ChevronIcon.svelte";
     import Icon from "../icons/Icon.svelte";
 
@@ -255,7 +254,7 @@
         zoom = UNZOOMED;
         lightbox.index = (lightbox.index + delta + count) % count;
         tick().then(() =>
-            frame?.animate([{ opacity: 0, transform: `translateX(${delta * 24}px)` }, { opacity: 1, transform: "none" }], {
+            frame?.animate([{ opacity: 0, transform: `translateX(${delta * 24}px)`, filter: `blur(${BLUR_PX}px)` }, { opacity: 1, transform: "none", filter: "none" }], {
                 duration: motion(DURATION.base),
                 easing: EASE_OUT,
             }),
@@ -490,9 +489,8 @@
                     {/if}
                 </div>
             </div>
-            {#if image.caption || count > 1 || image.fileName}
+            {#if image.caption || image.fileName}
                 <figcaption class:closing class:hidden={zoomed} class:more={captionMore} use:captionOverflow>
-                    {#if count > 1}<span class="counter">{lightbox.index + 1} / {count}</span>{/if}
                     {#if image.caption}{@html image.caption}{/if}
                     {#if image.fileName}
                         <span class="credit">
@@ -511,9 +509,7 @@
                                 {/if}
                                 <span class="sep" aria-hidden="true">·</span>
                             {/if}
-                            <a href={getWikipediaArticleUrl(`File:${image.fileName}`)} target="_blank" rel="noopener noreferrer"
-                                >File details <Icon name="arrow-up-right" size="0.85em" /><span class="sr-only"> (opens in a new tab)</span></a
-                            >
+                            <a href={getFilePath(image.fileName)} onclick={() => closeLightbox()}>File details</a>
                         </span>
                     {/if}
                 </figcaption>
@@ -522,7 +518,7 @@
 
         <button type="button" class="control close" aria-label="Close image" bind:this={closeButton} onmousedown={preventMouseFocus} onclick={close}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             </svg>
         </button>
         <button
@@ -534,9 +530,9 @@
             onclick={() => toggleZoom()}
         >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="10.5" cy="10.5" r="6" stroke="currentColor" stroke-width="1.8" />
-                <path d="m15 15 5 5M8 10.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                <path class="plus" d="M10.5 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <circle cx="10.5" cy="10.5" r="6" stroke="currentColor" stroke-width="2" />
+                <path d="m15 15 5 5M8 10.5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <path class="plus" d="M10.5 8v5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             </svg>
         </button>
         {#if count > 1}
@@ -724,16 +720,6 @@
         padding-left: 1.3em;
     }
 
-    .counter {
-        display: inline-block;
-        margin-right: 0.6rem;
-        padding: 0.05rem 0.5rem;
-        border-radius: 999px;
-        background: color-mix(in oklch, var(--secondary) 50%, transparent);
-        font-size: 0.75rem;
-        font-weight: 600;
-        font-variant-numeric: tabular-nums;
-    }
 
     .credit {
         display: flex;
@@ -757,7 +743,7 @@
         .artist,
         .license,
         .sep {
-            animation: appear var(--dur-base) var(--ease-out);
+            animation: fade-in var(--dur-base) var(--ease-out) backwards;
         }
 
         .artist {
