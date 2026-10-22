@@ -12,9 +12,10 @@ import {
   unwrapLayoutTables,
 } from "./articleExtras";
 import { rewriteArticleLink } from "./articleLinks";
+import { markDarkBackgrounds } from "./darkColors";
 import { convertMaps, findArticleCoordinates, tintMath } from "./mapsAndMath";
 import { extractTemplateStyles } from "./templateStyles";
-import { parseInfobox } from "./parseInfobox";
+import { convertCollapsibleLists, parseInfobox } from "./parseInfobox";
 import {
   countWords,
   EDIT_AFFORDANCE_SELECTOR,
@@ -191,6 +192,7 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
   const coordinates = findArticleCoordinates(root);
   convertMaps(root, coordinates);
   tintMath(root);
+  markDarkBackgrounds(root);
   const spoken = extractSpokenAudio(root);
   const sisters = extractSisterLinks(root);
 
@@ -214,6 +216,9 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
 
   const related = extractRelatedTopics(root);
   removeClutter(root);
+  // in the body (tables, mostly), lists like "Other names" stay folded so rows stay compact; the infobox, already
+  // lifted out, shows its short ones plainly
+  convertCollapsibleLists(root, 0);
   unwrapLayoutTables(root);
   root.querySelectorAll("a").forEach(rewriteArticleLink);
   normalizeMediaUrls(root);

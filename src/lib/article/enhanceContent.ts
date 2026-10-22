@@ -1,3 +1,5 @@
+import { markComputedDarkBackgrounds } from "./darkColors";
+
 /**
  * Behaviour Wikipedia adds to article content with JavaScript, re-created for Lemma's rendered blocks:
  * collapsible sections/tables ("mw-collapsible") and sortable tables ("sortable"). Runs on live DOM after render.
@@ -218,6 +220,8 @@ function makeCollapsible(element: HTMLElement) {
 
 /** Svelte action for a rendered article block. */
 export function enhanceContent(node: HTMLElement) {
+  // colours set by template classes, now that their styles apply
+  if (node.querySelector("table")) markComputedDarkBackgrounds(node);
   for (const table of node.querySelectorAll<HTMLTableElement>("table.sortable")) makeSortable(table);
   // collapsibles nested in collapsibles work independently
   for (const element of node.querySelectorAll<HTMLElement>(".mw-collapsible")) makeCollapsible(element);

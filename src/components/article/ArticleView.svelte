@@ -123,10 +123,17 @@
         }
     }
 
-    function setActiveHeading(id: string) {
+    // While the reader scrolls, the outline's branches only open and fold once the scrolling pauses: following every
+    // heading that flies past would set dozens of rows animating at once.
+    const OUTLINE_SETTLE_MS = 220;
+    let outlineTimer: ReturnType<typeof setTimeout>;
+
+    function setActiveHeading(id: string, fromScroll = false) {
         if (id === activeHeadingId) return;
         activeHeadingId = id;
-        syncOutlineToActive(id);
+        clearTimeout(outlineTimer);
+        if (fromScroll) outlineTimer = setTimeout(() => syncOutlineToActive(activeHeadingId), OUTLINE_SETTLE_MS);
+        else syncOutlineToActive(id);
         if (!settling) highlightActive = true;
     }
 
@@ -138,7 +145,7 @@
             id = element.id;
         }
 
-        setActiveHeading(id);
+        setActiveHeading(id, true);
     }
 
     function scheduleActiveUpdate() {
@@ -522,6 +529,7 @@
             cancelAnimationFrame(frame);
             clearTimeout(fadeTimer);
             clearTimeout(resumeTimer);
+            clearTimeout(outlineTimer);
         };
     });
 
@@ -571,13 +579,13 @@
             {#if meta.disambiguation}
                 <p class="kicker">Disambiguation</p>
             {:else if meta.badge}
-                <p class="kicker badge {meta.badge}" title="Wikipedia's editors rate this among its best articles">
-                    <Icon name={meta.badge === "featured" ? "star" : "badge-check"} size="1.05em" />
+                <p class="badge {meta.badge}" title="Wikipedia's editors rate this among its best articles">
+                    <Icon name={meta.badge === "featured" ? "star" : "badge-check"} size="1em" />
                     {BADGE_LABELS[meta.badge]}
                 </p>
             {/if}
             <!-- focusable so "Back to top" can move keyboard focus here -->
-            <h1 id="title" class="morph-title" tabindex="-1">{title}</h1>
+            <h1 id="title" tabindex="-1">{title}</h1>
             {#if description}
                 <p class="description">{description}</p>
             {/if}
@@ -669,11 +677,17 @@
         right: 0;
         height: 115vh;
         pointer-events: none;
+        /* spread across the whole width, but unevenly: denser on the left, a different tone toward the right */
         background:
-            radial-gradient(55% 45% at 28% 8%, color-mix(in oklch, var(--accent) 9%, transparent), transparent 75%),
-            radial-gradient(45% 40% at 78% 4%, color-mix(in oklch, var(--link-hover) 6%, transparent), transparent 75%),
-            radial-gradient(80% 60% at 50% 25%, color-mix(in oklch, var(--accent) 4%, transparent), transparent 80%);
+            radial-gradient(75% 55% at 18% 6%, color-mix(in oklch, var(--accent) 10%, transparent), transparent 78%),
+            radial-gradient(70% 50% at 88% 2%, color-mix(in oklch, var(--link-hover) 7%, transparent), transparent 78%),
+            radial-gradient(130% 70% at 55% 22%, color-mix(in oklch, var(--accent) 4%, transparent), transparent 82%);
         mask-image: linear-gradient(to bottom, black 35%, transparent);
+
+        /* colour carries further on a dark page: half as strong there */
+        @media (prefers-color-scheme: dark) {
+            opacity: 0.5;
+        }
 
         &::after {
             content: "";
@@ -780,6 +794,29 @@
     }
 
 
+    /* Wikipedia's quality rating: a small, quiet tag above the title; only its icon carries a colour */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        margin: 0 0 0.75rem;
+        padding: 0.12rem 0.6rem 0.12rem 0.45rem;
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 550;
+        line-height: 1.5;
+        color: var(--muted);
+
+        &.featured :global(.icon) {
+            color: oklch(0.7 0.14 80);
+        }
+
+        &.good :global(.icon) {
+            color: oklch(0.6 0.12 150);
+        }
+    }
+
     .kicker {
         display: flex;
         align-items: center;
@@ -791,13 +828,6 @@
         text-transform: uppercase;
         color: var(--muted);
 
-        &.featured {
-            color: oklch(0.68 0.13 75);
-        }
-
-        &.good {
-            color: oklch(0.58 0.11 150);
-        }
     }
 
 

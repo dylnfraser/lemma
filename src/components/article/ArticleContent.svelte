@@ -1129,18 +1129,50 @@
         :global(p) {
             margin: 0;
         }
+
+        /* rules inside a cell: a thin full-width divider, not a heavy bar */
+        :global(td hr),
+        :global(th hr) {
+            height: 0;
+            margin: 0.45rem 0;
+            border: none;
+            border-top: 1px solid var(--rule);
+        }
+
+        /* lists and definitions inside cells sit flush, without the page's indents */
+        :global(:is(td, th) :is(ul, ol)) {
+            margin: 0.2rem 0;
+            padding-left: 1.1em;
+        }
+
+        :global(:is(td, th) dl) {
+            margin: 0;
+        }
+
+        :global(:is(td, th) dd) {
+            margin: 0 0 0.2rem;
+        }
     }
 
-    /* Wikipedia's coloured cells and swatches assume dark text; keep them legible in dark mode. */
+    /*
+     * Dark mode: Wikipedia's light cell colours swap for their dark counterparts (--dark-bg, worked out when the article
+     * is parsed: same hue, darker; whites become the card colour), and the text on them follows the page's palette.
+     * Legend swatches keep their real colour: they're a key, not a background.
+     */
     @media (prefers-color-scheme: dark) {
+        .article-body :global([style*="--dark-bg"]:not(.legend-color, .legend-color *)) {
+            background: var(--dark-bg) !important;
+            color: var(--text-color) !important;
+        }
+
+        .article-body :global([style*="--dark-bg"]:not(.legend-color) a) {
+            color: inherit !important;
+        }
+
+        /* anything coloured that couldn't be converted (gradients, images) keeps dark text, so it stays legible */
         .article-body
             :global(
-                :is([bgcolor], [style*="background"]):not([style*="transparent"], [style*="background:none"], [style*="background: none"], [style*="inherit"])
-            ),
-        .article-body
-            :global(
-                :is([bgcolor], [style*="background"]):not([style*="transparent"], [style*="background:none"], [style*="background: none"], [style*="inherit"])
-                    a
+                :is([bgcolor], [style*="background"]):not([style*="--dark-bg"], [style*="var(--"], [style*="transparent"], [style*="background:none"], [style*="background: none"], [style*="inherit"])
             ) {
             color: oklch(0.25 0.02 var(--hue));
         }

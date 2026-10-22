@@ -246,7 +246,7 @@ describe("parseArticle infobox", () => {
     expect(languages).toContain("Belarusian");
     expect(languages).not.toContain("<details");
 
-    expect(rowHtml(dataRow("Cities"))).toContain('<details class="infobox-collapsible"><summary>Major cities (7)</summary>');
+    expect(rowHtml(dataRow("Cities"))).toContain('<details class="collapsible-details"><summary>Major cities (7)</summary>');
   });
 
   it("reads preceded-by / succeeded-by blocks into flag + name entries", () => {

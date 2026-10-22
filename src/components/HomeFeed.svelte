@@ -65,7 +65,7 @@
                         </span>
                         <span class="text">
                             <span class="label">Featured article</span>
-                            <span data-morph class="title">{page.title}</span>
+                            <span class="title">{page.title}</span>
                             <span class="note">{page.description || page.extract}</span>
                         </span>
                     </a>
@@ -91,7 +91,7 @@
                         <li>
                             <a href={getArticlePath(page.title)}>
                                 <span class="rank" aria-hidden="true">{i + 1}</span>
-                                <span data-morph class="mr-title">{page.title}</span>
+                                <span class="mr-title">{page.title}</span>
                                 <span class="views">{compact.format(page.views)}<span class="sr-only"> views</span></span>
                             </a>
                         </li>

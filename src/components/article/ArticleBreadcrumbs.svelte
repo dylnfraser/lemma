@@ -25,15 +25,28 @@
     // No gliding into place on first render; only later moves animate.
     let indicatorReady = $state(false);
 
+    // The entry the marker sits on: the current section, or (while it's inside a folded branch) the nearest heading
+    // above it that's showing, so the marker never blinks out between folds.
+    let markedId = $derived.by(() => {
+        const byId = new Map(headings.map((heading) => [heading.id, heading]));
+        const active = byId.get(activeId);
+        if (!active) return "";
+        if (!isHeadingHiddenByCollapsed(active, collapsedIds)) return active.id;
+        return [...active.ancestorIds].reverse().find((id) => {
+            const ancestor = byId.get(id);
+            return ancestor && !isHeadingHiddenByCollapsed(ancestor, collapsedIds);
+        }) ?? "";
+    });
+
     function placeIndicator() {
-        const active = track?.querySelector<HTMLElement>('.breadcrumb[aria-current="location"]');
+        const active = track?.querySelector<HTMLElement>(".breadcrumb[data-marked]");
         const next = active ? { y: active.offsetTop, height: active.offsetHeight } : null;
         indicator = next;
         if (next && !indicatorReady) requestAnimationFrame(() => (indicatorReady = true));
     }
 
     $effect(() => {
-        void activeId;
+        void markedId;
         void collapsedIds.size;
         // untracked: placing the indicator reads and writes its own state, which must not re-trigger this effect
         untrack(placeIndicator);
@@ -48,8 +61,8 @@
 
     // Keep the active entry visible by scrolling the outline itself (never the page).
     $effect(() => {
-        if (!activeId || !list) return;
-        const active = list.querySelector<HTMLElement>('.breadcrumb[aria-current="location"]');
+        if (!markedId || !list) return;
+        const active = list.querySelector<HTMLElement>(".breadcrumb[data-marked]");
         if (!active) return;
 
         const padding = 40;
@@ -98,6 +111,7 @@
                             class:active={activeId === heading.id && highlightActive}
                             class:faded={activeId === heading.id && !highlightActive}
                             aria-current={activeId === heading.id ? "location" : undefined}
+                            data-marked={markedId === heading.id ? "" : undefined}
                             href="#{encodeURIComponent(heading.id)}"
                             onclick={(event) => onOpen(heading.id, event)}>{heading.text}</a
                         >

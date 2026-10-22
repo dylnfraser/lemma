@@ -44,8 +44,8 @@
 
     <div class="article-skeleton" role="status" aria-label="Loading article">
         <div class="header" aria-hidden="true">
-            <!-- the real title, where the article's heading will be: a followed link lands on it (see +layout) -->
-            <p class="title morph-title">{seed}</p>
+            <!-- the real title, where the article's heading will be -->
+            <p class="title">{seed}</p>
             <div class="skeleton bar description"></div>
             <div class="skeleton bar meta"></div>
         </div>

@@ -322,7 +322,7 @@
             {#if summary.thumbnail && !banner}
                 <img class="portrait" class:diagram={preview.diagram} src={summary.thumbnail.src} alt="" />
             {/if}
-            <p data-morph class="title">{summary.title}</p>
+            <p class="title">{summary.title}</p>
             {#if summary.description}
                 <p class="description">{summary.description}</p>
             {/if}

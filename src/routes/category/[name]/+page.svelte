@@ -136,7 +136,7 @@
                                 <span class="placeholder" aria-hidden="true">{page.title.slice(0, 1)}</span>
                             {/if}
                             <span class="text">
-                                <span data-morph class="title">{page.title}</span>
+                                <span class="title">{page.title}</span>
                                 {#if page.description}<span class="description">{page.description}</span>{/if}
                             </span>
                         </a>

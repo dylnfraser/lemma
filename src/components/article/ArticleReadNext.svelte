@@ -57,7 +57,7 @@
                                 <span class="placeholder" aria-hidden="true">{article.title.slice(0, 1)}</span>
                             {/if}
                             <span class="text">
-                                <span data-morph class="title">{article.title}</span>
+                                <span class="title">{article.title}</span>
                                 {#if article.description}<span class="description">{article.description}</span>{/if}
                             </span>
                         </a>

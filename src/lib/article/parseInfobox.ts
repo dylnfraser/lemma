@@ -28,21 +28,24 @@ const MAX_INLINE_LIST_ENTRIES = 6;
  * Wikipedia's {{Collapsible list}} needs its JavaScript to toggle. Short lists are shown plainly; long ones become a
  * native <details> so they stay collapsible without script.
  */
-function convertCollapsibleLists(table: HTMLElement) {
+export function convertCollapsibleLists(table: HTMLElement, inlineMax = MAX_INLINE_LIST_ENTRIES) {
   table.querySelectorAll(".collapsible-list.mw-collapsible").forEach((list) => {
     const title = list.firstElementChild;
     const content = list.querySelector(".mw-collapsible-content");
     if (!title || !content || title === content) return;
 
     // entries are list items, or <br>-separated lines inside a single item
-    const entries = content.querySelectorAll("li").length + content.querySelectorAll("br").length;
-    if (entries <= MAX_INLINE_LIST_ENTRIES) {
+    // a rule opening the list only separated it from its (now hidden) title
+    content.querySelector(":scope > li:first-child > hr:first-child")?.remove();
+    const entries =
+      content.querySelectorAll("li li, dd").length || content.querySelectorAll("li").length + content.querySelectorAll("br").length;
+    if (entries <= inlineMax) {
       list.replaceWith(content);
       return;
     }
 
     const details = table.ownerDocument.createElement("details");
-    details.className = "infobox-collapsible";
+    details.className = "collapsible-details";
     const summary = table.ownerDocument.createElement("summary");
     summary.textContent = `${title.textContent?.trim() || "List"} (${entries})`;
     details.append(summary, content);

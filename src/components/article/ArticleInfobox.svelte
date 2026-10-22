@@ -418,38 +418,10 @@
             scroll-margin-top: calc(var(--nav-height) + 1.5rem);
         }
 
-        /* long collapsible lists (see parseInfobox) */
-        :global(details.infobox-collapsible summary) {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            color: var(--muted);
-            font-weight: 600;
-            cursor: pointer;
-            list-style: none;
-        }
 
-        :global(details.infobox-collapsible summary::-webkit-details-marker) {
-            display: none;
-        }
 
-        :global(details.infobox-collapsible summary::before) {
-            content: "";
-            width: 0.85em;
-            height: 0.85em;
-            background-color: currentColor;
-            mask: var(--icon-chevron-right) center / contain no-repeat;
-            -webkit-mask: var(--icon-chevron-right) center / contain no-repeat;
-            transition: rotate var(--dur-fast) var(--ease-out);
-        }
 
-        :global(details.infobox-collapsible[open] summary::before) {
-            rotate: 90deg;
-        }
 
-        :global(details.infobox-collapsible[open] summary) {
-            margin-bottom: 0.25rem;
-        }
 
         :global(audio) {
             display: block;
