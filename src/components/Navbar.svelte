@@ -1,11 +1,24 @@
 <script lang="ts">
     import { page } from "$app/state";
     import { openSearch } from "$lib/search/searchOverlay.svelte";
+    import { getArticlePath, safeDecodeURIComponent } from "$lib/article/articleUtils";
+    import { trail } from "$lib/trail.svelte";
     import RandomButton from "./RandomButton.svelte";
     import Icon from "./icons/Icon.svelte";
     import SearchIcon from "./icons/SearchIcon.svelte";
 
     const wordmark = [..."Lemma"];
+
+    // On an article: the few read just before it this session (the thread is recorded by ArticleView).
+    const TRAIL_SHOWN = 3;
+    // only once this article has been recorded (while it loads, the thread still ends at the previous one)
+    let onArticle = $derived(
+        page.route.id === "/wiki/[title]" &&
+            !!trail.titles.length &&
+            safeDecodeURIComponent(page.url.pathname) === safeDecodeURIComponent(getArticlePath(trail.titles.at(-1)!)),
+    );
+    let thread = $derived(onArticle ? trail.titles.slice(0, -1).slice(-TRAIL_SHOWN) : []);
+    let threadCut = $derived(onArticle && trail.titles.length - 1 > TRAIL_SHOWN);
 </script>
 
 <header id="navbar">
@@ -17,6 +30,16 @@
             {/each}
         </span>
     </a>
+
+    {#if thread.length > 0}
+        <nav class="thread" aria-label="Articles you've just read">
+            {#if threadCut}<span class="thread-more" aria-hidden="true">…</span>{/if}
+            {#each thread as previous, i (previous)}
+                <a href={getArticlePath(previous)} style:--i={i}>{previous}</a>
+                <span class="thread-arrow" style:--i={i} aria-hidden="true"><Icon name="arrow-right" size="0.8em" /></span>
+            {/each}
+        </nav>
+    {/if}
 
     <nav aria-label="Primary">
         {#if page.route.id !== "/"}
@@ -101,6 +124,63 @@
         button {
             font-size: 0.85rem;
         }
+    }
+
+    /* the thread of articles read just before this one, faint and fading further the older they are */
+    .thread {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        gap: 0.4rem;
+        min-width: 0;
+        margin: 0 1.5rem;
+        overflow: hidden;
+        font-size: 0.8rem;
+        color: var(--muted);
+        white-space: nowrap;
+        mask-image: linear-gradient(to left, transparent, black 1.5rem);
+
+        a {
+            min-width: 0;
+            max-width: 13rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: inherit;
+            text-decoration: none;
+            opacity: calc(0.6 + var(--i) * 0.15);
+            transition:
+                color var(--dur-base) var(--ease-out),
+                opacity var(--dur-base) var(--ease-out);
+
+            &:hover {
+                color: var(--text-color);
+                opacity: 1;
+            }
+        }
+
+        a,
+        .thread-arrow {
+            flex: none;
+            animation: enter var(--dur-slow) var(--ease-out) backwards;
+            animation-delay: calc(var(--i) * var(--stagger));
+        }
+
+        a {
+            flex: 0 1 auto;
+        }
+
+        .thread-arrow {
+            display: inline-flex;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 900px) {
+            display: none;
+        }
+    }
+
+    .thread-more {
+        opacity: 0.5;
     }
 
     .library-link {
