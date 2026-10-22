@@ -130,18 +130,35 @@
         scale: -1 1;
     }
 
+    /* while a random article is found: the arrows keep shuffling, swapping sides like cards being dealt */
     .busy .shuffle {
-        animation: shuffle 0.6s ease-in-out infinite;
+        animation: deal 0.7s var(--ease-out) infinite;
 
         @media (prefers-reduced-motion: reduce) {
             animation: none;
         }
     }
 
-    @keyframes shuffle {
-        50% {
-            translate: 0 -2px;
-            rotate: -8deg;
+    @keyframes deal {
+        0% {
+            scale: 1 1;
+            rotate: 0deg;
+        }
+
+        35% {
+            scale: -1 1;
+            rotate: -10deg;
+            translate: 0 -1.5px;
+        }
+
+        70% {
+            scale: 1 1;
+            rotate: 6deg;
+        }
+
+        100% {
+            scale: 1 1;
+            rotate: 0deg;
         }
     }
 </style>
