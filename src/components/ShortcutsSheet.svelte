@@ -33,8 +33,6 @@
                 { keys: ["K"], label: "Previous section" },
                 { keys: ["["], label: "Fold the current section" },
                 { keys: ["]"], label: "Unfold the current section" },
-                { keys: ["F"], label: "Find in article" },
-                { keys: [mod, "F"], label: "Find in article (again for the browser's own)" },
                 { keys: ["S"], label: "Save or unsave" },
                 { keys: ["T"], label: "Back to top" },
             ],

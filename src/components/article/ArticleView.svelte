@@ -19,7 +19,9 @@
     import { getArticlePath, isFoldableHeadingLevel, resizeWikimediaThumb, safeDecodeURIComponent } from "$lib/article/articleUtils";
     import { openStreetMapUrl } from "$lib/article/mapsAndMath";
     import type { ArticleMeta, ParsedArticle } from "$lib/article/types";
+    import { sampleTint } from "$lib/imageTint";
     import { library, type ReadingPosition } from "$lib/library.svelte";
+    import { trail } from "$lib/trail.svelte";
     import { motionPaused, rise } from "$lib/motion";
     import ReaderLayout from "../ReaderLayout.svelte";
     import ArticleActions from "./ArticleActions.svelte";
@@ -31,7 +33,6 @@
     import ArticleLanguages from "./ArticleLanguages.svelte";
     import ArticleReadNext from "./ArticleReadNext.svelte";
     import ArticleRelated from "./ArticleRelated.svelte";
-    import FindBar from "./FindBar.svelte";
     import QuoteShare from "./QuoteShare.svelte";
     import Lightbox from "./Lightbox.svelte";
     import LinkPreview from "./LinkPreview.svelte";
@@ -305,11 +306,37 @@
         else library.savePosition(title, currentPosition());
     }
 
-    // ---------- find, quotes, shortcuts, printing ----------
+    // ---------- the article's mood ----------
 
-    let findBar = $state<ReturnType<typeof FindBar>>();
+    // Lemma's own warm hue; an article's accents lean most of the way toward its lead picture's colour from it
+    const BASE_HUE = 75;
+    const TINT_STRENGTH = 0.75;
 
-    // each block's searchable text, worked out the first time a search needs it
+    // the first photograph: logos, maps and diagrams (SVGs) say little about an article's mood
+    // svelte-ignore state_referenced_locally
+    const leadPhoto = [...(article.infobox?.images ?? []), ...blocks.flatMap((block) => (block.type === "images" ? block.images : []))].find(
+        (image) => !/\.svg/i.test(image.fileName ?? image.src),
+    );
+
+    $effect(() => {
+        if (!leadPhoto) return;
+        const controller = new AbortController();
+        const root = document.documentElement;
+        sampleTint(resizeWikimediaThumb(leadPhoto.src, 120), controller.signal).then((tint) => {
+            if (!tint || controller.signal.aborted) return;
+            // the short way round the colour wheel
+            const delta = ((tint.hue - BASE_HUE + 540) % 360) - 180;
+            root.style.setProperty("--accent-hue", String(Math.round(BASE_HUE + delta * TINT_STRENGTH)));
+        });
+        return () => {
+            controller.abort();
+            root.style.removeProperty("--accent-hue");
+        };
+    });
+
+    // ---------- quotes, shortcuts, printing ----------
+
+    // each block's searchable text, worked out the first time a quote link needs it
     const blockTexts = new Map<number, string>();
     function blockText(index: number): string {
         let text = blockTexts.get(index);
@@ -323,35 +350,16 @@
         return text;
     }
 
-    /** Unfolds folded sections that contain `query`; returns the ids it opened, once they've rendered. */
-    async function revealMatches(query: string): Promise<string[]> {
+    /** Unfolds any folded sections whose text contains `query`, and waits for them to render. */
+    async function revealMatches(query: string) {
         const needle = normalizeQuery(query);
-        const opened: string[] = [];
+        let opened = false;
         blocks.forEach((block, index) => {
             if (!block.sectionIds.some((id) => collapsedSections.has(id))) return;
             if (!blockText(index).includes(needle)) return;
-            for (const id of block.sectionIds) {
-                if (collapsedSections.delete(id)) opened.push(id);
-            }
+            for (const id of block.sectionIds) opened = collapsedSections.delete(id) || opened;
         });
-        if (opened.length) await tick();
-        return opened;
-    }
-
-    /** The section heading a node sits under, and that heading's ancestors. */
-    function sectionsAround(node: Node): Set<string> {
-        let containing: HTMLElement | null = null;
-        for (const heading of articleElement.querySelectorAll<HTMLElement>("[data-heading]")) {
-            if (heading.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING) containing = heading;
-            else break;
-        }
-        if (!containing) return new Set();
-        return new Set([containing.id, ...(headingsById.get(containing.id)?.ancestorIds ?? [])]);
-    }
-
-    function restoreFolds(opened: string[], keep: Node | null) {
-        const around = keep ? sectionsAround(keep) : new Set<string>();
-        for (const id of opened) if (!around.has(id)) collapsedSections.add(id);
+        if (opened) await tick();
     }
 
     // A shared quote link (?quote=…): find the passage, open its section, and mark it.
@@ -399,13 +407,6 @@
     }
 
     function handleKeydown(event: KeyboardEvent) {
-        if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "f") {
-            // the first press opens Lemma's find (which reaches folded sections); a second, from inside it, the browser's
-            if (findBar?.isOpen() && document.activeElement?.closest(".find-bar")) return;
-            event.preventDefault();
-            findBar?.show();
-            return;
-        }
         if (event.metaKey || event.ctrlKey || event.altKey || event.defaultPrevented || isTypingTarget(event.target)) return;
 
         switch (event.key) {
@@ -425,9 +426,6 @@
                 if (folding) document.getElementById(id)?.scrollIntoView({ block: "nearest" });
                 break;
             }
-            case "f":
-                findBar?.show();
-                break;
             case "s":
                 library.toggleSaved({ title, description, thumbnail });
                 break;
@@ -491,6 +489,7 @@
         canonicalizeUrl(fragment);
 
         library.recordVisit({ title, description, thumbnail });
+        trail.visit(title);
 
         // reopening an article picks up where the reader left off (unless the link points somewhere specific)
         const quote = page.url.searchParams.get("quote")?.trim() ?? "";
@@ -547,7 +546,6 @@
 <div class="reading-progress" aria-hidden="true"></div>
 <Lightbox />
 <LinkPreview currentTitle={title} getReference={referenceHtml} />
-<FindBar bind:this={findBar} root={articleElement} {revealMatches} {restoreFolds} />
 <QuoteShare {title} root={articleElement} />
 
 <ReaderLayout>
@@ -576,7 +574,7 @@
                 </p>
             {/if}
             <!-- focusable so "Back to top" can move keyboard focus here -->
-            <h1 id="title" tabindex="-1">{title}</h1>
+            <h1 id="title" class="morph-title" tabindex="-1">{title}</h1>
             {#if description}
                 <p class="description">{description}</p>
             {/if}
@@ -698,9 +696,22 @@
 
     /* the rule under the header has the same space on both sides */
     .article-header {
+        position: relative;
         margin: 1.5rem 0 1.75rem;
         padding-bottom: 1.75rem;
         border-bottom: 1px solid var(--rule);
+    }
+
+    /* a faint wash of the article's colour (its accent, tinted by the lead picture) behind the header */
+    /* kept within the article's column, and fully faded before its edges, so nothing beside it (the outline) can
+       cut it off */
+    .article-header::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        inset: -5rem 0 -1rem;
+        background: radial-gradient(closest-side at 35% 50%, color-mix(in oklch, var(--accent) 9%, transparent), transparent);
+        pointer-events: none;
     }
 
     #title {
