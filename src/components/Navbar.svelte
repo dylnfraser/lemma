@@ -2,6 +2,7 @@
     import { page } from "$app/state";
     import { openSearch } from "$lib/search/searchOverlay.svelte";
     import RandomButton from "./RandomButton.svelte";
+    import Icon from "./icons/Icon.svelte";
     import SearchIcon from "./icons/SearchIcon.svelte";
 
     const wordmark = [..."Lemma"];
@@ -26,6 +27,15 @@
             </button>
         {/if}
         <RandomButton />
+        <a
+            class="library-link"
+            href="/library"
+            aria-label="Your library"
+            title="Your library"
+            aria-current={page.route.id === "/library" ? "page" : undefined}
+        >
+            <Icon name="bookmark" size="18px" />
+        </a>
     </nav>
 </header>
 
@@ -90,7 +100,31 @@
 
         button {
             font-size: 0.85rem;
-            color: inherit;
+        }
+    }
+
+    .library-link {
+        display: grid;
+        place-items: center;
+        box-sizing: border-box;
+        width: 36px;
+        height: 36px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        color: var(--muted);
+        transition:
+            color var(--dur-base) var(--ease-out),
+            border-color var(--dur-fast),
+            scale var(--dur-instant) var(--ease-out);
+
+        &:hover,
+        &[aria-current="page"] {
+            color: var(--text-color);
+            border-color: var(--secondary);
+        }
+
+        &:active {
+            scale: 0.94;
         }
     }
 
@@ -106,14 +140,14 @@
         border: 1px solid transparent;
         border-radius: 8px;
         cursor: pointer;
-        opacity: 0.85;
+        color: var(--muted);
         transition:
-            opacity var(--dur-fast),
+            color var(--dur-base) var(--ease-out),
             border-color var(--dur-fast),
             scale var(--dur-instant) var(--ease-out);
 
         &:hover {
-            opacity: 1;
+            color: var(--text-color);
             border-color: var(--secondary);
         }
 
