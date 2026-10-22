@@ -77,7 +77,7 @@
         height: var(--nav-height);
         /* symmetric insets: the logo and the search button each sit 8px from their edge (and from top and bottom) */
         --inset: 8px;
-        padding: 0 var(--inset);
+        padding: 0 max(var(--inset), env(safe-area-inset-right)) 0 max(var(--inset), env(safe-area-inset-left));
         box-sizing: border-box;
         user-select: none;
         background: color-mix(in oklch, var(--page-bg) 80%, transparent);
