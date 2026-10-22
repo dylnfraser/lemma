@@ -1,0 +1,11 @@
+// Cloudflare Workers: Lemma is a static site (adapter-static), so the Worker only serves the built files. With this
+// file present, `wrangler deploy` uploads ./build as-is instead of trying to convert the project to adapter-cloudflare.
+// Article routes (/wiki/…) have no file of their own: static/_redirects rewrites them to the SPA shell (200.html).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lemma",
+  "compatibility_date": "2026-10-19",
+  "assets": {
+    "directory": "./build"
+  }
+}
