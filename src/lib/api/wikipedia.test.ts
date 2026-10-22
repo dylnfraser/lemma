@@ -226,7 +226,7 @@ describe("fetchArticle extras", () => {
           redirects: [{ from: "Turing", to: "Alan Turing" }],
           langlinks: [{ lang: "fr", url: "https://fr.wikipedia.org/wiki/Alan_Turing", langname: "French", autonym: "français", "*": "Alan Turing" }],
           categories: [{ "*": "Pages_with_errors", hidden: "" }, { "*": "British_cryptographers" }],
-          properties: [{ name: "wikibase_item", "*": "Q7251" }, { name: "wikibase-badge-Q17437796", "*": "" }],
+          properties: [{ name: "wikibase_item", "*": "Q7251" }],
         },
       }),
     );
@@ -235,7 +235,6 @@ describe("fetchArticle extras", () => {
     expect(article.redirectedFrom).toBe("Turing");
     expect(article.languages).toEqual([{ code: "fr", name: "French", autonym: "français", title: "Alan Turing", url: "https://fr.wikipedia.org/wiki/Alan_Turing" }]);
     expect(article.categories).toEqual(["British cryptographers"]);
-    expect(article.badge).toBe("featured");
     expect(article.disambiguation).toBe(false);
   });
 
@@ -243,7 +242,6 @@ describe("fetchArticle extras", () => {
     const fetcher = mockFetch(json({ parse: { title: "Mercury", text: { "*": "<p>Mercury may refer to:</p>" }, properties: [{ name: "disambiguation", "*": "" }] } }));
     const article = await fetchArticle("Mercury", { fetch: fetcher });
     expect(article.disambiguation).toBe(true);
-    expect(article.badge).toBeNull();
   });
 });
 

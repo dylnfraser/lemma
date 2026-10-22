@@ -21,7 +21,6 @@ export const load: PageLoad = ({ params, fetch }) => {
       redirectedFrom: content.redirectedFrom ?? "",
       languages: content.languages ?? [],
       categories: content.categories ?? [],
-      badge: content.badge ?? null,
       disambiguation: content.disambiguation ?? false,
       revisionId: content.revisionId ?? null,
     },

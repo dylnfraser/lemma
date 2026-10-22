@@ -154,7 +154,8 @@ function getHtmlBlockKind(element: Element): HtmlBlockKind | null {
     case "OL":
     case "DL":
       if (!element.textContent?.trim() && !element.querySelector("img")) return null;
-      return element.matches("ol.references") ? "references" : "list";
+      if (element.matches("ol.references")) return "references";
+      return isBibliography(element) ? "bibliography" : "list";
     case "TABLE":
       return "table";
     case "BLOCKQUOTE":
@@ -164,6 +165,14 @@ function getHtmlBlockKind(element: Element): HtmlBlockKind | null {
     default:
       return null;
   }
+}
+
+/** A list whose entries are (mostly) formatted citations: a works-cited or further-reading list. */
+function isBibliography(list: Element): boolean {
+  const items = list.querySelectorAll(":scope > li");
+  if (items.length < 2) return false;
+  const cited = [...items].filter((item) => item.querySelector("cite.citation, .citation")).length;
+  return cited / items.length >= 0.6;
 }
 
 function isStandaloneBlock(element: Element): boolean {
@@ -371,7 +380,7 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
 
       if (kind !== "references") {
         links += countLinks(element);
-        if (kind !== "table" && kind !== "hatnote") words += countWords(element.textContent ?? "");
+        if (kind !== "table" && kind !== "hatnote" && kind !== "bibliography") words += countWords(element.textContent ?? "");
       }
     }
   }

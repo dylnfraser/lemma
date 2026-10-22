@@ -977,6 +977,49 @@
         pointer-events: none;
     }
 
+    /* ---------- works cited, sources, bibliography ---------- */
+
+    /* compact like the reference list: each work as a hanging-indented entry, its links quiet until hovered */
+    .block.bibliography {
+        font-size: 0.85rem;
+        line-height: 1.55;
+        color: color-mix(in oklch, var(--text-color) 80%, var(--page-bg));
+
+        :global(ul),
+        :global(ol) {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        > :global(ul > li),
+        > :global(ol > li) {
+            margin: 0 0 0.6em;
+            padding-left: 1.5em;
+            text-indent: -1.5em;
+            text-wrap: pretty;
+        }
+
+        :global(a) {
+            color: inherit;
+            text-decoration-color: transparent;
+        }
+
+        :global(a:hover) {
+            color: var(--link-hover);
+            text-decoration-color: currentColor;
+        }
+
+        /* the work's title (italic) leads; identifiers trail off */
+        :global(cite i) {
+            color: var(--text-color);
+        }
+
+        :global(a.external::after) {
+            display: none;
+        }
+    }
+
     /* ---------- figures ---------- */
 
     /*

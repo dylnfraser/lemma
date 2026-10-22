@@ -53,7 +53,6 @@
         meta = { redirectedFrom: "", languages: [], categories: [] },
     }: Props = $props();
 
-    const BADGE_LABELS = { featured: "Featured article", good: "Good article" } as const;
 
     // A heading counts as "current" once its top passes this far below the viewport top (under the navbar).
     const ACTIVE_OFFSET = 140;
@@ -578,11 +577,6 @@
         <header class="article-header">
             {#if meta.disambiguation}
                 <p class="kicker">Disambiguation</p>
-            {:else if meta.badge}
-                <p class="badge {meta.badge}" title="Wikipedia's editors rate this among its best articles">
-                    <Icon name={meta.badge === "featured" ? "star" : "badge-check"} size="1em" />
-                    {BADGE_LABELS[meta.badge]}
-                </p>
             {/if}
             <!-- focusable so "Back to top" can move keyboard focus here -->
             <h1 id="title" tabindex="-1">{title}</h1>
@@ -794,28 +788,6 @@
     }
 
 
-    /* Wikipedia's quality rating: a small, quiet tag above the title; only its icon carries a colour */
-    .badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.3rem;
-        margin: 0 0 0.75rem;
-        padding: 0.12rem 0.6rem 0.12rem 0.45rem;
-        border: 1px solid var(--rule);
-        border-radius: 999px;
-        font-size: 0.75rem;
-        font-weight: 550;
-        line-height: 1.5;
-        color: var(--muted);
-
-        &.featured :global(.icon) {
-            color: oklch(0.7 0.14 80);
-        }
-
-        &.good :global(.icon) {
-            color: oklch(0.6 0.12 150);
-        }
-    }
 
     .kicker {
         display: flex;

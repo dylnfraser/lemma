@@ -54,19 +54,12 @@ export type WikipediaPageContent = {
   languages?: ArticleLanguage[];
   /** Reader-facing categories (Wikipedia's hidden maintenance categories are left out), with spaces in their names. */
   categories?: string[];
-  /** Wikipedia's quality badge for the article. */
-  badge?: "featured" | "good" | null;
   /** The page lists the meanings of an ambiguous title. */
   disambiguation?: boolean;
   /** The revision this text is from, for permanent links. */
   revisionId?: number;
 };
 
-// Wikidata items for Wikipedia's article badges
-const BADGES: Record<string, "featured" | "good"> = {
-  "wikibase-badge-Q17437796": "featured",
-  "wikibase-badge-Q17437798": "good",
-};
 
 type ParseResponse =
   | {
@@ -212,7 +205,6 @@ export async function fetchArticle(title: string, options: RequestOptions = {}):
       url: link.url,
     })),
     categories: (json.parse.categories ?? []).filter((category) => !("hidden" in category)).map((category) => category["*"].replaceAll("_", " ")),
-    badge: properties.map((property) => BADGES[property.name]).find(Boolean) ?? null,
     disambiguation: properties.some((property) => property.name === "disambiguation"),
     revisionId: json.parse.revid || undefined,
   };

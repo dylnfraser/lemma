@@ -51,6 +51,8 @@ export type HtmlBlockKind =
   | "paragraph"
   | "list"
   | "references"
+  /** A list of cited works ("Works cited", "Sources", "Bibliography"): mostly formatted citations. */
+  | "bibliography"
   | "table"
   | "quote"
   /** "Main article: …", "For other uses, see …" */
@@ -169,8 +171,6 @@ export interface ArticleMeta {
   languages: ArticleLanguage[];
   /** Reader-facing categories. */
   categories: string[];
-  /** Wikipedia's quality badge: a featured or good article. */
-  badge?: "featured" | "good" | null;
   /** A page listing the meanings of an ambiguous title. */
   disambiguation?: boolean;
   /** The revision being read. */
