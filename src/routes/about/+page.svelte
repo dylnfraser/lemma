@@ -39,15 +39,9 @@
 <style>
     /* the same gentle entrance as an article (see ArticleView) */
     .about {
-        animation: about-in var(--dur-slow) var(--ease-out) backwards;
+        animation: enter var(--dur-slow) var(--ease-out) backwards;
     }
 
-    @keyframes about-in {
-        from {
-            opacity: 0;
-            transform: translateY(6px);
-        }
-    }
 
     .about-header {
         margin: 1.5rem 0 2rem;

@@ -5,9 +5,10 @@
     import type { ArticleBlock } from "$lib/article/types";
     import { isKeyboardClick, preventMouseFocus } from "$lib/focus";
     import { openLightbox } from "$lib/lightbox.svelte";
-    import { fold } from "$lib/motion";
+    import { DURATION, fold, pop, rise } from "$lib/motion";
     import { handlePronunciationClick, stopPronunciation } from "$lib/pronunciation";
     import ChevronIcon from "../icons/ChevronIcon.svelte";
+    import Icon from "../icons/Icon.svelte";
     import ImageFan from "./ImageFan.svelte";
 
     interface Props {
@@ -61,10 +62,7 @@
         copiedResetTimer = setTimeout(() => (copyStatus = null), 1600);
     }
 
-    function copyLabel(id: string) {
-        if (copyStatus?.id !== id) return "#";
-        return copyStatus.ok ? "Copied!" : "Copy failed";
-    }
+
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions (delegates clicks on in-article links) -->
@@ -77,6 +75,7 @@
             {@const heading = block.heading}
             {@const collapsed = collapsedSectionIds.has(heading.id)}
             {#if shown}
+                {@const copied = copyStatus?.id === heading.id ? copyStatus : null}
                 <svelte:element this={heading.tag.toLowerCase()} id={heading.id} data-heading transition:fold>
                     {#if isFoldableHeadingLevel(heading.level)}
                         <button
@@ -91,14 +90,26 @@
                     {/if}{heading.text}
                     <button
                         class="copy-section"
-                        class:copied={copyStatus?.id === heading.id}
+                        class:copied
                         type="button"
                         aria-label={`Copy link to ${heading.text}`}
                         title="Copy link to section"
                         onclick={() => copySectionLink(heading.id)}
                     >
-                        {copyLabel(heading.id)}
+                        <!-- the link icon turns into a tick (or a cross), each fading through a blur into the next -->
+                        <span class="copy-icon">
+                            {#key copied ? (copied.ok ? "check" : "x") : "link"}
+                                <span class="copy-glyph" in:pop={{ start: 0.6, duration: DURATION.base }} out:pop={{ start: 0.6, duration: DURATION.fast }}>
+                                    <Icon name={copied ? (copied.ok ? "check" : "x") : "link"} size="0.95em" />
+                                </span>
+                            {/key}
+                        </span>
                     </button>
+                    {#if copied}
+                        <span class="copy-note" aria-hidden="true" in:rise={{ y: 4 }} out:rise={{ y: -4, duration: DURATION.fast }}
+                            >{copied.ok ? "Copied" : "Couldn't copy"}</span
+                        >
+                    {/if}
                 </svelte:element>
             {/if}
         {:else if block.type === "images" && block.images.length > 1}
@@ -218,7 +229,7 @@
             text-decoration-color: currentColor;
         }
 
-        :global(a.external::after) {
+        :global(a.external:not(.map-frame)::after) {
             content: "";
             display: inline-block;
             width: 0.62em;
@@ -413,11 +424,18 @@
 
     .block.hatnote {
         position: relative;
-        margin: 0.25em 0 1.25em;
+        margin: 0.25em 0 1.9em;
         padding-left: 1.35em;
         font-size: 0.88em;
         line-height: 1.5;
         color: var(--muted);
+        /* an opening quote mustn't hang toward the arrow (the body text hangs its punctuation) */
+        hanging-punctuation: none;
+
+        /* a run of hatnotes reads as one group, set apart from the text that follows */
+        &:has(+ .block.hatnote) {
+            margin-bottom: 0.45em;
+        }
 
         /* a small arrow marks it as a pointer elsewhere, not article text */
         &::before {
@@ -428,7 +446,6 @@
             width: 0.9em;
             height: 0.9em;
             background-color: currentColor;
-            opacity: 0.7;
             mask: var(--icon-corner-down-right) center / contain no-repeat;
             -webkit-mask: var(--icon-corner-down-right) center / contain no-repeat;
         }
@@ -599,30 +616,27 @@
             flex: none;
             width: 0.75em;
             height: 0.75em;
-            background-color: currentColor;
-            opacity: 0.35;
+            background-color: var(--muted);
             mask: var(--icon-chevron-right) center / contain no-repeat;
             -webkit-mask: var(--icon-chevron-right) center / contain no-repeat;
             rotate: 90deg;
             transition:
-                rotate var(--dur-fast) var(--ease-out),
-                opacity var(--dur-fast);
+                rotate var(--dur-base) var(--ease-out),
+                background-color var(--dur-base) var(--ease-out);
         }
 
         &:hover::after {
-            opacity: 0.7;
+            background-color: var(--text-color);
         }
     }
 
     .article-body :global(th[aria-sort="ascending"] .sort-button::after) {
         rotate: -90deg;
-        opacity: 1;
         background-color: var(--accent);
     }
 
     .article-body :global(th[aria-sort="descending"] .sort-button::after) {
         rotate: 90deg;
-        opacity: 1;
         background-color: var(--accent);
     }
 
@@ -785,6 +799,16 @@
         margin-block: 0;
     }
 
+    /* Whatever comes just before a section rule leaves the spacing to the heading, so the gap above the rule is the
+       same after a paragraph, a picture or a table; and nothing pads the very top of the article. */
+    .article-body > :global(:has(+ h2)) {
+        margin-bottom: 0 !important;
+    }
+
+    .article-body > :global(:first-child) {
+        margin-top: 0 !important;
+    }
+
     /* ---------- headings ---------- */
 
     .article-body :global(:is(h1, h2, h3, h4, h5, h6)) {
@@ -794,9 +818,12 @@
         text-wrap: balance;
     }
 
+    /* The section rule is the h2's top border, with the same space above it (to the text before) as below it (to
+       the heading's text). */
     .article-body :global(h2) {
-        margin-top: 2.1em;
-        padding-top: 1em;
+        --rule-gap: 2.25rem;
+        margin-top: var(--rule-gap);
+        padding-top: var(--rule-gap);
         border-top: 1px solid var(--rule);
         font-size: 1.85rem;
         font-weight: 550;
@@ -812,7 +839,7 @@
         &::before {
             content: "";
             position: absolute;
-            inset: calc(1em + 1px) 0 0;
+            inset: calc(var(--rule-gap) + 1px) 0 0;
             z-index: -1;
             border-radius: 4px;
             animation: jump-flash 1.6s var(--ease-out);
@@ -861,14 +888,13 @@
         background: none;
         color: var(--muted);
         cursor: pointer;
-        opacity: 0.6;
         transition:
-            opacity var(--dur-fast),
-            background-color var(--dur-fast),
+            color var(--dur-base) var(--ease-out),
+            background-color var(--dur-base) var(--ease-out),
             scale var(--dur-instant) var(--ease-out);
 
         &:hover {
-            opacity: 1;
+            color: var(--text-color);
             background: color-mix(in oklch, var(--secondary) 40%, transparent);
         }
 
@@ -881,31 +907,32 @@
     .copy-section {
         position: absolute;
         right: 0;
-        bottom: calc((1.25em - 1.4rem) / 2);
-        height: 1.4rem;
-        padding: 0 0.35rem;
+        bottom: calc((1.25em - 1.6rem) / 2);
+        display: grid;
+        place-items: center;
+        width: 1.6rem;
+        height: 1.6rem;
+        padding: 0;
         border: none;
-        border-radius: 6px;
+        border-radius: 7px;
         background: none;
-        font-family: default-sans;
-        font-size: 0.8rem;
-        font-weight: 500;
-        letter-spacing: normal;
-        text-transform: none;
+        font-size: 1rem;
         color: var(--muted);
         cursor: pointer;
         opacity: 0;
         transition:
-            opacity var(--dur-fast) ease,
-            background-color var(--dur-fast),
+            opacity var(--dur-base) var(--ease-out),
+            color var(--dur-base) var(--ease-out),
+            background-color var(--dur-base) var(--ease-out),
             scale var(--dur-instant) var(--ease-out);
 
         &:hover {
+            color: var(--text-color);
             background: color-mix(in oklch, var(--secondary) 40%, transparent);
         }
 
         @media (hover: none) {
-            opacity: 0.5;
+            opacity: 0.6;
         }
     }
 
@@ -917,18 +944,35 @@
 
     .copy-section.copied {
         color: var(--accent);
+    }
 
-        animation: copy-confirm 0.2s ease-in;
-        @media (prefers-reduced-motion: reduce) {
-            animation: none;
+    /* the old and new icons share one cell, so they cross over in place */
+    .copy-icon {
+        display: grid;
+
+        > :global(*) {
+            grid-area: 1 / 1;
+            display: grid;
+            place-items: center;
         }
     }
 
-    @keyframes copy-confirm {
-        from {
-            opacity: 0;
-            filter: blur(2px);
-        }
+    /* "Copied", just left of the button */
+    .copy-note {
+        position: absolute;
+        right: 2rem;
+        bottom: calc((1.25em - 1.6rem) / 2);
+        display: flex;
+        align-items: center;
+        height: 1.6rem;
+        font-family: default-sans;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: normal;
+        text-transform: none;
+        white-space: nowrap;
+        color: var(--accent);
+        pointer-events: none;
     }
 
     /* ---------- figures ---------- */
@@ -1026,10 +1070,22 @@
 
         :global(table) {
             margin: 0 !important;
+            /* Wikipedia floats small tables (e.g. a historical population) to the side; here they sit in the column.
+               A float inside the scroller would hang off its left edge, out of reach of scrolling. */
+            float: none !important;
+            /* small tables (a few narrow columns) shouldn't read as a sliver down the page */
+            min-width: min(20rem, calc(100vw - 3rem));
             border-collapse: collapse;
             font-size: 0.85rem;
             line-height: 1.45;
             font-variant-numeric: lining-nums tabular-nums;
+        }
+
+        /* Tables take the width their content needs (up to the column, then they scroll). Wikipedia's own widths don't
+           fit here: fixed ones (15em) were sized for its smaller text, and percentages ("70%") would be a share of this
+           wrapper, which itself shrinks to the table, leaving an empty strip beside it. */
+        :global(table:is([width], [style*="width:"], [style*="width :"], [style*="width: "])) {
+            width: auto !important;
         }
 
         :global(caption) {

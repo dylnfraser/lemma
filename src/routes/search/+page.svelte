@@ -1,5 +1,6 @@
 <script lang="ts">
     import { fetchPageCards, getSearchPath, searchFullText, type FullTextResult, type PageCard } from "$lib/api/search";
+    import { WikipediaError } from "$lib/api/wikipedia";
     import { getArticlePath } from "$lib/article/articleUtils";
     import ErrorState from "../../components/ErrorState.svelte";
     import ReaderLayout from "../../components/ReaderLayout.svelte";
@@ -21,6 +22,7 @@
     let moreFailed = $state(false);
     let request: AbortController | undefined;
     let attempt = $state(0);
+    let busy = $state(false);
 
     const numberFormat = new Intl.NumberFormat("en");
 
@@ -73,8 +75,10 @@
                 status = "ready";
                 addCards(search.results, controller.signal);
             })
-            .catch(() => {
-                if (!controller.signal.aborted) status = "error";
+            .catch((error) => {
+                if (controller.signal.aborted) return;
+                busy = error instanceof WikipediaError && error.kind === "busy";
+                status = "error";
             });
 
         return () => controller.abort();
@@ -123,8 +127,10 @@
     {:else if status === "error"}
         <div class="error">
             <ErrorState
-                heading="Search hit a snag"
-                message={`We couldn't reach Wikipedia to search for “${data.query}”. It might be your connection, or a blip on their end. Give it another go in a moment.`}
+                heading={busy ? "Wikipedia needs a breather" : "Search hit a snag"}
+                message={busy
+                    ? `Wikipedia is fielding a lot of requests right now and asked us to slow down for a moment. Give it a few seconds, then search for “${data.query}” again.`
+                    : `We couldn't reach Wikipedia to search for “${data.query}”. It might be your connection, or a blip on their end. Give it another go in a moment.`}
                 retryLabel="Search again"
                 onRetry={() => attempt++}
             />
@@ -274,19 +280,13 @@
         border-bottom: 1px solid color-mix(in oklch, var(--rule) 60%, transparent);
 
         /* a short cascade; "More results" pages cascade from their own first row (--i counts within each page) */
-        animation: row-in var(--dur-slow) var(--ease-out) both;
-        animation-delay: calc(min(var(--i), 8) * 35ms);
+        animation: enter var(--dur-slow) var(--ease-out) backwards;
+        animation-delay: calc(min(var(--i), 8) * var(--stagger));
         @media (prefers-reduced-motion: reduce) {
             animation: none;
         }
     }
 
-    @keyframes row-in {
-        from {
-            opacity: 0;
-            translate: 0 6px;
-        }
-    }
 
     .text {
         flex: 1;
@@ -405,7 +405,7 @@
             color-mix(in oklch, var(--secondary) 65%, transparent) 75%
         );
         background-size: 200% 100%;
-        animation: skeleton-shimmer 1.4s ease-in-out infinite;
+        animation: shimmer 1.4s ease-in-out infinite;
 
         @media (prefers-reduced-motion: reduce) {
             animation: none;
@@ -417,13 +417,4 @@
         margin-bottom: 0.5rem;
     }
 
-    @keyframes skeleton-shimmer {
-        from {
-            background-position: 200% 0;
-        }
-
-        to {
-            background-position: -200% 0;
-        }
-    }
 </style>

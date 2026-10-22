@@ -51,7 +51,7 @@
         text-wrap: balance;
         overflow-wrap: anywhere;
 
-        animation: popup 0.5s both;
+        animation: enter var(--dur-slow) var(--ease-out) backwards;
     }
 
     p {
@@ -64,7 +64,7 @@
     }
 
     .word {
-        animation: appear-word 1.2s both;
+        animation: fade-in var(--dur-fade) var(--ease-out) backwards;
         animation-delay: calc(var(--i) * 12ms + 150ms);
     }
 
@@ -77,7 +77,7 @@
         gap: 0.4rem 0;
         margin-top: 1.75rem;
 
-        animation: popup 0.5s both;
+        animation: enter var(--dur-slow) var(--ease-out) backwards;
         animation-delay: calc(var(--after) * 12ms + 450ms);
     }
 
@@ -113,26 +113,4 @@
         text-decoration-color: color-mix(in oklch, var(--accent) 45%, transparent);
     }
 
-    @keyframes popup {
-        from {
-            opacity: 0;
-            filter: blur(1px);
-            transform: translateY(6px);
-        }
-    }
-
-    @keyframes appear-word {
-        from {
-            opacity: 0;
-            filter: blur(1px);
-        }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        h1,
-        .word,
-        .actions {
-            animation: none;
-        }
-    }
 </style>

@@ -9,7 +9,27 @@
         | "chevron-right"
         | "x"
         | "volume"
-        | "corner-down-right";
+        | "corner-down-right"
+        | "star"
+        | "badge-check"
+        | "link"
+        | "check"
+        | "map-pin"
+        | "headphones"
+        | "bookmark"
+        | "bookmark-filled"
+        | "history"
+        | "search"
+        | "quote"
+        | "copy"
+        | "printer"
+        | "keyboard"
+        | "play"
+        | "pause"
+        | "image"
+        | "folder"
+        | "chevron-down"
+        | "globe";
 </script>
 
 <script lang="ts">

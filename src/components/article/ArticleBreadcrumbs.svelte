@@ -208,11 +208,12 @@
         border: none;
         padding: 0;
         background: none;
+        color: var(--muted);
         cursor: pointer;
-        opacity: 0.6;
+        transition: color var(--dur-base) var(--ease-out);
 
         &:hover {
-            opacity: 1;
+            color: var(--text-color);
         }
     }
 

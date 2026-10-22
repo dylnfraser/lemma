@@ -4,6 +4,8 @@
     import type { ArticleImage } from "$lib/article/types";
     import { isKeyboardClick, preventMouseFocus } from "$lib/focus";
     import { lightbox, openLightbox } from "$lib/lightbox.svelte";
+    import { BLUR_PX, DURATION, EASE_OUT, motion } from "$lib/motion";
+    import { overlayScrollbar } from "$lib/overlayScrollbar";
     import { searchOverlay } from "$lib/search/searchOverlay.svelte";
 
     interface Props {
@@ -14,7 +16,7 @@
 
     let { images, caption = "" }: Props = $props();
 
-    // Cards beyond this are hidden behind the stack; the badge still counts them.
+    // Cards beyond this are hidden behind the stack (expanding shows them all).
     const MAX_FANNED = 4;
     const uid = $props.id();
 
@@ -31,6 +33,9 @@
     // Move focus to the stack/grid after toggling only when the reader is using the keyboard.
     let focusAfterToggle = false;
     let fanned = $derived(images.slice(0, MAX_FANNED));
+    // Larger sets open into a row to scroll through rather than a tall grid.
+    const STRIP_FROM = 4;
+    let strip = $derived(images.length >= STRIP_FROM);
     let fanButton = $state<HTMLButtonElement>();
     let grid = $state<HTMLElement>();
 
@@ -66,10 +71,10 @@
 
     function fadeIn(elements: Iterable<Element>, delay: number) {
         for (const element of elements) {
-            element.animate([{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }], {
-                duration: 200,
+            element.animate([{ opacity: 0, transform: "translateY(4px)", filter: `blur(${BLUR_PX}px)` }, { opacity: 1, transform: "none", filter: "none" }], {
+                duration: motion(DURATION.base),
                 delay,
-                easing: "ease-out",
+                easing: EASE_OUT,
                 fill: "backwards",
             });
         }
@@ -173,7 +178,7 @@
             );
         });
 
-        fadeIn(fanButton.parentElement?.querySelectorAll(".badge, figcaption") ?? [], DURATION_MS * 0.6);
+        fadeIn(fanButton.parentElement?.querySelectorAll("figcaption") ?? [], DURATION_MS * 0.6);
     }
 
     // Expanding/collapsing replaces the focused control, so move focus to its counterpart (never on first render).
@@ -204,7 +209,7 @@
         use:focusWhenToggled
         onclick={handleGridClick}
     >
-        <div class="grid">
+        <div class="grid" class:strip use:overlayScrollbar={strip}>
             {#each images as image, i}
                 <!-- earlier images stay on top while they fly out, matching the stack's order -->
                 <figure style:z-index={images.length - i}>
@@ -269,13 +274,6 @@
                     />
                 </span>
             {/each}
-            <span class="badge" aria-hidden="true">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <rect x="3" y="6" width="14" height="14" rx="3" stroke="currentColor" stroke-width="2" />
-                    <path d="M7 3h11a3 3 0 0 1 3 3v11" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                </svg>
-                {images.length}
-            </span>
         </button>
         {#if caption || images[0].caption}
             <figcaption>{@html caption || images[0].caption}</figcaption>
@@ -342,24 +340,6 @@
         transform: translateY(-2%) scale(1.02);
     }
 
-    .badge {
-        position: absolute;
-        z-index: 10;
-        right: 0.6rem;
-        bottom: 0.6rem;
-        display: flex;
-        align-items: center;
-        gap: 0.3rem;
-        padding: 0.2rem 0.55rem 0.2rem 0.45rem;
-        border-radius: 999px;
-        background: rgb(0 0 0 / 55%);
-        backdrop-filter: blur(8px);
-        color: white;
-        font-size: 0.75rem;
-        font-weight: 600;
-        line-height: 1.4;
-        font-variant-numeric: tabular-nums;
-    }
 
     .fan-figure > figcaption,
     figcaption {
@@ -375,6 +355,8 @@
     /* ---------- expanded grid ---------- */
 
     .expanded {
+        /* positions the strip's scrollbar */
+        position: relative;
         margin: 2.25rem 0;
         border-radius: 14px;
         cursor: zoom-out;
@@ -411,6 +393,42 @@
 
         figcaption {
             margin-top: 0.6rem;
+        }
+    }
+
+    /* a row of same-height pictures that scrolls sideways, snapping from one to the next */
+    .grid.strip {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scroll-snap-type: x mandatory;
+        scroll-padding-inline: 1.25rem;
+        padding: 0.5rem 1.25rem 1rem;
+        margin-inline: -1.25rem;
+        /* the row fades out at its edges, hinting that there's more */
+        mask-image: linear-gradient(to right, transparent, black 1.25rem, black calc(100% - 1.25rem), transparent);
+
+        figure {
+            flex: none;
+            display: flex;
+            flex-direction: column;
+            /* as wide as its picture; the caption wraps to fit under it */
+            width: min-content;
+            scroll-snap-align: start;
+        }
+
+        img {
+            width: auto;
+            max-width: min(34rem, 80vw);
+            height: min(14rem, 40dvh);
+            max-height: none;
+            object-fit: cover;
+        }
+
+        .zoomable {
+            margin-inline: 0;
         }
     }
 

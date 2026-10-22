@@ -1,7 +1,7 @@
 <script lang="ts">
     import { afterNavigate } from "$app/navigation";
-    import { fade, scale } from "svelte/transition";
-    import { DURATION, cubicOut, motion } from "$lib/motion";
+    import { fade } from "svelte/transition";
+    import { DURATION, motion, pop } from "$lib/motion";
     import { closeSearch, isSearchShortcut, searchOverlay, toggleSearch } from "$lib/search/searchOverlay.svelte";
     import Searchbar from "./Searchbar.svelte";
 
@@ -53,7 +53,7 @@
             role="dialog"
             aria-modal="true"
             aria-label="Search Wikipedia"
-            transition:scale|global={{ start: 0.97, opacity: 0, duration: motion(DURATION.base), easing: cubicOut }}
+            transition:pop|global={{ duration: DURATION.base, y: -6 }}
         >
             <Searchbar autofocus initialQuery={searchOverlay.query} onDismiss={closeSearch} />
         </div>

@@ -4,8 +4,8 @@
     import { getArticlePath } from "$lib/article/articleUtils";
 
     interface Props {
-        /** "nav": the navbar's 36px box; "pill": a bordered pill for page content. */
-        variant?: "nav" | "pill";
+        /** "nav": the navbar's 36px box; "pill": a bordered pill for page content; "text": a plain text link. */
+        variant?: "nav" | "pill" | "text";
         label?: string;
     }
 
@@ -63,7 +63,7 @@
         font-size: 0.85rem;
         color: inherit;
         transition:
-            opacity var(--dur-fast),
+            color var(--dur-base) var(--ease-out),
             border-color var(--dur-fast),
             background-color var(--dur-fast),
             scale var(--dur-instant) var(--ease-out);
@@ -80,10 +80,10 @@
         background: none;
         border: 1px solid transparent;
         border-radius: 8px;
-        opacity: 0.85;
+        color: var(--muted);
 
         &:hover {
-            opacity: 1;
+            color: var(--text-color);
             border-color: var(--secondary);
         }
     }
@@ -103,17 +103,31 @@
     }
 
     /* the arrows swap over on hover, a small shuffle of their own */
+    .text {
+        gap: 0.3rem;
+        padding: 0;
+        border: none;
+        background: none;
+        font: inherit;
+        color: inherit;
+
+        &:hover {
+            color: var(--link-hover);
+        }
+
+        .shuffle {
+            width: 0.95em;
+            height: 0.95em;
+        }
+    }
+
     .shuffle {
         flex: none;
-        opacity: 0.8;
-        transition:
-            scale var(--dur-base) var(--ease-spring),
-            opacity var(--dur-fast);
+        transition: scale var(--dur-base) var(--ease-spring);
     }
 
     .random:hover .shuffle {
         scale: -1 1;
-        opacity: 1;
     }
 
     .busy .shuffle {

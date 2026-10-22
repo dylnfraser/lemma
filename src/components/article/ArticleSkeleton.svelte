@@ -76,7 +76,7 @@
     .article-skeleton,
     .outline-skeleton {
         /* held back briefly: preloaded or fast articles replace it before it ever flickers into view */
-        animation: appear var(--dur-base) var(--ease-out) 120ms both;
+        animation: fade-in var(--dur-base) var(--ease-out) 120ms backwards;
     }
 
     .article-skeleton {
@@ -95,7 +95,7 @@
         background-size: 200% 100%;
         border-radius: 6px;
 
-        animation: skeleton-shimmer 1.4s ease-in-out infinite;
+        animation: shimmer 1.4s ease-in-out infinite;
         @media (prefers-reduced-motion: reduce) {
             animation: none;
         }
@@ -245,16 +245,6 @@
         .bar {
             --line: 1.25rem;
             --bar: 0.6rem;
-        }
-    }
-
-    @keyframes skeleton-shimmer {
-        from {
-            background-position: 200% 0;
-        }
-
-        to {
-            background-position: -200% 0;
         }
     }
 </style>

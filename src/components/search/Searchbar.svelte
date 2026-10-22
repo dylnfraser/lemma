@@ -2,7 +2,7 @@
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
     import { getSearchPath } from "$lib/api/search";
-    import { searchArticles, type WikipediaSearchResult } from "$lib/api/wikipedia";
+    import { searchArticles, WikipediaError, type WikipediaSearchResult } from "$lib/api/wikipedia";
     import { getArticlePath } from "$lib/article/articleUtils";
     import { preventMouseFocus } from "$lib/focus";
     import SearchIcon from "../icons/SearchIcon.svelte";
@@ -89,11 +89,14 @@
             // with no title matches, the "search all" option is the natural choice
             activeIndex = 0;
             searchedQuery = searchQuery;
-        } catch {
+        } catch (error) {
             if (request.signal.aborted) return;
             results = [];
             activeIndex = -1;
-            errorMessage = "Couldn't load results. Try again.";
+            errorMessage =
+                error instanceof WikipediaError && error.kind === "busy"
+                    ? "Wikipedia's busy for a moment. Keep typing, or try again shortly."
+                    : "Couldn't load results. Try again.";
         } finally {
             if (activeRequest === request) isLoading = false;
         }
@@ -261,7 +264,7 @@
             border-color var(--dur-fast) ease,
             box-shadow var(--dur-base) var(--ease-out);
 
-        animation: quickappear 0.5s both;
+        animation: enter var(--dur-slow) var(--ease-out) backwards;
         @media (prefers-reduced-motion: reduce) {
             animation: none;
         }
@@ -287,7 +290,7 @@
         position: relative;
         display: grid;
         flex: none;
-        opacity: 0.55;
+        color: var(--muted);
 
         :global(svg) {
             transition: opacity var(--dur-fast) ease;
@@ -297,8 +300,8 @@
         &::after {
             content: "";
             position: absolute;
-            inset: 5px;
-            border: 1.5px solid currentColor;
+            inset: 4px;
+            border: 2px solid currentColor;
             border-right-color: transparent;
             border-radius: 50%;
             opacity: 0;
@@ -365,7 +368,7 @@
     .shortcut-hint {
         flex: none;
         margin-right: 0.15rem;
-        animation: clear-in var(--dur-fast) var(--ease-out) both;
+        animation: clear-in var(--dur-base) var(--ease-out) backwards;
         transition:
             opacity var(--dur-fast),
             scale var(--dur-fast) var(--ease-out);
@@ -393,7 +396,7 @@
         background: var(--bg-color);
         color: var(--muted);
         cursor: pointer;
-        animation: clear-in var(--dur-fast) var(--ease-out) both;
+        animation: clear-in var(--dur-base) var(--ease-out) backwards;
         transition:
             background-color var(--dur-fast),
             border-color var(--dur-fast),
@@ -407,10 +410,12 @@
         }
     }
 
+    /* small controls appear the site's way, from a blur, growing in from a little smaller */
     @keyframes clear-in {
         from {
             opacity: 0;
-            scale: 0.6;
+            scale: 0.7;
+            filter: blur(var(--blur));
         }
     }
 
@@ -420,15 +425,7 @@
 
         &.open {
             display: block;
-            animation: results-appear var(--dur-base) var(--ease-out) both;
-        }
-    }
-
-    /* grows open beneath the field */
-    @keyframes results-appear {
-        from {
-            opacity: 0;
-            transform: translateY(-4px);
+            animation: fade-in var(--dur-base) var(--ease-out) backwards;
         }
     }
 

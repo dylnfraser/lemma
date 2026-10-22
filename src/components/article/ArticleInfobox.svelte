@@ -312,6 +312,89 @@
             border-radius: 6px;
         }
 
+        /*
+         * Photo montages ({{multiple image}}): rows of pictures side by side, each row filling the box and its pictures
+         * cropped to one height, with short captions under them. Wikipedia's fixed pixel widths are let go.
+         */
+        :global(.tmulti) {
+            width: 100%;
+        }
+
+        :global(.tmulti .multiimageinner) {
+            display: grid;
+            gap: 0.45rem;
+            width: auto !important;
+            max-width: none !important;
+        }
+
+        :global(.tmulti .trow) {
+            display: flex;
+            gap: 0.35rem;
+        }
+
+        :global(.tmulti .tsingle) {
+            display: flex;
+            flex: 1 1 0;
+            flex-direction: column;
+            gap: 0.25rem;
+            min-width: 0;
+            width: auto !important;
+            max-width: none !important;
+        }
+
+        /* the picture's frame: one height per row (taller when a picture has the row to itself) */
+        :global(.tmulti .tsingle > div:first-child) {
+            height: 4.75rem !important;
+            overflow: hidden;
+            border-radius: 6px;
+        }
+
+        :global(.tmulti .trow:has(> .tsingle:only-child) .tsingle > div:first-child) {
+            height: 9rem !important;
+        }
+
+        :global(.tmulti .tsingle :is(span, .zoom-image)) {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        :global(.tmulti .tsingle img) {
+            display: block;
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            object-fit: cover;
+            border-radius: 0;
+            transition: scale var(--dur-slow) var(--ease-out);
+        }
+
+        :global(.tmulti .tsingle .zoom-image:hover img) {
+            scale: 1.05;
+        }
+
+        :global(.tmulti .tsingle > div:not(:first-child)) {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            overflow: hidden;
+            font-size: 0.7rem;
+            line-height: 1.3;
+            text-align: center;
+            text-wrap: balance;
+            color: var(--muted);
+
+            :global(a) {
+                color: inherit;
+                text-decoration: none;
+            }
+
+            :global(a:hover) {
+                color: var(--link-hover);
+            }
+        }
+
         /* flags, trend arrows and similar icons stay at text height */
         :global(img.inline-icon) {
             width: auto;

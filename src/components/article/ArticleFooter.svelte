@@ -32,13 +32,13 @@
 
 <footer class="article-footer">
     <div class="actions">
-        <a class="wikipedia-link" href={getWikipediaArticleUrl(title)} target="_blank" rel="noopener noreferrer"
-            >Read or edit on Wikipedia <Icon name="arrow-up-right" size="0.85em" /><span class="sr-only">
+        <a class="wikipedia-link with-icon" href={getWikipediaArticleUrl(title)} target="_blank" rel="noopener noreferrer"
+            >Read or edit on Wikipedia<Icon name="arrow-up-right" size="0.85em" /><span class="sr-only">
                 (opens in a new tab)</span
             ></a
         >
-        <button type="button" class="top-button" onclick={backToTop}>
-            Back to top <Icon name="arrow-up" size="0.85em" />
+        <button type="button" class="action-pill top-button" onclick={backToTop}>
+            Back to top<Icon name="arrow-up" size="0.9em" />
         </button>
     </div>
 
@@ -91,23 +91,9 @@
         }
     }
 
+    /* the arrow sits a touch closer to the edge than the text does: icons carry their own whitespace */
     .top-button {
-        padding: 0.35rem 0.8rem;
-        background: var(--bg-color);
-        border: 1px solid var(--secondary);
-        border-radius: 999px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition:
-            color var(--dur-fast),
-            border-color var(--dur-fast),
-            scale var(--dur-instant) var(--ease-out);
-
-        &:hover {
-            color: var(--link-hover);
-            border-color: color-mix(in oklch, var(--link-hover) 40%, var(--secondary));
-        }
+        padding-right: 0.6rem;
     }
 
     p {
@@ -119,7 +105,7 @@
     .edited {
         font-weight: 500;
         /* it arrives after the article, so ease it in rather than popping */
-        animation: appear var(--dur-base) var(--ease-out) both;
+        animation: fade-in var(--dur-base) var(--ease-out) backwards;
     }
 
     .license a {

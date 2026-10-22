@@ -1,10 +1,21 @@
 <script lang="ts">
+    import { SvelteSet } from "svelte/reactivity";
     import type { RelatedTopics } from "$lib/article/types";
+    import { fold } from "$lib/motion";
     import ChevronIcon from "../icons/ChevronIcon.svelte";
 
     // Wikipedia's navboxes and series sidebars, kept as quiet expandable lists at the end of the article: the topics
     // stay one click away without the boxes interrupting the reading.
     let { topics }: { topics: RelatedTopics[] } = $props();
+
+    const uid = $props.id();
+    // which topics are open (by position); each opens and folds away like an article section
+    const open = new SvelteSet<number>();
+
+    function toggle(index: number) {
+        if (open.has(index)) open.delete(index);
+        else open.add(index);
+    }
 
     const linkCount = (topic: RelatedTopics) =>
         topic.groups.reduce((count, group) => count + (group.html.match(/<a\s/g)?.length ?? 0), 0);
@@ -13,22 +24,34 @@
 <section class="related" aria-labelledby="related-heading">
     <h2 id="related-heading">Related topics</h2>
 
-    {#each topics as topic}
-        <details>
-            <summary>
-                <span class="chevron"><ChevronIcon size={16} /></span>
+    {#each topics as topic, i}
+        <div class="topic" class:open={open.has(i)}>
+            <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions (the row is a larger target for the button inside it; links in the title still work) -->
+            <div class="summary" onclick={(event) => !(event.target as Element).closest("a, button") && toggle(i)}>
+                <button
+                    type="button"
+                    class="chevron"
+                    aria-expanded={open.has(i)}
+                    aria-controls="{uid}-topic-{i}"
+                    aria-label="{open.has(i) ? 'Hide' : 'Show'} related topics"
+                    onclick={() => toggle(i)}
+                >
+                    <ChevronIcon size={16} />
+                </button>
                 <span class="title">{@html topic.title}</span>
                 <span class="count">{linkCount(topic)}</span>
-            </summary>
-            <div class="groups">
-                {#each topic.groups as group}
-                    <div class="group" class:unlabelled={!group.label}>
-                        {#if group.label}<div class="label">{@html group.label}</div>{/if}
-                        <div class="links">{@html group.html}</div>
-                    </div>
-                {/each}
             </div>
-        </details>
+            {#if open.has(i)}
+                <div class="groups" id="{uid}-topic-{i}" transition:fold>
+                    {#each topic.groups as group}
+                        <div class="group" class:unlabelled={!group.label}>
+                            {#if group.label}<div class="label">{@html group.label}</div>{/if}
+                            <div class="links">{@html group.html}</div>
+                        </div>
+                    {/each}
+                </div>
+            {/if}
+        </div>
     {/each}
 </section>
 
@@ -49,11 +72,11 @@
         color: var(--muted);
     }
 
-    details {
+    .topic {
         border-bottom: 1px solid color-mix(in oklch, var(--rule) 70%, transparent);
     }
 
-    summary {
+    .summary {
         display: flex;
         align-items: center;
         gap: 0.5rem;
@@ -63,10 +86,6 @@
         font-weight: 600;
         line-height: 1.35;
 
-        &::-webkit-details-marker {
-            display: none;
-        }
-
         &:hover .chevron {
             color: var(--text-color);
         }
@@ -74,13 +93,20 @@
 
     .chevron {
         display: grid;
+        place-items: center;
         flex: none;
+        padding: 0;
+        border: none;
+        background: none;
         color: var(--muted);
+        cursor: pointer;
         rotate: 180deg;
-        transition: rotate var(--dur-fast) var(--ease-out);
+        transition:
+            rotate var(--dur-base) var(--ease-out),
+            color var(--dur-base) var(--ease-out);
     }
 
-    details[open] .chevron {
+    .topic.open .chevron {
         rotate: 0deg;
     }
 
@@ -113,7 +139,6 @@
         display: grid;
         gap: 0.75rem;
         padding: 0.25rem 0 1rem 1.6rem;
-        animation: appear var(--dur-base) var(--ease-out);
         font-size: 0.88rem;
         line-height: 1.6;
     }

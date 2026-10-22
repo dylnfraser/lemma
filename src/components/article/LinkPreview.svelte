@@ -4,7 +4,7 @@
     import { fetchSummary, type ArticleSummary } from "$lib/api/wikipedia";
     import { getArticlePath, safeDecodeURIComponent } from "$lib/article/articleUtils";
     import { lightbox } from "$lib/lightbox.svelte";
-    import { motion } from "$lib/motion";
+    import { BLUR_PX, motion } from "$lib/motion";
     import { searchOverlay } from "$lib/search/searchOverlay.svelte";
 
     // Hover previews for article links, like Wikipedia's own: the summary starts loading as soon as the pointer lands
@@ -244,7 +244,7 @@
             css: (t: number) => {
                 const settle = quintOut(t);
                 const fade = cubicOut(Math.min(1, t / 0.6));
-                return `opacity: ${fade}; transform: translateY(${(1 - settle) * -8}px) scale(${0.97 + settle * 0.03}); filter: blur(${(1 - fade) * 2}px);`;
+                return `opacity: ${fade}; transform: translateY(${(1 - settle) * -8}px) scale(${0.97 + settle * 0.03}); filter: blur(${(1 - fade) * BLUR_PX}px);`;
             },
         };
     }

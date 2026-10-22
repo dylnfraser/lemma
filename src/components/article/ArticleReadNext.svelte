@@ -1,12 +1,13 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { fetchRelatedArticles, getWikipediaArticleUrl, type RelatedArticle } from "$lib/api/wikipedia";
-    import { getArticlePath } from "$lib/article/articleUtils";
+    import { fetchRelatedArticles, type RelatedArticle } from "$lib/api/wikipedia";
+    import { getArticlePath, getCategoryPath } from "$lib/article/articleUtils";
+    import type { SisterLink } from "$lib/article/types";
     import Icon from "../icons/Icon.svelte";
 
     // The end of the article: articles like this one, then its categories. Related articles are only requested once
     // the reader scrolls near the end, so most article views never make the extra request.
-    let { title, categories }: { title: string; categories: string[] } = $props();
+    let { title, categories, sisters = [] }: { title: string; categories: string[]; sisters?: SisterLink[] } = $props();
 
     // long category lists (some articles have 60+) start trimmed
     const CATEGORY_PREVIEW = 12;
@@ -66,14 +67,27 @@
         </ul>
     {/if}
 
+    {#if sisters.length > 0}
+        <h2>Elsewhere on Wikimedia</h2>
+        <ul class="sisters">
+            {#each sisters as sister}
+                <li>
+                    <a href={sister.url} target="_blank" rel="noopener noreferrer">
+                        <span class="sister-what">{sister.description}</span>
+                        <span class="sister-where">on {sister.project}</span>
+                        <Icon name="arrow-up-right" size="0.75em" />
+                    </a>
+                </li>
+            {/each}
+        </ul>
+    {/if}
+
     {#if categories.length > 0}
         <h2>Categories</h2>
         <ul class="categories">
             {#each shownCategories as category}
                 <li>
-                    <a href={getWikipediaArticleUrl(`Category:${category}`)} target="_blank" rel="noopener noreferrer"
-                        >{category}<span class="sr-only"> (opens Wikipedia in a new tab)</span></a
-                    >
+                    <a href={getCategoryPath(category)}>{category}</a>
                 </li>
             {/each}
             {#if categories.length > CATEGORY_PREVIEW}
@@ -84,7 +98,6 @@
                 </li>
             {/if}
         </ul>
-        <p class="note"><Icon name="arrow-up-right" size="0.8em" /> Categories open on Wikipedia</p>
     {/if}
 </section>
 
@@ -130,9 +143,9 @@
         color: inherit;
         text-decoration: none;
         transition:
-            border-color var(--dur-fast),
-            translate var(--dur-fast) var(--ease-out),
-            box-shadow var(--dur-fast);
+            border-color var(--dur-base) var(--ease-out),
+            translate var(--dur-base) var(--ease-out),
+            box-shadow var(--dur-base) var(--ease-out);
 
         &:hover {
             color: inherit;
@@ -152,20 +165,14 @@
 
     /* loaded cards replace the skeletons in a short cascade */
     .arrived {
-        animation: card-in var(--dur-slow) var(--ease-out) both;
-        animation-delay: calc(var(--i) * 50ms);
+        animation: enter var(--dur-slow) var(--ease-out) backwards;
+        animation-delay: calc(var(--i) * var(--stagger));
 
         @media (prefers-reduced-motion: reduce) {
             animation: none;
         }
     }
 
-    @keyframes card-in {
-        from {
-            opacity: 0;
-            translate: 0 6px;
-        }
-    }
 
     img,
     .placeholder {
@@ -199,7 +206,7 @@
         font-weight: 600;
         text-overflow: ellipsis;
         white-space: nowrap;
-        transition: color var(--dur-fast);
+        transition: color var(--dur-base) var(--ease-out);
     }
 
     .description {
@@ -222,10 +229,54 @@
         }
     }
 
-    @keyframes pulse {
-        50% {
-            opacity: 0.55;
+
+    .sisters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+
+        a {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 0.35rem;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid var(--rule);
+            border-radius: 10px;
+            background: var(--bg-color);
+            font-size: 0.82rem;
+            color: inherit;
+            text-decoration: none;
+            transition:
+                color var(--dur-base) var(--ease-out),
+                border-color var(--dur-base) var(--ease-out),
+                translate var(--dur-base) var(--ease-out);
+
+            :global(.icon) {
+                align-self: center;
+                color: var(--muted);
+                transition:
+                    color var(--dur-base) var(--ease-out),
+                    translate var(--dur-base) var(--ease-out);
+            }
+
+            &:hover {
+                border-color: var(--secondary);
+                translate: 0 -1px;
+
+                :global(.icon) {
+                    color: var(--text-color);
+                    translate: 1px -1px;
+                }
+            }
         }
+    }
+
+    .sister-what {
+        font-weight: 600;
+    }
+
+    .sister-where {
+        color: var(--muted);
     }
 
     .categories {
@@ -241,7 +292,9 @@
             font-size: 0.8rem;
             color: inherit;
             text-decoration: none;
-            transition: border-color var(--dur-fast);
+            transition:
+                color var(--dur-base) var(--ease-out),
+                border-color var(--dur-base) var(--ease-out);
 
             &:hover {
                 color: var(--link-hover);
@@ -260,19 +313,14 @@
         font-weight: 600;
         color: var(--muted);
         cursor: pointer;
+        transition:
+            color var(--dur-base) var(--ease-out),
+            border-color var(--dur-base) var(--ease-out),
+            scale var(--dur-instant) var(--ease-out);
 
         &:hover {
             color: var(--text-color);
             border-color: var(--secondary);
         }
-    }
-
-    .note {
-        display: flex;
-        align-items: center;
-        gap: 0.3rem;
-        margin: 0.6rem 0 0;
-        font-size: 0.72rem;
-        color: var(--muted);
     }
 </style>
