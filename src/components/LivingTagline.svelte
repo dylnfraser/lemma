@@ -3,7 +3,7 @@
     import { prefersReducedMotion } from "svelte/motion";
     import type { FeaturedFeed } from "$lib/api/feed";
     import { getArticlePath } from "$lib/article/articleUtils";
-    import { DURATION, rise } from "$lib/motion";
+    import { BLUR_PX, DURATION, cubicOut, motion } from "$lib/motion";
 
     // The line under the wordmark: Lemma's own, and now and then something from today's Wikipedia in its place.
     interface Props {
@@ -41,9 +41,24 @@
     let index = $state(0);
     // the first showing arrives word by word; later lines cross over whole
     let cycled = $state(false);
-    let words = $derived(tagline.split(" "));
     let hovered = $state(false);
     let line = $derived(lines[index % lines.length]);
+    let lineWords = $derived(line.text.split(" "));
+
+    // One line turns into the next a word at a time: the old words blur away in reading order, then the new ones
+    // settle in after them.
+    const WORD_STAGGER_OUT = 14;
+    const WORD_STAGGER_IN = 32;
+    const WORDS_IN_AFTER = 160;
+
+    function word(_node: Element, { delay = 0, y = 4, duration = DURATION.base }: { delay?: number; y?: number; duration?: number }) {
+        return {
+            delay: motion(delay),
+            duration: motion(duration),
+            easing: cubicOut,
+            css: (t: number, u: number) => `opacity: ${t}; filter: blur(${u * BLUR_PX}px); transform: translateY(${u * y}px);`,
+        };
+    }
 
     onMount(() => {
         const timer = setInterval(() => {
@@ -57,21 +72,23 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions (hovering only pauses the rotation) -->
 <p class="tagline" aria-live="off" onpointerenter={() => (hovered = true)} onpointerleave={() => (hovered = false)}>
-    {#if !cycled}
-        <span class="line" out:rise={{ y: -6, duration: DURATION.base }}>
-            {#each words as word, i}<span class="word" style:--i={i}>{word}</span>{" "}{/each}
+    {#key index}
+        <span class="line" class:first={!cycled}>
+            {#snippet words(list: string[])}
+                {#each list as text, i}<span
+                        class="word"
+                        style:--i={i}
+                        in:word|global={{ delay: WORDS_IN_AFTER + i * WORD_STAGGER_IN, y: 4, duration: DURATION.slow }}
+                        out:word|global={{ delay: i * WORD_STAGGER_OUT, y: -3 }}>{text}</span
+                    >{" "}{/each}
+            {/snippet}
+            {#if line.href}
+                <a href={line.href}>{@render words(lineWords)}</a>
+            {:else}
+                {@render words(lineWords)}
+            {/if}
         </span>
-    {:else}
-        {#key index}
-            <span class="line" in:rise={{ y: 6, duration: DURATION.slow, delay: 120 }} out:rise={{ y: -6, duration: DURATION.base }}>
-                {#if line.href}
-                    <a href={line.href}>{line.text}</a>
-                {:else}
-                    {line.text}
-                {/if}
-            </span>
-        {/key}
-    {/if}
+    {/key}
 </p>
 
 <style>
@@ -91,6 +108,10 @@
 
     .word {
         display: inline-block;
+    }
+
+    /* the very first line arrives with the page (transitions don't play on first render) */
+    .first .word {
         animation: enter var(--dur-slow) var(--ease-out) backwards;
         animation-delay: calc(var(--i) * var(--stagger) + 100ms);
     }
