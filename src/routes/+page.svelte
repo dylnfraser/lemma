@@ -1,14 +1,18 @@
 <script lang="ts">
     import { isSearchShortcut } from "$lib/search/searchOverlay.svelte";
+    import type { FeaturedFeed } from "$lib/api/feed";
     import HomeFeed from "../components/HomeFeed.svelte";
+    import LivingTagline from "../components/LivingTagline.svelte";
     import RandomButton from "../components/RandomButton.svelte";
     import Searchbar from "../components/search/Searchbar.svelte";
 
     const wordmark = [..."Lemma"];
     const description = "Wikipedia, without the noise.";
-    const words = description.split(" ");
 
     let searchbar: ReturnType<typeof Searchbar>;
+    let feed = $state.raw<FeaturedFeed | null>(null);
+    // the tagline holds still while the reader is searching
+    let searching = $state(false);
 
     function handleWindowKeydown(event: KeyboardEvent) {
         if (!isSearchShortcut(event)) return;
@@ -34,16 +38,9 @@
             </span>
         </h1>
 
-        <p>
-            <span class="sr-only">{description}</span>
-            <span aria-hidden="true">
-                {#each words as word, i}
-                    <span class="word" style:--i={i}>{word}</span>{" "}
-                {/each}
-            </span>
-        </p>
+        <LivingTagline tagline={description} {feed} paused={searching} />
 
-        <div class="search-slot">
+        <div class="search-slot" onfocusin={() => (searching = true)} onfocusout={() => (searching = false)}>
             <Searchbar bind:this={searchbar} shortcutHint />
         </div>
 
@@ -54,7 +51,7 @@
         </nav>
     </div>
 
-    <HomeFeed />
+    <HomeFeed onload={(result) => (feed = result)} />
 </main>
 
 <style>
@@ -104,18 +101,6 @@
         }
     }
 
-    p {
-        margin: 0;
-        font-size: 1.05rem;
-        line-height: 1.6;
-        color: var(--muted);
-    }
-
-    .word {
-        display: inline-block;
-        animation: enter var(--dur-slow) var(--ease-out) backwards;
-        animation-delay: calc(var(--i) * var(--stagger) + 100ms);
-    }
 
     /* Only the bar's height is reserved: as results appear the card grows over the content below instead of pushing
        the page around. */

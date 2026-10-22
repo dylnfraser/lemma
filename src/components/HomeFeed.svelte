@@ -8,6 +8,9 @@
     // fails, nothing appears.
     const MOST_READ = 5;
 
+    // the home page passes today's feed on to its tagline
+    let { onload }: { onload?: (feed: FeaturedFeed) => void } = $props();
+
     let feed = $state.raw<FeaturedFeed | null>(null);
     let status = $state<"loading" | "ready" | "failed">("loading");
     let mostRead = $derived(feed?.mostRead.slice(0, MOST_READ) ?? []);
@@ -19,6 +22,7 @@
         fetchFeaturedFeed(new Date(), { signal: controller.signal })
             .then((result) => {
                 feed = result;
+                onload?.(result);
                 status = "ready";
             })
             .catch(() => {
@@ -61,7 +65,7 @@
                         </span>
                         <span class="text">
                             <span class="label">Featured article</span>
-                            <span class="title">{page.title}</span>
+                            <span data-morph class="title">{page.title}</span>
                             <span class="note">{page.description || page.extract}</span>
                         </span>
                     </a>
@@ -87,7 +91,7 @@
                         <li>
                             <a href={getArticlePath(page.title)}>
                                 <span class="rank" aria-hidden="true">{i + 1}</span>
-                                <span class="mr-title">{page.title}</span>
+                                <span data-morph class="mr-title">{page.title}</span>
                                 <span class="views">{compact.format(page.views)}<span class="sr-only"> views</span></span>
                             </a>
                         </li>
