@@ -57,7 +57,7 @@
 
     // A heading counts as "current" once its top passes this far below the viewport top (under the navbar).
     const ACTIVE_OFFSET = 140;
-    // Right after loading, the outline's highlight only says "you're at the start", so it shows briefly and then fades.
+    // While the page settles after loading (scroll restore, a hash jump), moves don't count as the reader's own.
     const LOAD_HIGHLIGHT_MS = 1500;
 
     // This component is re-created for every article ({#key} in the route), so per-article state is set up once.
@@ -73,7 +73,8 @@
     const autoExpandedOutline = new Set<string>();
 
     let activeHeadingId = $state(headings[0]?.id ?? "");
-    let highlightActive = $state(true);
+    // hidden as the article opens (it would only say "you're at the start"); it appears once the reader moves
+    let highlightActive = $state(false);
     // True while the page is still settling after load (initial scroll, hash or snapshot restore).
     let settling = true;
     let articleElement = $state() as HTMLElement;
@@ -310,7 +311,7 @@
 
     // Lemma's own warm hue; an article's accents lean most of the way toward its lead picture's colour from it
     const BASE_HUE = 75;
-    const TINT_STRENGTH = 0.75;
+    const TINT_STRENGTH = 0.9;
 
     // the first photograph: logos, maps and diagrams (SVGs) say little about an article's mood
     // svelte-ignore state_referenced_locally
@@ -544,6 +545,8 @@
 />
 
 <div class="reading-progress" aria-hidden="true"></div>
+<!-- the article's mood: a faint wash of its colour across the top of the page -->
+<div class="mood" aria-hidden="true"></div>
 <Lightbox />
 <LinkPreview currentTitle={title} getReference={referenceHtml} />
 <QuoteShare {title} root={articleElement} />
@@ -653,6 +656,46 @@
         animation: enter var(--dur-slow) var(--ease-out) backwards;
     }
 
+    /*
+     * The article's colour (its accent, tinted by the lead photo) laid across the top of the page in a few soft,
+     * overlapping washes, fading out as the page goes on. A faint grain keeps the gradient from banding and makes it
+     * read as paper rather than screen.
+     */
+    .mood {
+        position: absolute;
+        z-index: -1;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 115vh;
+        pointer-events: none;
+        background:
+            radial-gradient(55% 45% at 28% 8%, color-mix(in oklch, var(--accent) 9%, transparent), transparent 75%),
+            radial-gradient(45% 40% at 78% 4%, color-mix(in oklch, var(--link-hover) 6%, transparent), transparent 75%),
+            radial-gradient(80% 60% at 50% 25%, color-mix(in oklch, var(--accent) 4%, transparent), transparent 80%);
+        mask-image: linear-gradient(to bottom, black 35%, transparent);
+
+        &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            opacity: 0.05;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            mix-blend-mode: multiply;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            &::after {
+                mix-blend-mode: screen;
+                opacity: 0.03;
+            }
+        }
+
+        @media print {
+            display: none;
+        }
+    }
+
     /* A hairline under the navbar that fills as you read; pure CSS, only where scroll-driven animations exist. */
     .reading-progress {
         display: none;
@@ -703,16 +746,6 @@
     }
 
     /* a faint wash of the article's colour (its accent, tinted by the lead picture) behind the header */
-    /* kept within the article's column, and fully faded before its edges, so nothing beside it (the outline) can
-       cut it off */
-    .article-header::before {
-        content: "";
-        position: absolute;
-        z-index: -1;
-        inset: -5rem 0 -1rem;
-        background: radial-gradient(closest-side at 35% 50%, color-mix(in oklch, var(--accent) 9%, transparent), transparent);
-        pointer-events: none;
-    }
 
     #title {
         margin: 0;
@@ -803,7 +836,7 @@
         position: fixed;
         z-index: 30;
         left: 50%;
-        bottom: 1.25rem;
+        bottom: calc(1.25rem + env(safe-area-inset-bottom));
         translate: -50% 0;
         /* concentric: the buttons sit the same --inset from the top, bottom and end, so their round ends follow the
            toast's own (outer radius = inner radius + inset) */

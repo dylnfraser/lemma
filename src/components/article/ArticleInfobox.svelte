@@ -466,7 +466,7 @@
             height: 1.4em;
             margin: 0 0.1em;
             padding: 0;
-            vertical-align: -0.3em;
+            vertical-align: -0.06em;
             border: 1px solid var(--rule);
             border-radius: 50%;
             background: var(--bg-color);

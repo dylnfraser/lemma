@@ -217,7 +217,8 @@
             color: inherit;
             text-decoration-line: underline;
             text-decoration-thickness: 1px;
-            text-decoration-color: color-mix(in oklch, currentColor 28%, transparent);
+            /* underlines carry a little of the article's accent */
+            text-decoration-color: color-mix(in oklch, color-mix(in oklch, var(--accent) 45%, currentColor) 32%, transparent);
             text-underline-offset: 0.22em;
             transition:
                 color var(--dur-fast),
@@ -519,7 +520,8 @@
         height: 1.4em;
         margin: 0 0.1em;
         padding: 0;
-        vertical-align: -0.3em;
+        /* centred on the text's height (its middle level with the middle of the letters beside it) */
+        vertical-align: -0.06em;
         border: 1px solid var(--rule);
         border-radius: 50%;
         background: var(--bg-color);
@@ -824,7 +826,7 @@
         --rule-gap: 2.25rem;
         margin-top: var(--rule-gap);
         padding-top: var(--rule-gap);
-        border-top: 1px solid var(--rule);
+        border-top: 1px solid color-mix(in oklch, var(--accent) 18%, var(--rule));
         font-size: 1.85rem;
         font-weight: 550;
         letter-spacing: -0.005em;
