@@ -5,8 +5,7 @@
     import Searchbar from "../components/search/Searchbar.svelte";
 
     const wordmark = [..."Lemma"];
-    const description =
-        "A private, fast and quiet way to read Wikipedia: clean pages, instant search, and nothing in the way.";
+    const description = "Wikipedia, without the noise.";
     const words = description.split(" ");
 
     let searchbar: ReturnType<typeof Searchbar>;
@@ -39,7 +38,7 @@
             <span class="sr-only">{description}</span>
             <span aria-hidden="true">
                 {#each words as word, i}
-                    <span class="word" style:animation-delay="{i * 0.0075}s">{word}</span>{" "}
+                    <span class="word" style:--i={i}>{word}</span>{" "}
                 {/each}
             </span>
         </p>
@@ -48,9 +47,11 @@
             <Searchbar bind:this={searchbar} shortcutHint />
         </div>
 
-        <div class="random-slot">
-            <RandomButton variant="pill" label="Read a random article" />
-        </div>
+        <nav class="quick-links" aria-label="More ways in">
+            <RandomButton variant="text" label="Random article" />
+            <span class="dot" aria-hidden="true">·</span>
+            <a href="/library">Your library</a>
+        </nav>
     </div>
 
     <HomeFeed />
@@ -58,64 +59,35 @@
 
 <style>
     /*
-     * The introduction and search on the left with today's featured article beside them; the rest of the feed shares
-     * the row below. Steps down to two columns, then one. (The feed's sections are placed by their classes, below.)
+     * One centred column: the wordmark, a line, the search and two quiet links, with a little of today's Wikipedia in
+     * a row underneath. Everything is centred on the search.
      */
     main {
-        display: grid;
-        grid-template-columns: repeat(6, minmax(0, 1fr));
-        grid-template-rows: minmax(min(32rem, 62vh), auto) auto;
-        grid-template-areas: "hero hero hero featured featured featured";
-        column-gap: clamp(2.5rem, 6vw, 6rem);
-        row-gap: 4rem;
-        width: min(74rem, calc(100% - 2.5rem));
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: clamp(2.5rem, 7vh, 3.75rem);
+        width: min(68rem, calc(100% - 2.5rem));
         margin: 0 auto;
-        padding: calc(var(--nav-height) + clamp(1.5rem, 6vh, 4rem)) 0 6rem;
+        padding: calc(var(--nav-height) + clamp(2rem, 9vh, 5rem)) 0 5rem;
 
-        @media (max-width: 1099px) {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            grid-template-rows: auto;
-            grid-template-areas:
-                "hero hero"
-                "featured featured";
-            row-gap: 3.5rem;
-        }
-
-        @media (max-width: 759px) {
-            grid-template-columns: minmax(0, 1fr);
-            grid-template-areas: "hero" "featured";
-            row-gap: 2.75rem;
+        /* today's Wikipedia sits right under the search, a little wider than it */
+        > :global(.feed) {
+            width: min(46rem, 100%);
         }
     }
 
     .hero {
-        grid-area: hero;
-        align-self: center;
-        max-width: 32rem;
-    }
-
-    main :global(.area-featured) {
-        grid-area: featured;
-        align-self: center;
-    }
-
-    /* the feed's lists flow into the rows below, sharing the row evenly (the feed sets --lower-span: 2 or 3 of the
-       six columns, 6 if there's only one) */
-    main :global(.lower) {
-        grid-column: span var(--lower-span, 2);
-
-        @media (max-width: 1099px) {
-            grid-column: span 1;
-        }
-
-        @media (max-width: 759px) {
-            grid-column: auto;
-        }
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: min(36rem, 100%);
+        text-align: center;
     }
 
     #header {
-        margin: 0 0 0.9rem;
-        font-size: clamp(3.25rem, 2.5rem + 2.5vw, 4.75rem);
+        margin: 0 0 0.6rem;
+        font-size: clamp(3.25rem, 2.5rem + 2.5vw, 4.5rem);
         font-family: default-serif;
         line-height: 1;
         user-select: none;
@@ -133,30 +105,27 @@
     }
 
     p {
-        max-width: 36ch;
         margin: 0;
         font-size: 1.05rem;
         line-height: 1.6;
-        text-wrap: balance;
-        color: color-mix(in oklch, var(--text-color) 85%, var(--page-bg));
+        color: var(--muted);
     }
 
     .word {
         display: inline-block;
-
-        animation: text-appear 0.2s ease-out both;
-        @media (prefers-reduced-motion: reduce) {
-            animation: none;
-        }
+        animation: enter var(--dur-slow) var(--ease-out) backwards;
+        animation-delay: calc(var(--i) * var(--stagger) + 100ms);
     }
 
     /* Only the bar's height is reserved: as results appear the card grows over the content below instead of pushing
-       the page (and the featured article beside it) around. */
+       the page around. */
     .search-slot {
         position: relative;
         z-index: 5;
+        align-self: stretch;
         height: 46px;
-        margin-top: 2.25rem;
+        margin-top: 2rem;
+        text-align: left;
 
         :global(.search) {
             position: absolute;
@@ -168,13 +137,29 @@
         }
     }
 
-    .random-slot {
+    /* quiet text links under the search: the search stays the one thing that stands out */
+    .quick-links {
         display: flex;
-        margin-top: 1rem;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        margin-top: 1.1rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+        animation: fade-in var(--dur-slow) var(--ease-out) 250ms backwards;
 
-        animation: quickappear 0.5s 0.15s both;
-        @media (prefers-reduced-motion: reduce) {
-            animation: none;
+        a {
+            color: inherit;
+            text-decoration: none;
+            transition: color var(--dur-fast);
+
+            &:hover {
+                color: var(--link-hover);
+            }
+        }
+
+        .dot {
+            opacity: 0.6;
         }
     }
 </style>

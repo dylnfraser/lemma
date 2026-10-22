@@ -18,8 +18,22 @@ export type FeedNewsItem = {
 
 export type FeedEvent = { year: number | null; text: string; pages: FeedPage[] };
 
+export type FeedPicture = {
+  /** File name without the "File:" prefix. */
+  file: string;
+  src: string;
+  width: number;
+  height: number;
+  /** Plain-text description. */
+  description: string;
+  artist: string;
+  license: string;
+};
+
 export type FeaturedFeed = {
   featured: FeedPage | null;
+  /** Picture of the day. */
+  picture: FeedPicture | null;
   news: FeedNewsItem[];
   onThisDay: FeedEvent[];
   mostRead: (FeedPage & { views: number })[];
@@ -37,8 +51,17 @@ type RawPage = {
   thumbnail?: { source?: string; width?: number; height?: number };
 };
 
+type RawPicture = {
+  title?: string;
+  thumbnail?: { source?: string; width?: number; height?: number };
+  description?: { text?: string };
+  artist?: { text?: string };
+  license?: { type?: string };
+};
+
 type FeedResponse = {
   tfa?: RawPage;
+  image?: RawPicture;
   news?: { story?: string; links?: RawPage[] }[];
   onthisday?: { year?: number; text?: string; pages?: RawPage[] }[];
   mostread?: { articles?: RawPage[] };
@@ -63,6 +86,20 @@ function toPage(raw: RawPage | undefined): FeedPage | null {
   };
 }
 
+function toPicture(raw: RawPicture | undefined): FeedPicture | null {
+  const thumbnail = raw?.thumbnail;
+  if (!raw?.title || !thumbnail?.source || !thumbnail.width || !thumbnail.height) return null;
+  return {
+    file: raw.title.replace(/^File:/, ""),
+    src: normalizeProtocol(thumbnail.source),
+    width: thumbnail.width,
+    height: thumbnail.height,
+    description: raw.description?.text?.replace(/\s+/g, " ").trim() ?? "",
+    artist: raw.artist?.text?.replace(/\s+/g, " ").trim().replace(/\.$/, "") ?? "",
+    license: raw.license?.type ?? "",
+  };
+}
+
 const pages = (raw: RawPage[] | undefined) => (raw ?? []).map(toPage).filter((page): page is FeedPage => page !== null);
 
 /** The feed path for a day, e.g. "2026/10/21" (local date, zero-padded). */
@@ -77,6 +114,7 @@ async function fetchFeedDay(date: Date, options: RequestOptions): Promise<Featur
 
   return {
     featured: toPage(json.tfa),
+    picture: toPicture(json.image),
     news: (json.news ?? [])
       .filter((item) => item.story)
       .map((item) => ({ storyHtml: item.story!, pages: pages(item.links) })),
@@ -100,7 +138,7 @@ async function fetchFeedDay(date: Date, options: RequestOptions): Promise<Featur
  */
 export async function fetchFeaturedFeed(date: Date, options: RequestOptions = {}): Promise<FeaturedFeed> {
   const feed = await fetchFeedDay(date, options);
-  if (feed.featured && feed.news.length > 0 && feed.mostRead.length > 0) return feed;
+  if (feed.featured && feed.picture && feed.mostRead.length > 0) return feed;
 
   const dayBefore = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1);
   let previous: FeaturedFeed;
@@ -112,6 +150,7 @@ export async function fetchFeaturedFeed(date: Date, options: RequestOptions = {}
   }
   return {
     featured: feed.featured ?? previous.featured,
+    picture: feed.picture ?? previous.picture,
     news: feed.news.length > 0 ? feed.news : previous.news,
     onThisDay: feed.onThisDay.length > 0 ? feed.onThisDay : previous.onThisDay,
     mostRead: feed.mostRead.length > 0 ? feed.mostRead : previous.mostRead,

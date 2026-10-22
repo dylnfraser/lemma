@@ -20,6 +20,13 @@ describe("fetchFeaturedFeed", () => {
     const fetcher = mockFetch(
       json({
         tfa: page("Hongwu Emperor"),
+        image: {
+          title: "File:Laccaria laccata.jpg",
+          thumbnail: { source: "https://upload.wikimedia.org/laccaria.jpg", width: 640, height: 512 },
+          description: { text: "Cap with  curled gills" },
+          artist: { text: "D. J. Bergsma." },
+          license: { type: "CC BY-SA 4.0" },
+        },
         news: [{ story: '<a href="./Limoges">Limoges</a> burns', links: [page("Limoges")] }, { links: [] }],
         onthisday: [{ year: 1994, text: "A treaty was signed", pages: [page("Agreed Framework")] }],
         mostread: { articles: [page("Main Page"), page("Kim Jong Un", { views: 321 }), page("Special:Search")] },
@@ -32,6 +39,15 @@ describe("fetchFeaturedFeed", () => {
       title: "Hongwu Emperor",
       thumbnail: { src: "https://upload.wikimedia.org/Hongwu Emperor.jpg", width: 320, height: 240 },
     });
+    expect(feed.picture).toEqual({
+      file: "Laccaria laccata.jpg",
+      src: "https://upload.wikimedia.org/laccaria.jpg",
+      width: 640,
+      height: 512,
+      description: "Cap with curled gills",
+      artist: "D. J. Bergsma",
+      license: "CC BY-SA 4.0",
+    });
     expect(feed.news).toHaveLength(1);
     expect(feed.news[0].pages.map((p) => p.title)).toEqual(["Limoges"]);
     expect(feed.onThisDay[0]).toMatchObject({ year: 1994, text: "A treaty was signed" });
@@ -41,6 +57,7 @@ describe("fetchFeaturedFeed", () => {
   it("tolerates a feed with sections missing", async () => {
     await expect(fetchFeaturedFeed(new Date(), { fetch: mockFetch(json({})) })).resolves.toEqual({
       featured: null,
+      picture: null,
       news: [],
       onThisDay: [],
       mostRead: [],

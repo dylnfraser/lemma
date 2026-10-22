@@ -1,32 +1,22 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { fetchFeaturedFeed, storyToHtml, type FeaturedFeed } from "$lib/api/feed";
-    import { getArticlePath } from "$lib/article/articleUtils";
+    import { fetchFeaturedFeed, type FeaturedFeed } from "$lib/api/feed";
+    import { getArticlePath, getFilePath } from "$lib/article/articleUtils";
 
-    // Wikipedia's front page, Lemma-style. Fetched in the browser after the (prerendered) home page loads; if it
-    // fails, the sections simply don't appear.
+    // A little of Wikipedia's front page, under the search: today's featured article and picture as two quiet rows,
+    // with what people are reading beside them. Fetched in the browser after the (prerendered) home page loads; if it
+    // fails, nothing appears.
     const MOST_READ = 5;
-    const STORIES = 3;
-    const EVENTS = 3;
 
     let feed = $state.raw<FeaturedFeed | null>(null);
     let status = $state<"loading" | "ready" | "failed">("loading");
-    let stories = $derived(feed?.news.slice(0, STORIES).map((item) => ({ ...item, html: storyToHtml(item.storyHtml) })) ?? []);
-    let events = $derived(
-        [...(feed?.onThisDay ?? [])].sort((a, b) => (b.year ?? 0) - (a.year ?? 0)).slice(0, EVENTS),
-    );
-
     let mostRead = $derived(feed?.mostRead.slice(0, MOST_READ) ?? []);
-    // the lists below the introduction share their row evenly, however many Wikipedia sent today
-    let lowerCount = $derived([stories, events, mostRead].filter((list) => list.length > 0).length);
 
-    const today = new Date();
-    const dayLabel = today.toLocaleDateString("en", { month: "long", day: "numeric" });
     const compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 
     onMount(() => {
         const controller = new AbortController();
-        fetchFeaturedFeed(today, { signal: controller.signal })
+        fetchFeaturedFeed(new Date(), { signal: controller.signal })
             .then((result) => {
                 feed = result;
                 status = "ready";
@@ -40,83 +30,65 @@
 
 {#if status === "loading"}
     <div class="feed" role="status" aria-label="Loading today's articles">
-        <section class="area-featured">
-            <div class="skeleton bar label"></div>
-            <div class="featured skeleton-card">
-                <div class="skeleton image"></div>
-                <div class="featured-text">
-                    <div class="skeleton bar" style:--width="55%"></div>
-                    <div class="skeleton bar" style:--width="90%"></div>
-                    <div class="skeleton bar" style:--width="80%"></div>
-                    <div class="skeleton bar" style:--width="65%"></div>
+        <div class="today" aria-hidden="true">
+            {#each { length: 2 } as _}
+                <div class="item">
+                    <span class="skeleton thumb"></span>
+                    <span class="lines">
+                        <span class="skeleton bar" style:--width="40%"></span>
+                        <span class="skeleton bar" style:--width="75%"></span>
+                        <span class="skeleton bar" style:--width="60%"></span>
+                    </span>
                 </div>
-            </div>
-        </section>
-        <section class="lower">
-            <div class="skeleton bar label"></div>
-            {#each [85, 70, 78] as width}
-                <div class="skeleton bar" style:--width="{width}%"></div>
             {/each}
-        </section>
+        </div>
+        <div class="reading" aria-hidden="true">
+            <span class="skeleton bar label"></span>
+            {#each [70, 55, 80, 60, 65] as width}
+                <span class="skeleton bar" style:--width="{width}%"></span>
+            {/each}
+        </div>
     </div>
-{:else if status === "ready" && feed}
-    <div class="feed" style:--lower-span={6 / Math.max(lowerCount, 1)}>
-        {#if feed.featured}
-            {@const page = feed.featured}
-            <section class="area-featured" aria-labelledby="featured-heading">
-                <h2 id="featured-heading">Today's featured article</h2>
-                <a class="featured" href={getArticlePath(page.title)}>
-                    {#if page.thumbnail}
-                        <img class="image" src={page.thumbnail.src} alt="" decoding="async" />
-                    {/if}
-                    <div class="featured-text">
-                        <p class="featured-title">{page.title}</p>
-                        {#if page.description}<p class="description">{page.description}</p>{/if}
-                        <p class="extract">{page.extract}</p>
-                    </div>
-                </a>
-            </section>
-        {/if}
-
-        {#if stories.length > 0}
-            <section class="lower" aria-labelledby="news-heading">
-                <h2 id="news-heading">In the news</h2>
-                <ul class="stories">
-                    {#each stories as story, i}
-                        <li class="story" style:--i={i}>{@html story.html}</li>
-                    {/each}
-                </ul>
-            </section>
-        {/if}
-
-        {#if events.length > 0}
-            <section class="lower" aria-labelledby="otd-heading">
-                <h2 id="otd-heading">On this day <span class="date">· {dayLabel}</span></h2>
-                <ol class="events">
-                    {#each events as event, i}
-                        <li style:--i={i}>
-                            {#if event.year !== null}<span class="year">{event.year}</span>{/if}
-                            {#if event.pages[0]}
-                                <a class="event" href={getArticlePath(event.pages[0].title)}>{event.text}</a>
-                            {:else}
-                                <p>{event.text}</p>
-                            {/if}
-                        </li>
-                    {/each}
-                </ol>
+{:else if status === "ready" && feed && (feed.featured || feed.picture || mostRead.length > 0)}
+    <div class="feed">
+        {#if feed.featured || feed.picture}
+            <section class="today" aria-label="Today on Wikipedia">
+                {#if feed.featured}
+                    {@const page = feed.featured}
+                    <a class="item" href={getArticlePath(page.title)} style:--i={0}>
+                        <span class="thumb">
+                            {#if page.thumbnail}<img src={page.thumbnail.src} alt="" decoding="async" />{/if}
+                        </span>
+                        <span class="text">
+                            <span class="label">Featured article</span>
+                            <span class="title">{page.title}</span>
+                            <span class="note">{page.description || page.extract}</span>
+                        </span>
+                    </a>
+                {/if}
+                {#if feed.picture}
+                    {@const picture = feed.picture}
+                    <a class="item" href={getFilePath(picture.file)} style:--i={1}>
+                        <span class="thumb"><img src={picture.src} alt="" decoding="async" /></span>
+                        <span class="text">
+                            <span class="label">Picture of the day</span>
+                            <span class="note two-lines">{picture.description || picture.file}</span>
+                        </span>
+                    </a>
+                {/if}
             </section>
         {/if}
 
         {#if mostRead.length > 0}
-            <section class="lower" aria-labelledby="mostread-heading">
-                <h2 id="mostread-heading">Most read</h2>
-                <ol class="most-read">
+            <section class="reading" aria-labelledby="mostread-heading" style:--i={2}>
+                <h2 id="mostread-heading" class="label">Most read</h2>
+                <ol>
                     {#each mostRead as page, i}
-                        <li style:--i={i}>
+                        <li>
                             <a href={getArticlePath(page.title)}>
                                 <span class="rank" aria-hidden="true">{i + 1}</span>
                                 <span class="mr-title">{page.title}</span>
-                                <span class="mr-meta">{compact.format(page.views)}<span class="sr-only"> views</span></span>
+                                <span class="views">{compact.format(page.views)}<span class="sr-only"> views</span></span>
                             </a>
                         </li>
                     {/each}
@@ -127,211 +99,144 @@
 {/if}
 
 <style>
-    /* The feed's sections are laid out by the home page's grid, so the featured article (.area-featured) can sit
-       beside the introduction and the lists (.lower) share the row below. */
+    /* today's picks on the left, most read on the right; stacked on narrow screens */
     .feed {
-        display: contents;
-    }
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+        gap: 2rem clamp(2rem, 5vw, 3.5rem);
+        align-items: start;
+        text-align: left;
 
-    section {
-        min-width: 0;
-
-        animation: appear var(--dur-slow) var(--ease-out) both;
-        @media (prefers-reduced-motion: reduce) {
-            animation: none;
+        @media (max-width: 680px) {
+            grid-template-columns: minmax(0, 1fr);
         }
     }
 
-    h2 {
-        margin: 0 0 0.85rem;
+    .today,
+    .reading,
+    .today .item {
+        animation: enter var(--dur-slow) var(--ease-out) backwards;
+        animation-delay: calc(var(--i, 0) * var(--stagger) + 150ms);
+    }
+
+    .today {
+        display: grid;
+        gap: 0.5rem;
+        animation: none;
+    }
+
+    .label {
+        display: block;
+        margin: 0 0 0.15rem;
         font-family: default-sans;
-        font-size: 0.72rem;
+        font-size: 0.68rem;
         font-weight: 650;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--muted);
-
-        .date {
-            font-weight: 500;
-            letter-spacing: 0.04em;
-        }
     }
 
-    p {
-        margin: 0;
-        font-size: inherit;
-    }
+    /* ---------- featured article and picture: a thumbnail and a line or two ---------- */
 
-    /* list items arrive in a short cascade after their section */
-    .lower li {
-        animation: item-in var(--dur-slow) var(--ease-out) both;
-        animation-delay: calc(var(--i, 0) * 45ms + 120ms);
-
-        @media (prefers-reduced-motion: reduce) {
-            animation: none;
-        }
-    }
-
-    @keyframes item-in {
-        from {
-            opacity: 0;
-            translate: 0 6px;
-        }
-    }
-
-    /* ---------- featured article ---------- */
-
-    .featured {
+    .item {
         display: flex;
-        gap: 1.25rem;
-        align-items: flex-start;
+        align-items: center;
+        gap: 0.9rem;
+        margin-inline: -0.6rem;
+        padding: 0.6rem;
+        border-radius: 12px;
         color: inherit;
         text-decoration: none;
+        transition: background-color var(--dur-base) var(--ease-out);
 
-        &:hover .featured-title {
-            color: var(--link-hover);
-        }
+        &:hover {
+            background: color-mix(in oklch, var(--secondary) 26%, transparent);
 
-        &:hover .image {
-            scale: 1.025;
-            rotate: -0.6deg;
-            box-shadow: 0 14px 28px -16px var(--shadow-color);
-        }
+            .title {
+                color: var(--link-hover);
+            }
 
-        @media (max-width: 560px) {
-            flex-direction: column;
+            img {
+                scale: 1.06;
+            }
         }
     }
 
-    .image {
+    .thumb {
         flex: none;
-        width: 8.5rem;
-        height: 10.5rem;
+        width: 4rem;
+        height: 4rem;
+        overflow: hidden;
         border-radius: 10px;
-        object-fit: cover;
-        object-position: 50% 25%;
         background: var(--secondary);
         outline: 1px solid color-mix(in oklch, var(--text-color) 8%, transparent);
         outline-offset: -1px;
-        transition:
-            scale var(--dur-base) var(--ease-spring),
-            rotate var(--dur-base) var(--ease-spring),
-            box-shadow var(--dur-base) var(--ease-out);
 
-        @media (max-width: 560px) {
+        img {
+            display: block;
             width: 100%;
-            height: 11rem;
+            height: 100%;
+            object-fit: cover;
+            object-position: 50% 25%;
+            transition: scale var(--dur-slow) var(--ease-out);
         }
     }
 
-    .featured-text {
+    .text {
         display: grid;
-        gap: 0.35rem;
         min-width: 0;
-        flex: 1;
+        line-height: 1.35;
     }
 
-    .featured-title {
-        font-family: default-serif;
-        font-size: 1.35rem;
-        font-weight: 600;
-        line-height: 1.2;
-        text-wrap: balance;
-        transition: color var(--dur-fast);
-    }
-
-    .description {
-        font-size: 0.8rem;
-        color: var(--muted);
-    }
-
-    .extract {
-        margin-top: 0.25rem;
-        font-size: 0.9rem;
-        line-height: 1.6;
-        text-wrap: pretty;
-        color: color-mix(in oklch, var(--text-color) 82%, var(--page-bg));
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 4;
-        line-clamp: 4;
+    .title {
         overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: default-serif;
+        font-size: 1.05rem;
+        font-weight: 600;
+        transition: color var(--dur-base) var(--ease-out);
     }
 
-    /* ---------- the lower row: three short, quiet lists ---------- */
+    .note {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.82rem;
+        color: var(--muted);
 
-    .stories,
-    .events,
-    .most-read {
+        &.two-lines {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            white-space: normal;
+            color: color-mix(in oklch, var(--text-color) 80%, var(--page-bg));
+        }
+    }
+
+    /* ---------- most read ---------- */
+
+    .reading {
+        padding-top: 0.6rem;
+
+        .label {
+            margin-bottom: 0.45rem;
+        }
+    }
+
+    ol {
         display: grid;
-        gap: 0.75rem;
         margin: 0;
         padding: 0;
         list-style: none;
-        font-size: 0.88rem;
-        line-height: 1.55;
-        text-wrap: pretty;
-    }
-
-    .story {
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 3;
-        line-clamp: 3;
-        overflow: hidden;
-
-        :global(a) {
-            text-decoration-color: color-mix(in oklch, currentColor 28%, transparent);
-            text-underline-offset: 0.2em;
-        }
-
-        /* Wikipedia bolds each story's main article; a lighter weight keeps it from shouting */
-        :global(b),
-        :global(strong) {
-            font-weight: 600;
-        }
-    }
-
-    .events li {
-        display: grid;
-        grid-template-columns: 2.75rem 1fr;
-        gap: 0.6rem;
-    }
-
-    .year {
-        font-weight: 650;
-        color: var(--muted);
-        font-variant-numeric: tabular-nums;
-        transition: color var(--dur-fast);
-    }
-
-    .events li:has(.event:hover) .year {
-        color: var(--accent);
-    }
-
-    .event {
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 3;
-        line-clamp: 3;
-        overflow: hidden;
-        color: inherit;
-        text-decoration: none;
-        transition: color var(--dur-fast);
-
-        &:hover {
-            color: var(--link-hover);
-        }
-    }
-
-    .most-read {
-        gap: 0.15rem;
+        font-size: 0.9rem;
 
         a {
             display: flex;
             align-items: baseline;
-            gap: 0.6rem;
-            padding: 0.2rem 0;
+            gap: 0.65rem;
+            padding: 0.28rem 0;
             color: inherit;
             text-decoration: none;
 
@@ -348,14 +253,13 @@
         }
     }
 
-    /* ranks match the years beside them: same size, weight and figures */
     .rank {
         flex: none;
-        width: 1.1rem;
+        width: 1rem;
         font-weight: 650;
         color: var(--muted);
         font-variant-numeric: tabular-nums;
-        transition: color var(--dur-fast);
+        transition: color var(--dur-base) var(--ease-out);
     }
 
     .mr-title {
@@ -365,24 +269,21 @@
         text-overflow: ellipsis;
         white-space: nowrap;
         transition:
-            color var(--dur-fast),
+            color var(--dur-base) var(--ease-out),
             translate var(--dur-base) var(--ease-out);
     }
 
-    .mr-meta {
+    .views {
         flex: none;
-        font-size: 0.78rem;
+        font-size: 0.76rem;
         color: var(--muted);
         font-variant-numeric: tabular-nums;
     }
 
     /* ---------- loading ---------- */
 
-    .skeleton-card {
-        pointer-events: none;
-    }
-
     .skeleton {
+        display: block;
         border-radius: 999px;
         background: linear-gradient(
             90deg,
@@ -391,35 +292,31 @@
             color-mix(in oklch, var(--secondary) 65%, transparent) 75%
         );
         background-size: 200% 100%;
-        animation: skeleton-shimmer 1.4s ease-in-out infinite;
+        animation: shimmer 1.4s ease-in-out infinite;
 
         @media (prefers-reduced-motion: reduce) {
             animation: none;
         }
+
+        &.thumb {
+            border-radius: 10px;
+            outline: none;
+        }
     }
 
-    .skeleton.image {
-        border-radius: 10px;
+    .lines {
+        display: grid;
+        flex: 1;
     }
 
     .bar {
         width: var(--width, 100%);
-        height: 0.6rem;
-        margin: 0.45rem 0;
-    }
+        height: 0.55rem;
+        margin: 0.3rem 0;
 
-    .bar.label {
-        width: 9rem;
-        margin: 0 0 1.4rem;
-    }
-
-    @keyframes skeleton-shimmer {
-        from {
-            background-position: 200% 0;
-        }
-
-        to {
-            background-position: -200% 0;
+        &.label {
+            width: 6rem;
+            margin-bottom: 0.9rem;
         }
     }
 </style>
