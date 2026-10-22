@@ -61,10 +61,36 @@ describe("fetchArticle", () => {
   });
 
   it("maps HTTP failures, malformed bodies and network errors", async () => {
-    await expectKind(fetchArticle("A", { fetch: mockFetch(new Response("", { status: 503 })) }), "http");
+    await expectKind(fetchArticle("A", { fetch: mockFetch(new Response("", { status: 503 })), retries: 0 }), "http");
     await expectKind(fetchArticle("A", { fetch: mockFetch(new Response("<html>", { status: 200 })) }), "invalid");
     await expectKind(fetchArticle("A", { fetch: mockFetch(json({ parse: { title: "A" } })) }), "invalid");
     await expectKind(fetchArticle("A", { fetch: mockFetch(new TypeError("Failed to fetch")) }), "offline");
+  });
+
+  it("waits and tries again when Wikipedia is busy, then succeeds", async () => {
+    const busy = () => new Response("", { status: 429, headers: { "Retry-After": "0" } });
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(busy())
+      .mockResolvedValueOnce(new Response("", { status: 503, headers: { "Retry-After": "0" } }))
+      .mockResolvedValueOnce(json({ parse: { title: "A", text: { "*": "<p>Hi</p>" } } }));
+    await expect(fetchArticle("A", { fetch: fetcher })).resolves.toMatchObject({ title: "A" });
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+
+  it("gives up with a 'busy' error when Wikipedia keeps refusing", async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => new Response("", { status: 429, headers: { "Retry-After": "0" } }));
+    await expectKind(fetchArticle("A", { fetch: fetcher, retries: 2 }), "busy");
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+
+  it("stops waiting to retry when the request is abandoned", async () => {
+    const controller = new AbortController();
+    const fetcher = vi.fn<typeof fetch>(async () => new Response("", { status: 429, headers: { "Retry-After": "5" } }));
+    const request = fetchArticle("A", { fetch: fetcher, signal: controller.signal });
+    setTimeout(() => controller.abort(), 20);
+    await expect(request).rejects.toBeDefined();
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
   it("rethrows caller aborts untouched", async () => {
@@ -111,7 +137,7 @@ describe("fetchLastEdited", () => {
 
   it("resolves to null instead of throwing", async () => {
     await expect(fetchLastEdited("A", { fetch: mockFetch(json({ query: { pages: [{ missing: true }] } })) })).resolves.toBeNull();
-    await expect(fetchLastEdited("A", { fetch: mockFetch(new Response("", { status: 503 })) })).resolves.toBeNull();
+    await expect(fetchLastEdited("A", { fetch: mockFetch(new Response("", { status: 503 })), retries: 0 })).resolves.toBeNull();
     await expect(fetchLastEdited("A", { fetch: mockFetch(new TypeError("Failed to fetch")) })).resolves.toBeNull();
   });
 });
@@ -200,14 +226,24 @@ describe("fetchArticle extras", () => {
           redirects: [{ from: "Turing", to: "Alan Turing" }],
           langlinks: [{ lang: "fr", url: "https://fr.wikipedia.org/wiki/Alan_Turing", langname: "French", autonym: "français", "*": "Alan Turing" }],
           categories: [{ "*": "Pages_with_errors", hidden: "" }, { "*": "British_cryptographers" }],
+          properties: [{ name: "wikibase_item", "*": "Q7251" }, { name: "wikibase-badge-Q17437796", "*": "" }],
         },
       }),
     );
     const article = await fetchArticle("Turing", { fetch: fetcher });
-    expect(new URL(String(fetcher.mock.calls[0][0])).searchParams.get("prop")).toBe("text|langlinks|categories");
+    expect(new URL(String(fetcher.mock.calls[0][0])).searchParams.get("prop")).toBe("text|langlinks|categories|properties|revid");
     expect(article.redirectedFrom).toBe("Turing");
     expect(article.languages).toEqual([{ code: "fr", name: "French", autonym: "français", title: "Alan Turing", url: "https://fr.wikipedia.org/wiki/Alan_Turing" }]);
     expect(article.categories).toEqual(["British cryptographers"]);
+    expect(article.badge).toBe("featured");
+    expect(article.disambiguation).toBe(false);
+  });
+
+  it("recognises disambiguation pages", async () => {
+    const fetcher = mockFetch(json({ parse: { title: "Mercury", text: { "*": "<p>Mercury may refer to:</p>" }, properties: [{ name: "disambiguation", "*": "" }] } }));
+    const article = await fetchArticle("Mercury", { fetch: fetcher });
+    expect(article.disambiguation).toBe(true);
+    expect(article.badge).toBeNull();
   });
 });
 

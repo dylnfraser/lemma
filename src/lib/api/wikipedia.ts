@@ -6,7 +6,7 @@ const API_USER_AGENT = "Lemma/0.1 (https://github.com/dylnfraser/lemma)";
 const REQUEST_TIMEOUT_MS = 15_000;
 const SEARCH_LIMIT = 5;
 
-export type WikipediaErrorKind = "not_found" | "offline" | "timeout" | "http" | "invalid";
+export type WikipediaErrorKind = "not_found" | "offline" | "timeout" | "busy" | "http" | "invalid";
 
 export class WikipediaError extends Error {
   constructor(
@@ -54,6 +54,18 @@ export type WikipediaPageContent = {
   languages?: ArticleLanguage[];
   /** Reader-facing categories (Wikipedia's hidden maintenance categories are left out), with spaces in their names. */
   categories?: string[];
+  /** Wikipedia's quality badge for the article. */
+  badge?: "featured" | "good" | null;
+  /** The page lists the meanings of an ambiguous title. */
+  disambiguation?: boolean;
+  /** The revision this text is from, for permanent links. */
+  revisionId?: number;
+};
+
+// Wikidata items for Wikipedia's article badges
+const BADGES: Record<string, "featured" | "good"> = {
+  "wikibase-badge-Q17437796": "featured",
+  "wikibase-badge-Q17437798": "good",
 };
 
 type ParseResponse =
@@ -64,6 +76,8 @@ type ParseResponse =
         redirects?: { from: string; to: string; tofragment?: string }[];
         langlinks?: { lang: string; url: string; langname?: string; autonym?: string; "*": string }[];
         categories?: { "*": string; hidden?: string }[];
+        properties?: { name: string; "*"?: string }[];
+        revid?: number;
       };
     }
   | { error: { code: string; info: string } };
@@ -71,29 +85,73 @@ type ParseResponse =
 export type RequestOptions = {
   fetch?: typeof fetch;
   signal?: AbortSignal;
+  /** How many times to try again when Wikipedia is busy (429) or briefly down (502–504). */
+  retries?: number;
 };
+
+// Statuses worth another try: Wikipedia asking us to slow down, or a gateway hiccup.
+const RETRYABLE = new Set([429, 502, 503, 504]);
+const DEFAULT_RETRIES = 2;
+const BASE_DELAY_MS = 800;
+const MAX_DELAY_MS = 6000;
+
+/** How long to wait before retry number `attempt` (0-based): Wikipedia's Retry-After if it gave one, else backing off. */
+function retryDelay(res: Response, attempt: number): number {
+  const header = res.headers.get("Retry-After");
+  const seconds = header ? Number(header) : NaN;
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.min(seconds * 1000, MAX_DELAY_MS);
+  const backoff = BASE_DELAY_MS * 2 ** attempt;
+  // a little jitter so many tabs don't retry in step
+  return Math.min(backoff + Math.random() * 250, MAX_DELAY_MS);
+}
+
+/** Waits, unless the request is abandoned first. */
+function wait(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(signal.reason);
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        reject(signal.reason);
+      },
+      { once: true },
+    );
+  });
+}
 
 export function getWikipediaArticleUrl(title: string): string {
   return `${WIKIPEDIA_ORIGIN}/wiki/${encodeURIComponent(title.replaceAll(" ", "_"))}`;
 }
 
-/** Shared GET helper for Wikipedia APIs: identifies Lemma, times out, and maps failures to WikipediaError. */
-export async function requestJson<T>(url: URL, { fetch: fetcher = fetch, signal }: RequestOptions): Promise<T> {
-  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+/**
+ * Shared GET helper for Wikipedia APIs: identifies Lemma, times out, and maps failures to WikipediaError. When
+ * Wikipedia is busy (rate limiting, or a gateway briefly down) it waits and tries again a couple of times before giving
+ * up with a "busy" error.
+ */
+export async function requestJson<T>(url: URL, { fetch: fetcher = fetch, signal, retries = DEFAULT_RETRIES }: RequestOptions): Promise<T> {
   let res: Response;
 
-  try {
-    res = await fetcher(url, {
-      headers: { "Api-User-Agent": API_USER_AGENT },
-      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
-    });
-  } catch (error) {
-    if (signal?.aborted) throw error;
-    if (timeout.aborted) throw new WikipediaError("timeout", "Wikipedia took too long to respond.");
-    throw new WikipediaError("offline", "Couldn't reach Wikipedia. Check your connection.");
+  for (let attempt = 0; ; attempt++) {
+    const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+    try {
+      res = await fetcher(url, {
+        headers: { "Api-User-Agent": API_USER_AGENT },
+        signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+      });
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      if (timeout.aborted) throw new WikipediaError("timeout", "Wikipedia took too long to respond.");
+      throw new WikipediaError("offline", "Couldn't reach Wikipedia. Check your connection.");
+    }
+
+    if (!RETRYABLE.has(res.status) || attempt >= retries) break;
+    await wait(retryDelay(res, attempt), signal);
   }
 
   if (res.status === 404) throw new WikipediaError("not_found", "This article doesn't exist.", 404);
+  if (res.status === 429) throw new WikipediaError("busy", "Wikipedia is busy right now. Try again in a moment.", 429);
   if (!res.ok) throw new WikipediaError("http", `Wikipedia returned an error (${res.status}).`, res.status);
 
   try {
@@ -121,7 +179,7 @@ export async function fetchArticle(title: string, options: RequestOptions = {}):
   url.search = new URLSearchParams({
     action: "parse",
     page: title,
-    prop: "text|langlinks|categories",
+    prop: "text|langlinks|categories|properties|revid",
     redirects: "1",
     format: "json",
     origin: "*",
@@ -140,6 +198,7 @@ export async function fetchArticle(title: string, options: RequestOptions = {}):
     throw new WikipediaError("invalid", "Wikipedia sent a response Lemma couldn't read.");
   }
 
+  const properties = json.parse.properties ?? [];
   return {
     title: json.parse.title,
     text: json.parse.text["*"],
@@ -153,6 +212,9 @@ export async function fetchArticle(title: string, options: RequestOptions = {}):
       url: link.url,
     })),
     categories: (json.parse.categories ?? []).filter((category) => !("hidden" in category)).map((category) => category["*"].replaceAll("_", " ")),
+    badge: properties.map((property) => BADGES[property.name]).find(Boolean) ?? null,
+    disambiguation: properties.some((property) => property.name === "disambiguation"),
+    revisionId: json.parse.revid || undefined,
   };
 }
 

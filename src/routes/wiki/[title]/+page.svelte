@@ -61,6 +61,12 @@
                     message: `We couldn't reach Wikipedia to fetch “${data.requestedTitle}”. It looks like you're offline, or the network dropped for a moment. Once you're back online, give it another go.`,
                     retry: true,
                 };
+            case "busy":
+                return {
+                    heading: "Wikipedia needs a breather",
+                    message: `Wikipedia is fielding a lot of requests right now and asked us to slow down for a moment. Give it a few seconds, then try “${data.requestedTitle}” again.`,
+                    retry: true,
+                };
             case "timeout":
                 return {
                     heading: "Taking its time",
