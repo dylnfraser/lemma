@@ -20,10 +20,10 @@
     const MAX_FANNED = 4;
     const uid = $props.id();
 
-    // Springy ease-out so cards overshoot a touch as they land, like iMessage's photo stacks.
-    const EASING = "cubic-bezier(0.2, 1.15, 0.3, 1)";
-    const DURATION_MS = 420;
-    const STAGGER_MS = 24;
+    // A calm ease-out: the photos glide into place without overshooting, close together rather than one by one.
+    const EASING = EASE_OUT;
+    const DURATION_MS = 340;
+    const STAGGER_MS = 14;
     // The surrounding text glides with the height change, without overshoot.
     const HEIGHT_EASING = "cubic-bezier(0.25, 1, 0.5, 1)";
     // Final clip extends past the image so its drop shadow is never cut off when the clip is removed.
