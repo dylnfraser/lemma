@@ -18,6 +18,7 @@
             safeDecodeURIComponent(page.url.pathname) === safeDecodeURIComponent(getArticlePath(trail.titles.at(-1)!)),
     );
     let thread = $derived(onArticle ? trail.titles.slice(0, -1).slice(-TRAIL_SHOWN) : []);
+    let current = $derived(trail.titles.at(-1) ?? "");
     let threadCut = $derived(onArticle && trail.titles.length - 1 > TRAIL_SHOWN);
 </script>
 
@@ -38,6 +39,9 @@
                 <a href={getArticlePath(previous)} style:--i={i}>{previous}</a>
                 <span class="thread-arrow" style:--i={i} aria-hidden="true"><Icon name="arrow-right" size="0.8em" /></span>
             {/each}
+            {#key current}
+                <span class="thread-current" aria-current="page" style:--i={thread.length}>{current}</span>
+            {/key}
         </nav>
     {/if}
 
@@ -161,8 +165,8 @@
         a,
         .thread-arrow {
             flex: none;
-            animation: enter var(--dur-slow) var(--ease-out) backwards;
-            animation-delay: calc(var(--i) * var(--stagger));
+            animation: fade-in var(--dur-base) var(--ease-out) backwards;
+            animation-delay: calc(var(--i) * 25ms);
         }
 
         a {
@@ -177,6 +181,19 @@
         @media (max-width: 900px) {
             display: none;
         }
+    }
+
+    /* where the reader is now: the end of the thread, a touch stronger than the way there */
+    .thread-current {
+        flex: 0 1 auto;
+        min-width: 0;
+        max-width: 16rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 550;
+        color: var(--text-color);
+        animation: fade-in var(--dur-base) var(--ease-out) backwards;
+        animation-delay: calc(var(--i) * 25ms);
     }
 
     .thread-more {
