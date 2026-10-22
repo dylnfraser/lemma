@@ -1,7 +1,7 @@
 import { normalizeProtocol } from "$lib/api/wikipedia";
 import { rewriteArticleLink } from "./articleLinks";
 import { EDIT_AFFORDANCE_SELECTOR } from "./articleUtils";
-import type { RelatedTopics } from "./types";
+import type { RelatedTopics, SisterLink, SpokenAudio } from "./types";
 
 // Parts of Wikipedia's article HTML that Lemma keeps in a different shape than Wikipedia renders them.
 
@@ -228,4 +228,56 @@ export function tidyPlayers(root: Element) {
     player.setAttribute("preload", "none");
     player.querySelectorAll("track").forEach((track) => track.remove());
   });
+}
+
+/**
+ * A Spoken Wikipedia box ("Listen to this article"): the recording's sources, length and the date of the version it
+ * reads. The box itself goes; the article header offers the recording instead.
+ */
+export function extractSpokenAudio(root: Element): SpokenAudio | null {
+  const box = root.querySelector(".spoken-wikipedia");
+  if (!box) return null;
+  box.remove();
+
+  const sources = [...box.querySelectorAll("audio source")]
+    .map((source) => ({ src: normalizeProtocol(source.getAttribute("src") ?? ""), type: source.getAttribute("type") ?? "" }))
+    .filter((source) => /^https:\/\//.test(source.src));
+  if (sources.length === 0) return null;
+
+  const minutes = Number.parseInt(textOf(box.querySelector(".duration .min")), 10);
+  const recorded = textOf(box.querySelector(".spoken-wikipedia-disclaimer")).match(/dated\s+(.+?)(?:\s*\(|,|$)/)?.[1] ?? "";
+  return { sources, minutes: Number.isFinite(minutes) ? minutes : null, recorded: recorded.trim() };
+}
+
+const SISTER_PROJECTS: [host: RegExp, project: string, description: string][] = [
+  [/(^|\.)wiktionary\.org$/, "Wiktionary", "Definitions"],
+  [/(^|\.)wikiquote\.org$/, "Wikiquote", "Quotations"],
+  [/^commons\.wikimedia\.org$/, "Wikimedia Commons", "Media"],
+  [/(^|\.)wikisource\.org$/, "Wikisource", "Texts"],
+  [/(^|\.)wikibooks\.org$/, "Wikibooks", "Textbooks"],
+  [/(^|\.)wikinews\.org$/, "Wikinews", "News"],
+  [/(^|\.)wikiversity\.org$/, "Wikiversity", "Learning resources"],
+  [/(^|\.)wikivoyage\.org$/, "Wikivoyage", "Travel guide"],
+  [/^species\.wikimedia\.org$/, "Wikispecies", "Taxonomy"],
+  [/^(www\.)?wikidata\.org$/, "Wikidata", "Data"],
+];
+
+/** Links to the subject on sister projects ({{Sister project links}}, {{Wiktionary}}, {{Wikiquote}}…), one per project. */
+export function extractSisterLinks(root: Element): SisterLink[] {
+  const links = new Map<string, SisterLink>();
+  for (const box of root.querySelectorAll(".sistersitebox, .side-box, .sister-box")) {
+    for (const anchor of box.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+      let url: URL;
+      try {
+        url = new URL(normalizeProtocol(anchor.getAttribute("href") ?? ""), "https://en.wikipedia.org");
+      } catch {
+        continue;
+      }
+      const match = SISTER_PROJECTS.find(([host]) => host.test(url.hostname));
+      if (!match || links.has(match[1])) continue;
+      url.protocol = "https:";
+      links.set(match[1], { project: match[1], description: match[2], url: url.href });
+    }
+  }
+  return SISTER_PROJECTS.flatMap(([, project]) => links.get(project) ?? []);
 }

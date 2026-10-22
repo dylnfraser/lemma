@@ -133,6 +133,8 @@ export function parseInfobox(table: HTMLElement, toImage: (image: HTMLImageEleme
       if (!title) title = header.innerHTML.trim();
       else rows.push({ kind: "full", html: header.innerHTML.trim() });
     } else if (header && cells.length === 0) {
+      // section headers are drawn by Lemma; templates' own borders and colours (e.g. a heritage-register banner) go
+      header.querySelectorAll("[style]").forEach((element) => element.removeAttribute("style"));
       rows.push({ kind: "header", html: header.innerHTML.trim() });
     } else if (header && cells.length > 0) {
       const sub = stripLeadingBullet(header);

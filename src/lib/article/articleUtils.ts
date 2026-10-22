@@ -12,6 +12,8 @@ export const EXCLUDED_CONTENT_SELECTOR = [
   ".tmbox",
   ".imbox",
   ".cmbox",
+  // "This disambiguation page lists…": the page itself says so
+  ".dmbox",
   ".mw-empty-elt",
   ".shortdescription",
   // Alternate renderings that Wikipedia hides with TemplateStyles (e.g. the static frame behind an animation).
@@ -144,6 +146,16 @@ export function countWords(text: string): number {
 
 export function getArticlePath(title: string): string {
   return `/wiki/${encodeURIComponent(title.trim().replaceAll(" ", "_"))}`;
+}
+
+/** Lemma's page for a category ("British cryptographers" or "Category:British cryptographers"). */
+export function getCategoryPath(name: string): string {
+  return `/category/${encodeURIComponent(name.trim().replace(/^Category:/i, "").replaceAll(" ", "_"))}`;
+}
+
+/** Lemma's page for an image or other file ("Eiffel.jpg" or "File:Eiffel.jpg"). */
+export function getFilePath(name: string): string {
+  return `/file/${encodeURIComponent(name.trim().replace(/^(File|Image):/i, "").replaceAll(" ", "_"))}`;
 }
 
 export function safeDecodeURIComponent(value: string): string {

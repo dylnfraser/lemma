@@ -118,6 +118,28 @@ export interface RelatedTopics {
   }[];
 }
 
+export interface Coordinates {
+  lat: number;
+  lon: number;
+}
+
+/** A Spoken Wikipedia recording of the article. */
+export interface SpokenAudio {
+  sources: { src: string; type: string }[];
+  /** Length in minutes, when Wikipedia states it. */
+  minutes: number | null;
+  /** When the recorded version of the article dates from ("19 October 2006"), or an empty string. */
+  recorded: string;
+}
+
+/** The subject on a sister project ("Quotations" on Wikiquote, "Definitions" on Wiktionary). */
+export interface SisterLink {
+  project: string;
+  /** What's there: "Quotations", "Definitions", "Media"… */
+  description: string;
+  url: string;
+}
+
 export interface ParsedArticle {
   title: string;
   /** Wikipedia's short description, or an empty string. */
@@ -133,6 +155,10 @@ export interface ParsedArticle {
   related: RelatedTopics[];
   /** Wikipedia's TemplateStyles CSS for the templates in this article, minus rules for parts Lemma restyles. */
   styles: string;
+  /** Where the subject is, for places. */
+  coordinates: Coordinates | null;
+  spoken: SpokenAudio | null;
+  sisters: SisterLink[];
 }
 
 /** Facts about the article that come with it but aren't part of its text. */
@@ -143,4 +169,10 @@ export interface ArticleMeta {
   languages: ArticleLanguage[];
   /** Reader-facing categories. */
   categories: string[];
+  /** Wikipedia's quality badge: a featured or good article. */
+  badge?: "featured" | "good" | null;
+  /** A page listing the meanings of an ambiguous title. */
+  disambiguation?: boolean;
+  /** The revision being read. */
+  revisionId?: number | null;
 }

@@ -108,7 +108,8 @@ describe("parseArticle", () => {
     const html = allHtml(article);
     expect(html).toContain('href="/wiki/Mathematical_constant"');
     expect(html).toContain('href="/wiki/Euler\'s_identity#Explanation"');
-    expect(html).toContain('href="https://en.wikipedia.org/wiki/Category:Real_numbers"');
+    // categories have their own page in Lemma
+    expect(html).toContain('href="/category/Real_numbers"');
     expect(html).toContain('href="https://en.wikipedia.org/wiki/Help:IPA"');
     expect(html).toMatch(/<a href="https:\/\/www\.example\.com\/pi" class="external text" target="_blank" rel="noopener noreferrer">/);
     expect(html).toContain('href="https://fr.wikipedia.org/wiki/Pi"');

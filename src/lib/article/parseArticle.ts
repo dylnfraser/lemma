@@ -3,6 +3,8 @@ import type { WikipediaPageContent } from "$lib/api/wikipedia";
 import {
   convertPronunciations,
   extractRelatedTopics,
+  extractSisterLinks,
+  extractSpokenAudio,
   tidyPlayers,
   mediaContainer,
   mediaHtml,
@@ -10,6 +12,7 @@ import {
   unwrapLayoutTables,
 } from "./articleExtras";
 import { rewriteArticleLink } from "./articleLinks";
+import { convertMaps, findArticleCoordinates, tintMath } from "./mapsAndMath";
 import { extractTemplateStyles } from "./templateStyles";
 import { parseInfobox } from "./parseInfobox";
 import {
@@ -36,7 +39,7 @@ import type {
 
 const WORDS_PER_MINUTE = 230;
 const BLOCK_SELECTOR =
-  "p, h1, h2, h3, h4, h5, h6, ul, ol, dl, blockquote, table, img, audio, video, div.hatnote, div.tmulti, div.thumb";
+  "p, h1, h2, h3, h4, h5, h6, ul, ol, dl, blockquote, table, img, audio, video, div.hatnote, div.tmulti, div.thumb, .map-frame";
 // Elements that are rendered as part of a larger block rather than on their own.
 const INLINE_CONTAINER_SELECTOR = "p, li, dd, dt, blockquote, table, figcaption";
 const CITATION_SELECTOR = "sup.reference, .mw-cite-backlink";
@@ -112,6 +115,8 @@ function markLightBackings(root: HTMLElement) {
 }
 
 function toArticleImage(image: HTMLImageElement): ArticleImage | null {
+  // maps open OpenStreetMap rather than the image viewer
+  if (image.classList.contains("map-image")) return null;
   const src = getBestImageSrc(image);
   if (!src || isBlockedArticleImage(src)) return null;
 
@@ -181,6 +186,13 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
   const styles = extractTemplateStyles(pageContent.text);
   const document = parseDocument(pageContent.text);
   const root = document.body;
+
+  // Maps, coordinates and formulas are converted throughout (infobox included) before anything is lifted out.
+  const coordinates = findArticleCoordinates(root);
+  convertMaps(root, coordinates);
+  tintMath(root);
+  const spoken = extractSpokenAudio(root);
+  const sisters = extractSisterLinks(root);
 
   // Wikipedia's one-line summary ("English computer scientist (1912–1954)") is hidden markup; keep it as a subtitle.
   const description = root.querySelector(".shortdescription")?.textContent?.trim() ?? "";
@@ -274,6 +286,15 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
 
     if (!isStandaloneBlock(element)) continue;
 
+    // a map picture outside the infobox: shown with its caption, as a figure
+    if (element.matches(".map-frame")) {
+      const container = element.closest("figure") ?? element;
+      if (insideConsumed(container)) continue;
+      consumed.push(container);
+      blocks.push({ type: "html", kind: "figure", html: container.outerHTML, sectionIds: sectionIds() });
+      continue;
+    }
+
     if (multiImages.has(element)) {
       consumed.push(element);
       const { images, caption } = multiImages.get(element)!;
@@ -360,5 +381,8 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
     anchors,
     related,
     styles,
+    coordinates,
+    spoken,
+    sisters,
   };
 }
