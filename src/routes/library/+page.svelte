@@ -89,7 +89,7 @@
                                 <span class="placeholder" aria-hidden="true">{entry.title.slice(0, 1)}</span>
                             {/if}
                             <span class="text">
-                                <span class="title">{entry.title}</span>
+                                <span data-morph class="title">{entry.title}</span>
                                 <span class="meta">
                                     {#if entry.description}<span class="description">{entry.description}</span>{/if}
                                     <span class="when">{tab === "saved" ? "Saved" : "Read"} {when(entry.at)}</span>

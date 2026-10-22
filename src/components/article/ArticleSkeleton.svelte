@@ -44,7 +44,8 @@
 
     <div class="article-skeleton" role="status" aria-label="Loading article">
         <div class="header" aria-hidden="true">
-            <div class="skeleton bar title"></div>
+            <!-- the real title, where the article's heading will be: a followed link lands on it (see +layout) -->
+            <p class="title morph-title">{seed}</p>
             <div class="skeleton bar description"></div>
             <div class="skeleton bar meta"></div>
         </div>
@@ -122,15 +123,21 @@
 
     /* the same boxes as .article-header in ArticleView */
     .header {
-        margin: 1.5rem 0 2rem;
-        padding-bottom: 1.5rem;
+        margin: 1.5rem 0 1.75rem;
+        padding-bottom: 1.75rem;
         border-bottom: 1px solid var(--rule);
     }
 
+    /* set exactly like ArticleView's #title */
     .title {
-        --line: calc(clamp(2.1rem, 1.6rem + 2vw, 2.75rem) * 1.1);
-        --bar: calc(var(--line) * 0.62);
-        width: min(70%, 22rem);
+        margin: 0;
+        font-family: default-serif;
+        font-size: clamp(2.1rem, 1.6rem + 2vw, 2.75rem);
+        font-weight: 600;
+        line-height: 1.1;
+        letter-spacing: -0.01em;
+        text-wrap: balance;
+        color: var(--text-color);
     }
 
     .description {
@@ -140,9 +147,10 @@
         margin-top: 0.6rem;
     }
 
+    /* stands in for the row of action pills */
     .meta {
-        --line: calc(0.8rem * 1.4);
-        --bar: 0.65rem;
+        --line: 1.9rem;
+        --bar: 1.9rem;
         width: min(60%, 20rem);
         margin-top: 1rem;
     }
