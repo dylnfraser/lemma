@@ -1,5 +1,7 @@
 <script lang="ts">
+    import { onMount } from "svelte";
     import { isSearchShortcut } from "$lib/search/searchOverlay.svelte";
+    import { trail } from "$lib/trail.svelte";
     import type { FeaturedFeed } from "$lib/api/feed";
     import HomeFeed from "../components/HomeFeed.svelte";
     import LivingTagline from "../components/LivingTagline.svelte";
@@ -10,6 +12,9 @@
     const description = "Wikipedia, without the noise.";
 
     let searchbar: ReturnType<typeof Searchbar>;
+
+    // coming home ends the reading thread; the next article starts a new one
+    onMount(() => trail.clear());
     let feed = $state.raw<FeaturedFeed | null>(null);
     // the tagline holds still while the reader is searching
     let searching = $state(false);
