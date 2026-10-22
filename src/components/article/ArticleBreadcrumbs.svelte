@@ -192,13 +192,19 @@
         gap: 0.2rem;
         min-width: 0;
         margin-bottom: 0.25rem;
+
+        /* fingers need taller rows than a pointer does */
+        @media (pointer: coarse) {
+            --row: 2.1rem;
+            margin-bottom: 0;
+        }
     }
 
     .breadcrumb-fold,
     .breadcrumb-fold-spacer {
         flex: 0 0 1rem;
         width: 1rem;
-        height: 1.25rem;
+        height: var(--row, 1.25rem);
         margin: 0;
     }
 
@@ -220,7 +226,7 @@
     .breadcrumb {
         display: block;
         min-width: 0;
-        line-height: 1.25rem;
+        line-height: var(--row, 1.25rem);
         opacity: 0.8;
         overflow: hidden;
         text-overflow: ellipsis;

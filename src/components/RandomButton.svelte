@@ -106,6 +106,10 @@
     .text {
         gap: 0.3rem;
         padding: 0;
+
+        @media (pointer: coarse) {
+            padding-block: 0.6rem;
+        }
         border: none;
         background: none;
         font: inherit;

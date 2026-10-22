@@ -22,7 +22,7 @@
 </script>
 
 <svelte:head>
-    <title>Lemma — A better way to read Wikipedia</title>
+    <title>Lemma</title>
 </svelte:head>
 
 <svelte:window onkeydown={handleWindowKeydown} />
@@ -137,6 +137,10 @@
             color: inherit;
             text-decoration: none;
             transition: color var(--dur-fast);
+
+            @media (pointer: coarse) {
+                padding-block: 0.6rem;
+            }
 
             &:hover {
                 color: var(--link-hover);

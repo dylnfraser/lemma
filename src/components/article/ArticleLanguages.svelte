@@ -99,6 +99,8 @@
                     autocomplete="off"
                     spellcheck="false"
                 />
+                <!-- on phones the sheet covers its pill, so it closes from here -->
+                <button type="button" class="close" aria-label="Close" onclick={close}><Icon name="x" size="0.85em" /></button>
             </label>
 
             <ul bind:this={list}>
@@ -143,17 +145,23 @@
         letter-spacing: normal;
         color: var(--text-color);
 
-        /* on phones the pill may sit near the right edge: the panel becomes a sheet along the bottom instead */
+        /* on phones the pill may sit near the right edge: the panel becomes a sheet under the navbar instead (at the
+           top, so the on-screen keyboard can't cover its field) */
         @media (max-width: 600px) {
             position: fixed;
             /* above the floating Sections button */
             z-index: 35;
-            top: auto;
-            bottom: 1rem;
-            left: 1.25rem;
+            top: calc(var(--nav-height) + 0.75rem);
+            left: max(1.25rem, env(safe-area-inset-left));
+            right: max(1.25rem, env(safe-area-inset-right));
             width: auto;
-            right: 1.25rem;
-            transform-origin: 50% 100%;
+            max-height: min(34rem, calc(100dvh - var(--nav-height) - 6rem));
+            transform-origin: 50% 0;
+
+            ul {
+                max-height: none;
+                flex: 1;
+            }
         }
     }
 
@@ -177,6 +185,11 @@
             font-size: 0.88rem;
             color: var(--text-color);
 
+            /* iOS zooms into fields smaller than 16px */
+            @media (pointer: coarse) {
+                font-size: 16px;
+            }
+
             &::placeholder {
                 color: var(--muted);
             }
@@ -184,6 +197,25 @@
             &::-webkit-search-cancel-button {
                 display: none;
             }
+        }
+    }
+
+    .close {
+        display: none;
+        place-items: center;
+        flex: none;
+        width: 2rem;
+        height: 2rem;
+        margin-right: -0.4rem;
+        padding: 0;
+        border: none;
+        border-radius: 8px;
+        background: none;
+        color: var(--muted);
+        cursor: pointer;
+
+        @media (max-width: 600px) {
+            display: grid;
         }
     }
 

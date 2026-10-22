@@ -337,6 +337,11 @@
         flex: none;
         width: 1.9rem;
         height: 1.9rem;
+
+        @media (pointer: coarse) {
+            width: 2.6rem;
+            height: 2.6rem;
+        }
         margin-left: 0.6rem;
         padding: 0;
         border: none;

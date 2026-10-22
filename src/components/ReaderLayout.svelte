@@ -68,7 +68,7 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, var(--measure)) minmax(0, 1fr);
         column-gap: var(--gap);
-        padding: calc(var(--nav-height) + 2rem) var(--pad) 40vh;
+        padding: calc(var(--nav-height) + 2rem) max(var(--pad), env(safe-area-inset-right)) 40vh max(var(--pad), env(safe-area-inset-left));
         line-height: var(--leading);
         /* Last-resort guard: stray wide content must never widen the page (and the mobile viewport) itself. */
         overflow-x: clip;
@@ -116,6 +116,7 @@
             z-index: 25;
             left: 0;
             top: calc(var(--nav-height) + 1rem);
+            margin-left: env(safe-area-inset-left);
             margin-top: 0;
             width: min(85vw, 300px);
             max-height: min(72dvh, 620px);
@@ -159,8 +160,8 @@
             display: block;
             position: fixed;
             z-index: 26;
-            left: 0;
-            bottom: 1.5rem;
+            left: env(safe-area-inset-left);
+            bottom: calc(1.5rem + env(safe-area-inset-bottom));
             padding: 0.55rem 0.9rem 0.55rem 0.75rem;
             background: var(--bg-color);
             border: 1px solid var(--secondary);

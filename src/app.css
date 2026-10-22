@@ -153,8 +153,25 @@ body *::-webkit-scrollbar-thumb {
     }
 }
 
+html {
+    /* phones: no automatic text enlarging in landscape, and no grey flash on tap (controls have their own pressed
+       states) */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+}
+
 body {
     margin: 0;
+}
+
+/* controls respond to a tap straight away (no wait to see whether it's a double-tap zoom) */
+a,
+button,
+summary,
+label,
+[role="tab"] {
+    touch-action: manipulation;
 }
 
 :focus-visible {
@@ -620,6 +637,10 @@ figcaption .legend-group {
     &[aria-expanded="true"] {
         color: var(--text-color);
         border-color: var(--secondary);
+    }
+
+    @media (pointer: coarse) {
+        height: 2.25rem;
     }
 }
 

@@ -474,9 +474,19 @@
     }
 
     .clear {
+        position: relative;
         display: grid;
         place-items: center;
         flex: none;
+
+        /* a fingertip-sized target around the small button */
+        @media (pointer: coarse) {
+            &::after {
+                content: "";
+                position: absolute;
+                inset: -0.6rem;
+            }
+        }
         box-sizing: border-box;
         width: 1.5rem;
         height: 1.5rem;

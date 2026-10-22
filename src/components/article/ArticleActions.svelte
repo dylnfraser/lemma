@@ -301,7 +301,7 @@
             /* above the floating Sections button */
             z-index: 35;
             top: auto;
-            bottom: 1rem;
+            bottom: calc(1rem + env(safe-area-inset-bottom));
             left: 1.25rem;
             transform-origin: 50% 100%;
         }
