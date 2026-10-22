@@ -8,15 +8,21 @@
 </script>
 
 <script lang="ts">
-    import { onMount, tick } from "svelte";
+    import { flushSync, onMount, tick } from "svelte";
+    import { prefersReducedMotion } from "svelte/motion";
     import { SvelteSet } from "svelte/reactivity";
     import { page } from "$app/state";
     import { replaceState } from "$app/navigation";
-    import { getWikipediaArticleUrl } from "$lib/api/wikipedia";
     import { getCollapsibleHeadingIds } from "$lib/article/articleNavigation";
-    import { getArticlePath, safeDecodeURIComponent } from "$lib/article/articleUtils";
+    import { collectText, findTextRanges, normalizeQuery } from "$lib/article/findText";
+    import { isTypingTarget } from "$lib/search/searchOverlay.svelte";
+    import { getArticlePath, isFoldableHeadingLevel, resizeWikimediaThumb, safeDecodeURIComponent } from "$lib/article/articleUtils";
+    import { openStreetMapUrl } from "$lib/article/mapsAndMath";
     import type { ArticleMeta, ParsedArticle } from "$lib/article/types";
+    import { library, type ReadingPosition } from "$lib/library.svelte";
+    import { motionPaused, rise } from "$lib/motion";
     import ReaderLayout from "../ReaderLayout.svelte";
+    import ArticleActions from "./ArticleActions.svelte";
     import ArticleBreadcrumbs from "./ArticleBreadcrumbs.svelte";
     import ArticleContent from "./ArticleContent.svelte";
     import Icon from "../icons/Icon.svelte";
@@ -25,6 +31,8 @@
     import ArticleLanguages from "./ArticleLanguages.svelte";
     import ArticleReadNext from "./ArticleReadNext.svelte";
     import ArticleRelated from "./ArticleRelated.svelte";
+    import FindBar from "./FindBar.svelte";
+    import QuoteShare from "./QuoteShare.svelte";
     import Lightbox from "./Lightbox.svelte";
     import LinkPreview from "./LinkPreview.svelte";
 
@@ -44,6 +52,8 @@
         meta = { redirectedFrom: "", languages: [], categories: [] },
     }: Props = $props();
 
+    const BADGE_LABELS = { featured: "Featured article", good: "Good article" } as const;
+
     // A heading counts as "current" once its top passes this far below the viewport top (under the navbar).
     const ACTIVE_OFFSET = 140;
     // Right after loading, the outline's highlight only says "you're at the start", so it shows briefly and then fades.
@@ -51,7 +61,11 @@
 
     // This component is re-created for every article ({#key} in the route), so per-article state is set up once.
     // svelte-ignore state_referenced_locally
-    const { title, description, blocks, headings, anchors, stats } = article;
+    const { title, description, blocks, headings, anchors, coordinates } = article;
+    // a small picture for the reader's history and saved list
+    // svelte-ignore state_referenced_locally
+    const firstImage = article.infobox?.images[0] ?? blocks.find((block) => block.type === "images")?.images[0];
+    const thumbnail = firstImage ? resizeWikimediaThumb(firstImage.src, 160) : "";
     const headingsById = new Map(headings.map((heading) => [heading.id, heading]));
     const collapsedSections = new SvelteSet<string>();
     const collapsedOutline = new SvelteSet<string>(getCollapsibleHeadingIds(headings));
@@ -61,7 +75,7 @@
     let highlightActive = $state(true);
     // True while the page is still settling after load (initial scroll, hash or snapshot restore).
     let settling = true;
-    let articleElement: HTMLElement;
+    let articleElement = $state() as HTMLElement;
     let frame = 0;
     let restoredFrom: ArticleViewState | null = null;
     let infoboxExpanded = $state(false);
@@ -259,14 +273,234 @@
         if (restoreState && restoreState !== restoredFrom) applyRestoreState(restoreState);
     });
 
+    // ---------- reading position ----------
+
+    // Where the reader is, anchored to the section heading above them (so it survives layout changes better than a
+    // raw scroll offset).
+    function currentPosition(): Omit<ReadingPosition, "at"> {
+        const heading = activeHeadingId ? document.getElementById(activeHeadingId) : null;
+        const headingTop = heading ? heading.getBoundingClientRect().top + window.scrollY : 0;
+        const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+        return {
+            headingId: heading ? activeHeadingId : "",
+            headingText: heading ? (headingsById.get(activeHeadingId)?.text ?? "") : "",
+            offset: Math.round(window.scrollY - headingTop),
+            progress: scrollable > 0 ? Math.min(1, window.scrollY / scrollable) : 1,
+        };
+    }
+
+    let positionTimer: ReturnType<typeof setTimeout> | undefined;
+    function rememberPosition() {
+        clearTimeout(positionTimer);
+        positionTimer = setTimeout(savePositionNow, 700);
+    }
+
+    function savePositionNow() {
+        clearTimeout(positionTimer);
+        positionTimer = undefined;
+        // only while the article is on screen: after navigating away the scroll position belongs to the next page
+        if (settling || !articleElement?.isConnected) return;
+        // back near the top: next time starts from the beginning anyway
+        if (window.scrollY < 400) library.clearPosition(title);
+        else library.savePosition(title, currentPosition());
+    }
+
+    // ---------- find, quotes, shortcuts, printing ----------
+
+    let findBar = $state<ReturnType<typeof FindBar>>();
+
+    // each block's searchable text, worked out the first time a search needs it
+    const blockTexts = new Map<number, string>();
+    function blockText(index: number): string {
+        let text = blockTexts.get(index);
+        if (text === undefined) {
+            const block = blocks[index];
+            const html =
+                block.type === "heading" ? block.heading.text : block.type === "html" ? block.html : block.images.map((image) => image.caption).join(" ");
+            text = collectText(new DOMParser().parseFromString(html, "text/html").body).text;
+            blockTexts.set(index, text);
+        }
+        return text;
+    }
+
+    /** Unfolds folded sections that contain `query`; returns the ids it opened, once they've rendered. */
+    async function revealMatches(query: string): Promise<string[]> {
+        const needle = normalizeQuery(query);
+        const opened: string[] = [];
+        blocks.forEach((block, index) => {
+            if (!block.sectionIds.some((id) => collapsedSections.has(id))) return;
+            if (!blockText(index).includes(needle)) return;
+            for (const id of block.sectionIds) {
+                if (collapsedSections.delete(id)) opened.push(id);
+            }
+        });
+        if (opened.length) await tick();
+        return opened;
+    }
+
+    /** The section heading a node sits under, and that heading's ancestors. */
+    function sectionsAround(node: Node): Set<string> {
+        let containing: HTMLElement | null = null;
+        for (const heading of articleElement.querySelectorAll<HTMLElement>("[data-heading]")) {
+            if (heading.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING) containing = heading;
+            else break;
+        }
+        if (!containing) return new Set();
+        return new Set([containing.id, ...(headingsById.get(containing.id)?.ancestorIds ?? [])]);
+    }
+
+    function restoreFolds(opened: string[], keep: Node | null) {
+        const around = keep ? sectionsAround(keep) : new Set<string>();
+        for (const id of opened) if (!around.has(id)) collapsedSections.add(id);
+    }
+
+    // A shared quote link (?quote=…): find the passage, open its section, and mark it.
+    async function showQuote(quote: string): Promise<boolean> {
+        await revealMatches(quote);
+        const body = articleElement.querySelector(".article-body");
+        const [range] = body ? findTextRanges(body, quote, { limit: 1 }) : [];
+        if (!range) return false;
+        const rect = range.getBoundingClientRect();
+        window.scrollTo({ top: window.scrollY + rect.top - window.innerHeight / 3 });
+        if (typeof CSS !== "undefined" && "highlights" in CSS) {
+            CSS.highlights.set("lemma-quote", new Highlight(range));
+            // the mark stays until the reader clicks or starts selecting elsewhere
+            window.addEventListener("pointerdown", () => CSS.highlights.delete("lemma-quote"), { once: true });
+        }
+        settling = false;
+        scheduleActiveUpdate();
+        return true;
+    }
+
+    /** The foldable section the reader is in: the current heading, or its nearest foldable ancestor. */
+    function currentFoldableSection(): string | null {
+        const heading = headingsById.get(activeHeadingId);
+        if (!heading) return null;
+        const chain = [heading.id, ...[...heading.ancestorIds].reverse()];
+        return chain.find((id) => isFoldableHeadingLevel(headingsById.get(id)?.level ?? 0)) ?? null;
+    }
+
+    function jumpToSection(direction: 1 | -1) {
+        const elements = [...articleElement.querySelectorAll<HTMLElement>("[data-heading]")];
+        // relative to where a jump puts a heading (its scroll margin), so the heading just jumped to counts as "here"
+        const tops = elements.map(
+            (element) => element.getBoundingClientRect().top - (Number.parseFloat(getComputedStyle(element).scrollMarginTop) || 0),
+        );
+        const index = direction === 1 ? tops.findIndex((top) => top > 2) : tops.findLastIndex((top) => top < -2);
+        const target = elements[index];
+        if (!target) {
+            if (direction === -1) window.scrollTo({ top: 0, behavior: prefersReducedMotion.current ? "auto" : "smooth" });
+            return;
+        }
+        target.scrollIntoView({ behavior: prefersReducedMotion.current ? "auto" : "smooth" });
+        settling = false;
+        highlightActive = true;
+        setActiveHeading(target.id);
+    }
+
+    function handleKeydown(event: KeyboardEvent) {
+        if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "f") {
+            // the first press opens Lemma's find (which reaches folded sections); a second, from inside it, the browser's
+            if (findBar?.isOpen() && document.activeElement?.closest(".find-bar")) return;
+            event.preventDefault();
+            findBar?.show();
+            return;
+        }
+        if (event.metaKey || event.ctrlKey || event.altKey || event.defaultPrevented || isTypingTarget(event.target)) return;
+
+        switch (event.key) {
+            case "j":
+                jumpToSection(1);
+                break;
+            case "k":
+                jumpToSection(-1);
+                break;
+            case "[":
+            case "]": {
+                const id = currentFoldableSection();
+                if (!id) return;
+                const folding = event.key === "[";
+                if (folding === collapsedSections.has(id)) return;
+                toggleSection(id);
+                if (folding) document.getElementById(id)?.scrollIntoView({ block: "nearest" });
+                break;
+            }
+            case "f":
+                findBar?.show();
+                break;
+            case "s":
+                library.toggleSaved({ title, description, thumbnail });
+                break;
+            case "t":
+                window.scrollTo({ top: 0, behavior: prefersReducedMotion.current ? "auto" : "smooth" });
+                break;
+            default:
+                return;
+        }
+        event.preventDefault();
+    }
+
+    // Printing shows everything: folded sections and the infobox's hidden facts open for the printout, then go back.
+    let beforePrint: { collapsed: string[]; infoboxExpanded: boolean } | null = null;
+    function handleBeforePrint() {
+        beforePrint = { collapsed: [...collapsedSections], infoboxExpanded };
+        motionPaused.current = true;
+        flushSync(() => {
+            collapsedSections.clear();
+            infoboxExpanded = true;
+        });
+    }
+
+    function handleAfterPrint() {
+        motionPaused.current = false;
+        if (!beforePrint) return;
+        const { collapsed, infoboxExpanded: expanded } = beforePrint;
+        beforePrint = null;
+        collapsed.forEach((id) => collapsedSections.add(id));
+        infoboxExpanded = expanded;
+    }
+
+    // An offer to start over, shown after the article reopens where the reader left it.
+    let resumed = $state<ReadingPosition | null>(null);
+    let resumeTimer: ReturnType<typeof setTimeout>;
+
+    async function resume(position: ReadingPosition) {
+        let top = position.offset;
+        if (position.headingId) {
+            const heading = await reveal(position.headingId);
+            if (!heading) return;
+            top += heading.getBoundingClientRect().top + window.scrollY;
+        }
+        window.scrollTo({ top });
+        scheduleActiveUpdate();
+        resumed = position;
+        resumeTimer = setTimeout(() => (resumed = null), 7000);
+    }
+
+    function startOver() {
+        resumed = null;
+        clearTimeout(resumeTimer);
+        library.clearPosition(title);
+        window.scrollTo({ top: 0, behavior: prefersReducedMotion.current ? "auto" : "smooth" });
+    }
+
     onMount(() => {
         const hashTarget = safeDecodeURIComponent(page.url.hash.slice(1));
         const fragment = hashTarget || redirectFragment.replaceAll(" ", "_");
 
         canonicalizeUrl(fragment);
 
+        library.recordVisit({ title, description, thumbnail });
+
+        // reopening an article picks up where the reader left off (unless the link points somewhere specific)
+        const quote = page.url.searchParams.get("quote")?.trim() ?? "";
+        const saved = !restoreState && !fragment && !quote ? library.position(title) : null;
         if (!restoreState && fragment) {
             showTarget(fragment);
+        } else if (!restoreState && quote) {
+            showQuote(quote).then((found) => found || scheduleActiveUpdate());
+        } else if (saved && saved.progress < 0.97) {
+            resume(saved);
         } else {
             scheduleActiveUpdate();
         }
@@ -277,22 +511,44 @@
             highlightActive = false;
         }, LOAD_HIGHLIGHT_MS);
 
+        // leaving the page (or the tab closing) records the position straight away
+        const handlePageHide = () => savePositionNow();
+        window.addEventListener("pagehide", handlePageHide);
+
         return () => {
+            // a scroll just before leaving hasn't been saved yet
+            if (positionTimer) savePositionNow();
+            window.removeEventListener("pagehide", handlePageHide);
             cancelAnimationFrame(frame);
             clearTimeout(fadeTimer);
+            clearTimeout(resumeTimer);
         };
     });
+
+    function handleScroll() {
+        scheduleActiveUpdate();
+        rememberPosition();
+    }
 </script>
 
 <svelte:head>
     <title>{title} • Lemma</title>
 </svelte:head>
 
-<svelte:window onscroll={scheduleActiveUpdate} onresize={scheduleActiveUpdate} onhashchange={handleHashChange} />
+<svelte:window
+    onscroll={handleScroll}
+    onresize={scheduleActiveUpdate}
+    onhashchange={handleHashChange}
+    onkeydown={handleKeydown}
+    onbeforeprint={handleBeforePrint}
+    onafterprint={handleAfterPrint}
+/>
 
 <div class="reading-progress" aria-hidden="true"></div>
 <Lightbox />
 <LinkPreview currentTitle={title} getReference={referenceHtml} />
+<FindBar bind:this={findBar} root={articleElement} {revealMatches} {restoreFolds} />
+<QuoteShare {title} root={articleElement} />
 
 <ReaderLayout>
     {#snippet outline({ close })}
@@ -309,8 +565,16 @@
     {/snippet}
 
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions (delegates clicks on same-page links in the body and infobox) -->
-    <article bind:this={articleElement} lang="en" onclick={handleArticleClick}>
+    <article bind:this={articleElement} lang="en" class:disambiguation={meta.disambiguation} onclick={handleArticleClick}>
         <header class="article-header">
+            {#if meta.disambiguation}
+                <p class="kicker">Disambiguation</p>
+            {:else if meta.badge}
+                <p class="kicker badge {meta.badge}" title="Wikipedia's editors rate this among its best articles">
+                    <Icon name={meta.badge === "featured" ? "star" : "badge-check"} size="1.05em" />
+                    {BADGE_LABELS[meta.badge]}
+                </p>
+            {/if}
             <!-- focusable so "Back to top" can move keyboard focus here -->
             <h1 id="title" tabindex="-1">{title}</h1>
             {#if description}
@@ -322,17 +586,26 @@
                     Redirected from <span class="from">{meta.redirectedFrom}</span>
                 </p>
             {/if}
-            <p class="article-meta">
-                <span>{stats.words.toLocaleString()} words</span>
-                <span>{stats.readingMinutes} min read</span>
-                <span>{stats.links.toLocaleString()} links</span>
+            <ArticleActions
+                {title}
+                {description}
+                {thumbnail}
+                spoken={article.spoken}
+                revisionId={meta.revisionId ?? null}
+            >
                 {#if meta.languages.length > 0}
                     <ArticleLanguages languages={meta.languages} />
                 {/if}
-                <a class="source-link" href={getWikipediaArticleUrl(title)} target="_blank" rel="noopener noreferrer"
-                    >Wikipedia <Icon name="arrow-up-right" size="0.85em" /><span class="sr-only"> (opens in a new tab)</span></a
-                >
-            </p>
+                {#if coordinates}
+                    <a class="action-pill" href={openStreetMapUrl(coordinates, 14)} target="_blank" rel="noopener noreferrer">
+                        <Icon name="map-pin" size="0.9em" />
+                        {Math.abs(coordinates.lat).toFixed(2)}° {coordinates.lat >= 0 ? "N" : "S"},
+                        {Math.abs(coordinates.lon).toFixed(2)}° {coordinates.lon >= 0 ? "E" : "W"}<span class="sr-only">
+                            (map, opens in a new tab)</span
+                        >
+                    </a>
+                {/if}
+            </ArticleActions>
         </header>
 
         {#if article.infobox}
@@ -352,24 +625,34 @@
             <ArticleRelated topics={article.related} />
         {/if}
 
-        <ArticleReadNext {title} categories={meta.categories} />
+        <ArticleReadNext {title} categories={meta.categories} sisters={article.sisters} />
 
         <ArticleFooter {title} />
     </article>
 </ReaderLayout>
 
+{#if resumed}
+    <div
+        class="resume-toast"
+        role="status"
+        transition:rise={{ y: 16 }}
+    >
+        <Icon name="history" size="0.95em" />
+        <span>
+            Picked up where you left off{#if resumed.headingText}, in <b>{resumed.headingText}</b>{/if}
+        </span>
+        <button type="button" onclick={startOver}>Start from the top</button>
+        <button type="button" class="dismiss" aria-label="Dismiss" onclick={() => (resumed = null)}>
+            <Icon name="x" size="0.8em" />
+        </button>
+    </div>
+{/if}
+
 <style>
     article {
         position: relative;
-        /* `backwards` so no transform lingers afterwards (it would trap the fixed/sticky children's positioning) */
-        animation: article-in var(--dur-slow) var(--ease-out) backwards;
-    }
-
-    @keyframes article-in {
-        from {
-            opacity: 0;
-            transform: translateY(6px);
-        }
+        /* `backwards` so no filter or translate lingers afterwards (it would trap fixed/sticky children) */
+        animation: enter var(--dur-slow) var(--ease-out) backwards;
     }
 
     /* A hairline under the navbar that fills as you read; pure CSS, only where scroll-driven animations exist. */
@@ -413,9 +696,10 @@
         }
     }
 
+    /* the rule under the header has the same space on both sides */
     .article-header {
-        margin: 1.5rem 0 2rem;
-        padding-bottom: 1.5rem;
+        margin: 1.5rem 0 1.75rem;
+        padding-bottom: 1.75rem;
         border-bottom: 1px solid var(--rule);
     }
 
@@ -451,33 +735,136 @@
         }
     }
 
-    .article-meta {
+
+    .kicker {
         display: flex;
-        flex-wrap: wrap;
-        align-items: baseline;
-        gap: 0.25rem 0;
-        margin: 1rem 0 0;
-        font-size: 0.8rem;
-        font-weight: 500;
-        letter-spacing: 0.01em;
-        line-height: 1.4;
+        align-items: center;
+        gap: 0.35rem;
+        margin: 0 0 0.6rem;
+        font-size: 0.72rem;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
         color: var(--muted);
-        font-variant-numeric: tabular-nums lining-nums;
 
-        /* global: items can come from child components (the languages button) */
-        > :global(:not(:last-child))::after {
-            content: "·";
-            margin: 0 0.55em;
-            opacity: 0.7;
+        &.featured {
+            color: oklch(0.68 0.13 75);
+        }
+
+        &.good {
+            color: oklch(0.58 0.11 150);
         }
     }
 
-    .source-link {
-        color: inherit;
-        text-decoration: none;
 
-        &:hover {
-            color: var(--link-hover);
+    /* Disambiguation pages are lists of meanings: each entry reads as a row, its main link leading. */
+    .disambiguation :global(.article-body .block.list) {
+        /* rows bleed into the margin so their text lines up with the paragraphs around them */
+        > :global(ul) {
+            margin-inline: -0.65rem;
+            padding-left: 0;
+            list-style: none;
+        }
+
+        :global(li) {
+            margin: 0;
+            padding: 0.3rem 0.65rem;
+            border-radius: 8px;
+            line-height: 1.5;
+            transition: background-color var(--dur-fast);
+        }
+
+        :global(li:hover) {
+            background: color-mix(in oklch, var(--secondary) 28%, transparent);
+        }
+
+        :global(li > a:first-child) {
+            font-weight: 600;
+        }
+
+        :global(li ul) {
+            margin-top: 0.3rem;
+            padding-left: 0.9rem;
         }
     }
+
+    .resume-toast {
+        position: fixed;
+        z-index: 30;
+        left: 50%;
+        bottom: 1.25rem;
+        translate: -50% 0;
+        /* concentric: the buttons sit the same --inset from the top, bottom and end, so their round ends follow the
+           toast's own (outer radius = inner radius + inset) */
+        --inset: 5px;
+        --control: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        width: max-content;
+        max-width: min(40rem, calc(100vw - 2rem));
+        box-sizing: border-box;
+        padding: var(--inset) var(--inset) var(--inset) 0.95rem;
+        border: 1px solid var(--rule);
+        border-radius: calc(var(--control) / 2 + var(--inset));
+        background: var(--bg-color);
+        box-shadow: 0 16px 36px -14px var(--shadow-color);
+        font-size: 0.82rem;
+        line-height: 1.35;
+        color: var(--text-color);
+
+        > :global(.icon) {
+            color: var(--muted);
+        }
+
+        /* one line, so the toast keeps the height that makes it concentric; a long section name is shortened */
+        span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        b {
+            font-weight: 600;
+        }
+
+        button {
+            flex: none;
+            height: var(--control);
+            padding: 0 0.85rem;
+            border: none;
+            border-radius: calc(var(--control) / 2);
+            background: color-mix(in oklch, var(--accent) 12%, var(--bg-color));
+            font: inherit;
+            font-weight: 600;
+            color: var(--accent);
+            cursor: pointer;
+            transition:
+                background-color var(--dur-fast),
+                scale var(--dur-instant) var(--ease-out);
+
+            &:hover {
+                background: color-mix(in oklch, var(--accent) 20%, var(--bg-color));
+            }
+        }
+
+        /* sharing the toast's last stretch with "Start from the top", tucked close */
+        .dismiss {
+            display: grid;
+            place-items: center;
+            width: var(--control);
+            margin-left: -0.35rem;
+            padding: 0;
+            background: none;
+            color: var(--muted);
+
+            &:hover {
+                background: color-mix(in oklch, var(--secondary) 35%, transparent);
+                color: var(--text-color);
+            }
+        }
+
+    }
+
 </style>
