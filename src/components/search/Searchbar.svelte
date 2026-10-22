@@ -5,6 +5,7 @@
     import { searchArticles, WikipediaError, type WikipediaSearchResult } from "$lib/api/wikipedia";
     import { getArticlePath } from "$lib/article/articleUtils";
     import { preventMouseFocus } from "$lib/focus";
+    import { pop } from "$lib/motion";
     import SearchIcon from "../icons/SearchIcon.svelte";
     import Icon from "../icons/Icon.svelte";
     import Result from "./Result.svelte";
@@ -120,7 +121,28 @@
         onDismiss?.();
     }
 
+    // The top suggestion, when it starts with what's been typed: its remaining letters show faintly after the caret
+    // (Tab or → takes them), and its picture takes the search icon's place.
+    let top = $derived(results[0]);
+    let completion = $derived(
+        top && query && top.title.toLowerCase().startsWith(query.toLowerCase()) ? top.title.slice(query.length) : "",
+    );
+    // a long query scrolls inside the field, where the faint ending would no longer line up
+    let overflowing = $state(false);
+
+    function acceptCompletion(): boolean {
+        if (!completion || !inputBox || inputBox.selectionStart !== query.length) return false;
+        query = top!.title;
+        activeIndex = 0;
+        scheduleSearch();
+        return true;
+    }
+
     function handleKeydown(event: KeyboardEvent) {
+        if ((event.key === "Tab" && !event.shiftKey) || event.key === "ArrowRight") {
+            if (acceptCompletion()) event.preventDefault();
+            return;
+        }
         if (event.key === "Enter") {
             event.preventDefault();
             if (showOptions && activeIndex === searchAllIndex) searchEverything();
@@ -155,23 +177,38 @@
 
 <div class="search" class:open={showPanel}>
     <div class="searchbar">
-        <span class="search-icon" class:loading={isLoading}><SearchIcon /></span>
-        <input
-            bind:this={inputBox}
-            bind:value={query}
-            oninput={scheduleSearch}
-            onkeydown={handleKeydown}
-            type="search"
-            role="combobox"
-            placeholder="Search Wikipedia"
-            aria-label="Search Wikipedia articles"
-            aria-autocomplete="list"
-            aria-controls={listboxId}
-            aria-expanded={showOptions}
-            aria-activedescendant={showOptions && activeIndex >= 0 ? optionId(activeIndex) : undefined}
-            autocomplete="off"
-            spellcheck="false"
-        />
+        <span class="search-icon" class:loading={isLoading} class:has-thumb={!!(completion && top?.thumbnail)}>
+            <SearchIcon />
+            {#if completion && top?.thumbnail}
+                {#key top.thumbnail}
+                    <img class="top-thumb" src={top.thumbnail} alt="" transition:pop={{ start: 0.7 }} />
+                {/key}
+            {/if}
+        </span>
+        <span class="field">
+            <input
+                bind:this={inputBox}
+                bind:value={query}
+                oninput={() => {
+                    overflowing = !!inputBox && inputBox.scrollWidth > inputBox.clientWidth;
+                    scheduleSearch();
+                }}
+                onkeydown={handleKeydown}
+                type="search"
+                role="combobox"
+                placeholder="Search Wikipedia"
+                aria-label="Search Wikipedia articles"
+                aria-autocomplete="list"
+                aria-controls={listboxId}
+                aria-expanded={showOptions}
+                aria-activedescendant={showOptions && activeIndex >= 0 ? optionId(activeIndex) : undefined}
+                autocomplete="off"
+                spellcheck="false"
+            />
+            {#if completion && !overflowing}
+                <span class="ghost" aria-hidden="true"><span class="typed">{query}</span>{completion}</span>
+            {/if}
+        </span>
         {#if query}
             <button
                 type="button"
@@ -333,6 +370,59 @@
         to {
             rotate: 1turn;
         }
+    }
+
+    /* the input with its faint completion laid over it, letter for letter */
+    .field {
+        position: relative;
+        display: flex;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .ghost {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        font: inherit;
+        font-size: 16px;
+        line-height: 1;
+        white-space: pre;
+        color: var(--muted);
+        opacity: 0.55;
+        pointer-events: none;
+        animation: fade-in var(--dur-base) var(--ease-out) backwards;
+
+        .typed {
+            visibility: hidden;
+        }
+    }
+
+    /* the top result's picture in the search icon's place */
+    .search-icon {
+        :global(svg) {
+            transition: opacity var(--dur-base) var(--ease-out);
+        }
+
+        &.has-thumb:not(.loading) :global(svg) {
+            opacity: 0;
+        }
+    }
+
+    .top-thumb {
+        position: absolute;
+        inset: 1px;
+        width: calc(100% - 2px);
+        height: calc(100% - 2px);
+        border-radius: 6px;
+        object-fit: cover;
+        background: var(--secondary);
+    }
+
+    .loading .top-thumb {
+        opacity: 0;
     }
 
     input {
