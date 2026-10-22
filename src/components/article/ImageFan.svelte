@@ -191,7 +191,7 @@
         if (index === 0) return { x: 0, y: 0, rotate: 0 };
         const side = index % 2 === 1 ? -1 : 1;
         const step = Math.ceil(index / 2);
-        return { x: side * step * 9, y: step * 2, rotate: side * (4 + step * 3) };
+        return { x: side * step * 5, y: step * 1.5, rotate: side * (2 + step * 1.5) };
     }
 </script>
 
@@ -317,11 +317,11 @@
         border-radius: 18px;
         background: var(--bg-color);
         box-shadow:
-            0 1px 2px color-mix(in oklch, var(--shadow-color) 80%, transparent),
-            0 14px 34px -12px var(--shadow-color);
+            0 1px 2px color-mix(in oklch, var(--shadow-color) 60%, transparent),
+            0 10px 24px -14px var(--shadow-color);
         transform: translate(var(--x), var(--y)) rotate(var(--r));
         transform-origin: 50% 90%;
-        transition: transform 0.26s var(--ease-spring);
+        transition: transform var(--dur-slow) var(--ease-out);
 
         img {
             display: block;
@@ -331,13 +331,13 @@
         }
     }
 
-    /* spread the stack a little further on hover/focus, like nudging a pile of photos */
+    /* on hover the stack loosens a touch, like nudging a pile of photos */
     .fan:is(:hover, :focus-visible) .card:not(:first-child) {
-        transform: translate(calc(var(--x) * 1.9), calc(var(--y) * 1.5)) rotate(calc(var(--r) * 1.6));
+        transform: translate(calc(var(--x) * 1.35), calc(var(--y) * 1.2)) rotate(calc(var(--r) * 1.3));
     }
 
     .fan:is(:hover, :focus-visible) .card:first-child {
-        transform: translateY(-2%) scale(1.02);
+        transform: translateY(-1%);
     }
 
 
