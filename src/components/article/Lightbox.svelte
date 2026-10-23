@@ -27,10 +27,14 @@
     import ChevronIcon from "../icons/ChevronIcon.svelte";
     import Icon from "../icons/Icon.svelte";
 
-    const OPEN_MS = 300;
-    const CLOSE_MS = 230;
+    const OPEN_MS = 260;
+    const CLOSE_MS = 210;
     // quick start, soft landing: feels snappier than a plain ease-out at the same duration
-    const SNAP = "cubic-bezier(0.2, 0.9, 0.1, 1)";
+    const SNAP = "cubic-bezier(0.16, 1, 0.3, 1)";
+    // the frame's resting corners and shadow (keep in step with the styles below)
+    const FRAME_CLIP = "inset(0px 0px round 8px)";
+    const FRAME_SHADOW = "0 30px 80px -20px rgb(0 0 0 / 45%)";
+    const NO_SHADOW = "0 0px 0px 0px rgb(0 0 0 / 0%)";
     const SWIPE_PX = 50;
     // dragging the picture down this far lets it go
     const DISMISS_PX = 110;
@@ -46,6 +50,7 @@
 
     let stage = $state<HTMLElement>();
     let frame = $state<HTMLElement>();
+    let crop = $state<HTMLElement>();
     let baseImage = $state<HTMLImageElement>();
     let hiResImage = $state<HTMLImageElement>();
     let closeButton = $state<HTMLButtonElement>();
@@ -91,6 +96,30 @@
         const dx = from.left + from.width / 2 - (to.left + to.width / 2);
         const dy = from.top + from.height / 2 - (to.top + to.height / 2);
         return `translate(${dx}px, ${dy}px) scale(${scale})`;
+    }
+
+    /**
+     * How the viewer's picture (laid out at `to`) matches a thumbnail on the page: scaled to cover the thumbnail's box,
+     * then cropped to it with the same rounded corners, so a cropped thumbnail (an infobox montage, a grid) lines up
+     * exactly instead of only by its width.
+     */
+    function thumbnailPose(thumbnail: HTMLElement, to: DOMRect) {
+        const from = thumbnail.getBoundingClientRect();
+        const scale = Math.max(from.width / to.width, from.height / to.height);
+        const insetX = Math.max(0, (to.width - from.width / scale) / 2);
+        const insetY = Math.max(0, (to.height - from.height / scale) / 2);
+        const radius = Number.parseFloat(getComputedStyle(thumbnail).borderTopLeftRadius) || 0;
+        const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+        const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+        return {
+            transform: `translate(${dx}px, ${dy}px) scale(${scale})`,
+            clip: `inset(${insetY}px ${insetX}px round ${radius / scale}px)`,
+        };
+    }
+
+    /** Stops any open or close animation still running, so a new one never fights it. */
+    function settle() {
+        for (const element of [frame, crop]) element?.getAnimations().forEach((animation) => animation.cancel());
     }
 
     function lockScroll(locked: boolean) {
@@ -178,17 +207,32 @@
         tick().then(() => {
             if (lightbox.keyboard) closeButton?.focus({ preventScroll: true });
             const from = source();
-            if (!frame || !from || !isOnScreen(from)) return;
-            frame.animate(
-                [
-                    { transform: transformFrom(from.getBoundingClientRect(), frame.getBoundingClientRect()), borderRadius: "12px" },
-                    { transform: "none", borderRadius: "8px" },
-                ],
-                { duration: motion(OPEN_MS), easing: SNAP },
-            );
+            if (!frame || !crop) return;
+            // nothing on screen to fly out of (opened from the keyboard far away, or a thumbnail scrolled off): it pops in
+            if (!from || !isOnScreen(from)) {
+                frame.animate(
+                    [{ opacity: 0, transform: "scale(0.96)", filter: `blur(${BLUR_PX}px)` }, { opacity: 1, transform: "none", filter: "none" }],
+                    { duration: motion(DURATION.base), easing: EASE_OUT },
+                );
+                return;
+            }
+            const pose = thumbnailPose(from, frame.getBoundingClientRect());
+            const timing = { duration: motion(OPEN_MS), easing: SNAP };
+            frame.animate([{ transform: pose.transform, boxShadow: NO_SHADOW }, { transform: "none", boxShadow: FRAME_SHADOW }], timing);
+            crop.animate([{ clipPath: pose.clip }, { clipPath: FRAME_CLIP }], timing);
         });
 
         return () => lockScroll(false);
+    });
+
+    // The thumbnail on show is hidden while the viewer has it, so it never appears twice: not while the picture flies
+    // out of it or back into it, nor through the backdrop.
+    $effect(() => {
+        if (!lightbox.open) return;
+        const thumbnail = source();
+        if (!thumbnail) return;
+        thumbnail.style.visibility = "hidden";
+        return () => thumbnail.style.removeProperty("visibility");
     });
 
     $effect(() => {
@@ -222,23 +266,28 @@
         closing = true;
 
         const to = source();
-        if (frame && to && isOnScreen(to)) {
+        if (frame && crop && to && isOnScreen(to)) {
             zoomingBack = true;
-            // Start from wherever the picture is now (zoomed, panned or mid-drag), with the stage snapped back beneath.
+            // Start from wherever the picture is now (zoomed, panned, mid-drag or still opening), with the stage
+            // snapped back beneath.
             const visual = frame.getBoundingClientRect();
+            settle();
             gesturing = true;
             zoom = UNZOOMED;
             drag = { x: 0, y: 0 };
             await tick();
             const layout = frame.getBoundingClientRect();
+            const pose = thumbnailPose(to, layout);
 
+            const timing = { duration: motion(CLOSE_MS), easing: SNAP, fill: "forwards" } as const;
             const animation = frame.animate(
                 [
-                    { transform: transformFrom(visual, layout), borderRadius: "8px" },
-                    { transform: transformFrom(to.getBoundingClientRect(), layout), borderRadius: "12px" },
+                    { transform: transformFrom(visual, layout), boxShadow: FRAME_SHADOW },
+                    { transform: pose.transform, boxShadow: NO_SHADOW },
                 ],
-                { duration: motion(CLOSE_MS), easing: SNAP, fill: "forwards" },
+                timing,
             );
+            crop.animate([{ clipPath: FRAME_CLIP }, { clipPath: pose.clip }], timing);
             await animation.finished.catch(() => {});
         }
 
@@ -455,7 +504,7 @@
         use:captureWheel
         style:--close-ms="{motion(CLOSE_MS)}ms"
         style:--dismiss={dismissProgress}
-        transition:fade={{ duration: zoomingBack ? 0 : motion(closing ? DURATION.fast : DURATION.base) }}
+        out:fade={{ duration: zoomingBack ? 0 : motion(DURATION.fast) }}
     >
         <div class="backdrop" class:closing aria-hidden="true"></div>
         <figure style:--ar={aspect}>
@@ -465,28 +514,31 @@
                 style:transform="translate({zoom.x + drag.x}px, {zoom.y + drag.y}px) scale({zoom.scale})"
             >
                 <div class="frame" bind:this={frame} style:--ar={aspect}>
-                    <img
-                        class="base"
-                        src={image.src}
-                        alt={image.alt}
-                        draggable="false"
-                        class:invert-dark={image.invertInDarkMode}
-                        class:light-backing={image.lightBacking}
-                        bind:this={baseImage}
-                    />
-                    {#if hiResSrc}
+                    <!-- cropped to a thumbnail's shape while the picture flies to and from it -->
+                    <div class="crop" bind:this={crop}>
                         <img
-                            class="hi-res"
-                            class:loaded={hiResLoaded}
-                            src={hiResSrc}
-                            alt=""
-                            aria-hidden="true"
+                            class="base"
+                            src={image.src}
+                            alt={image.alt}
                             draggable="false"
                             class:invert-dark={image.invertInDarkMode}
-                            bind:this={hiResImage}
-                            onload={() => (hiResLoaded = true)}
+                            class:light-backing={image.lightBacking}
+                            bind:this={baseImage}
                         />
-                    {/if}
+                        {#if hiResSrc}
+                            <img
+                                class="hi-res"
+                                class:loaded={hiResLoaded}
+                                src={hiResSrc}
+                                alt=""
+                                aria-hidden="true"
+                                draggable="false"
+                                class:invert-dark={image.invertInDarkMode}
+                                bind:this={hiResImage}
+                                onload={() => (hiResLoaded = true)}
+                            />
+                        {/if}
+                    </div>
                 </div>
             </div>
             {#if image.caption || image.fileName}
@@ -575,7 +627,20 @@
         }
     }
 
-    /* everything but the picture fades with the backdrop while it drops back into place */
+    /* Opening, everything but the picture fades in around it (the picture itself flies out of its thumbnail fully
+       opaque, or pops in); closing, the same fades out while it drops back into place. */
+    .backdrop,
+    .control,
+    figcaption {
+        animation: lightbox-surroundings-in var(--dur-base) var(--ease-out) backwards;
+    }
+
+    @keyframes lightbox-surroundings-in {
+        from {
+            opacity: 0;
+        }
+    }
+
     .lightbox:has(.backdrop.closing) .control {
         opacity: 0;
         transition: opacity var(--close-ms) ease-out;
@@ -619,6 +684,12 @@
         width: min(92vw, 1400px, calc((100dvh - 11rem) * var(--ar, 1.5)));
         aspect-ratio: var(--ar, auto);
         cursor: zoom-in;
+
+        .crop {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
 
         img {
             display: block;
