@@ -664,10 +664,35 @@
 {/if}
 
 <style>
+    /*
+     * The article fades in as a whole, and what's on screen at first (the header, infobox and opening blocks) also
+     * settles out of a blur. Blurring or moving the whole article instead would make the browser recomposite every
+     * element of a long article on each frame of the entrance; opacity alone is free. `backwards` so no filter or
+     * translate lingers afterwards (it would trap fixed/sticky children).
+     */
     article {
         position: relative;
-        /* `backwards` so no filter or translate lingers afterwards (it would trap fixed/sticky children) */
-        animation: enter var(--dur-slow) var(--ease-out) backwards;
+        animation: article-fade var(--dur-base) var(--ease-out) backwards;
+    }
+
+    .article-header,
+    .infobox-slot,
+    article :global(.article-body > :nth-child(-n + 6)) {
+        animation: article-settle var(--dur-base) var(--ease-out) backwards;
+    }
+
+    @keyframes article-fade {
+        from {
+            opacity: 0;
+        }
+    }
+
+    @keyframes article-settle {
+        from {
+            /* literal values, like the shared enter keyframes (keep in step with --blur and --rise) */
+            filter: blur(4px);
+            translate: 0 6px;
+        }
     }
 
     /*
