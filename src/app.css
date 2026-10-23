@@ -318,8 +318,19 @@ mark {
     background: var(--secondary);
 }
 
+/* a tint of the accent (an article's own colour on its page), soft enough that selected text stays readable */
 ::selection {
-    background: var(--secondary);
+    background: color-mix(in oklch, var(--accent) 22%, transparent);
+}
+
+/*
+ * Selecting a passage in an article takes only its words: not the controls among them (fold and copy buttons,
+ * pronunciation, the action pills under the title), footnote markers or pictures, which would otherwise come along
+ * when copying and break the highlight into odd boxes.
+ */
+article :is(button, .action-pill, sup.reference, img, svg) {
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 blockquote {
