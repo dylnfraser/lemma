@@ -229,7 +229,9 @@
         scrollbar-width: thin;
     }
 
-    li {
+    /* only the rows that show without scrolling cascade in: animating all of a long list (300 languages) at once
+       stalls the opening, especially in Safari */
+    li:nth-child(-n + 12) {
         animation: enter var(--dur-base) var(--ease-out) backwards;
         animation-delay: calc(var(--i) * 18ms + 60ms);
     }
