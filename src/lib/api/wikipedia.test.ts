@@ -25,7 +25,7 @@ async function expectKind(promise: Promise<unknown>, kind: WikipediaError["kind"
 }
 
 describe("fetchArticle", () => {
-  it("requests the parse API with redirects and identifies the client", async () => {
+  it("requests the parse API with redirects, as a simple (preflight-free) request", async () => {
     const fetcher = mockFetch(json({ parse: { title: "Alan Turing", text: { "*": "<p>Hi</p>" } } }));
     await fetchArticle("Turing", { fetch: fetcher });
 
@@ -34,7 +34,7 @@ describe("fetchArticle", () => {
     expect(params.get("action")).toBe("parse");
     expect(params.get("page")).toBe("Turing");
     expect(params.get("redirects")).toBe("1");
-    expect(new Headers(init?.headers).get("Api-User-Agent")).toMatch(/^Lemma\//);
+    expect([...new Headers(init?.headers).keys()]).toEqual([]);
   });
 
   it("returns the resolved title and redirect fragment", async () => {

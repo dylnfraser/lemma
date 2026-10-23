@@ -64,7 +64,7 @@ Article URLs mirror Wikipedia's, e.g. `/wiki/Alan_Turing`. Redirects (`/wiki/Tur
 * **Search suggestions:** `rest.php/v1/search/title`
 * **Article content:** `api.php?action=parse&prop=text&redirects=1`
 
-Requests identify Lemma with an `Api-User-Agent` header, as [Wikimedia asks](https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_User-Agent_Policy). They time out after 15 seconds, and failures are reported as a typed `WikipediaError` (`not_found`, `offline`, `timeout`, `http`, `invalid`).
+Requests carry no custom headers (not even Wikimedia's optional `Api-User-Agent`), so browsers send them without a CORS preflight round trip first. They time out after 15 seconds, and failures are reported as a typed `WikipediaError` (`not_found`, `offline`, `timeout`, `http`, `invalid`).
 
 ### Parsing and the trust boundary
 

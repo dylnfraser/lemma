@@ -1,8 +1,5 @@
 export const WIKIPEDIA_ORIGIN = "https://en.wikipedia.org";
 
-// Wikimedia asks API clients to identify themselves:
-// https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_User-Agent_Policy
-const API_USER_AGENT = "Lemma/0.1 (https://github.com/dylnfraser/lemma)";
 const REQUEST_TIMEOUT_MS = 15_000;
 const SEARCH_LIMIT = 5;
 
@@ -129,10 +126,9 @@ export async function requestJson<T>(url: URL, { fetch: fetcher = fetch, signal,
   for (let attempt = 0; ; attempt++) {
     const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
     try {
-      res = await fetcher(url, {
-        headers: { "Api-User-Agent": API_USER_AGENT },
-        signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
-      });
+      // No custom headers (such as Wikimedia's optional Api-User-Agent): any would make every request wait for a CORS
+      // preflight first, which Wikipedia doesn't let browsers cache, roughly doubling the time to open an article.
+      res = await fetcher(url, { signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
     } catch (error) {
       if (signal?.aborted) throw error;
       if (timeout.aborted) throw new WikipediaError("timeout", "Wikipedia took too long to respond.");
@@ -174,6 +170,10 @@ export async function fetchArticle(title: string, options: RequestOptions = {}):
     page: title,
     prop: "text|langlinks|categories|properties|revid",
     redirects: "1",
+    // cacheable for a few minutes, by the browser and by Wikipedia's edge servers: an article someone opened recently
+    // comes back noticeably faster than one Wikipedia has to look up again
+    maxage: "300",
+    smaxage: "300",
     format: "json",
     origin: "*",
   }).toString();
