@@ -515,7 +515,7 @@
         from {
             opacity: 0;
             scale: 0.7;
-            filter: blur(var(--blur));
+            filter: blur(4px);
         }
     }
 

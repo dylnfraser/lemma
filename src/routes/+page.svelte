@@ -98,8 +98,13 @@
             display: inline-block;
             font-weight: 300;
 
-            animation: font-weight-wave 0.8s ease-in-out;
-            animation-delay: calc(var(--i) * 0.075s + 2s);
+            /* letters blur in one after another, then later a slow wave of weight runs through them */
+            animation:
+                enter var(--dur-slow) var(--ease-out) backwards,
+                font-weight-wave 0.8s ease-in-out;
+            animation-delay:
+                calc(var(--i) * var(--stagger)),
+                calc(var(--i) * 0.075s + 2s);
             @media (prefers-reduced-motion: reduce) {
                 animation: none;
             }

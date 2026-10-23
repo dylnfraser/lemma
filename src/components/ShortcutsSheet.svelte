@@ -65,7 +65,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-    <div class="backdrop" transition:fade={{ duration: motion(DURATION.fast) }} onclick={() => (open = false)} aria-hidden="true"></div>
+    <div class="backdrop" transition:fade={{ duration: motion(DURATION.base) }} onclick={() => (open = false)} aria-hidden="true"></div>
     <div
         class="sheet"
         role="dialog"

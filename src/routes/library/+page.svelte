@@ -80,7 +80,7 @@
                     <li
                         style:--i={Math.min(i, 12)}
                         animate:flip={{ duration: motion(DURATION.base), easing: cubicOut }}
-                        out:rise={{ duration: DURATION.fast }}
+                        out:rise={{ duration: DURATION.base }}
                     >
                         <a href={getArticlePath(entry.title)}>
                             {#if entry.thumbnail}

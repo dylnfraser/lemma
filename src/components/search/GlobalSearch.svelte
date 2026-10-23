@@ -46,7 +46,7 @@
     <div
         class="overlay"
         onclick={handleBackdropClick}
-        transition:fade={{ duration: motion(DURATION.fast) }}
+        transition:fade={{ duration: motion(DURATION.base) }}
     >
         <div
             class="dialog"

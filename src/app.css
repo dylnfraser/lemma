@@ -110,8 +110,8 @@ body *::-webkit-scrollbar-thumb {
 
     /* motion (mirrored for JS in src/lib/motion.ts) */
     --dur-instant: 90ms;
-    --dur-fast: 150ms;
-    --dur-base: 240ms;
+    --dur-fast: 200ms;
+    --dur-base: 260ms;
     --dur-slow: 420ms;
     /* long, gentle fades (e.g. the outline highlight easing out after load) */
     --dur-fade: 900ms;
@@ -577,8 +577,10 @@ figcaption .legend-group {
 @keyframes enter {
     from {
         opacity: 0;
-        filter: blur(var(--blur));
-        translate: 0 var(--rise);
+        /* literal values: Safari doesn't reliably animate custom properties inside keyframes (keep in step with
+           --blur and --rise) */
+        filter: blur(4px);
+        translate: 0 6px;
     }
 }
 
@@ -586,7 +588,7 @@ figcaption .legend-group {
 @keyframes fade-in {
     from {
         opacity: 0;
-        filter: blur(var(--blur));
+        filter: blur(4px);
     }
 }
 

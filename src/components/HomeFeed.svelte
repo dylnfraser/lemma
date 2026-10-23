@@ -84,7 +84,7 @@
         {/if}
 
         {#if mostRead.length > 0}
-            <section class="reading" aria-labelledby="mostread-heading" style:--i={2}>
+            <section class="reading" aria-labelledby="mostread-heading" style:--i={0}>
                 <h2 id="mostread-heading" class="label">Most read</h2>
                 <ol>
                     {#each mostRead as page, i}

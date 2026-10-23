@@ -212,7 +212,13 @@ function makeCollapsible(element: HTMLElement) {
     // revealed content settles in rather than snapping into place (the first rows are all that's on screen)
     if (opening && canAnimate(element)) {
       for (const part of parts.slice(0, 40)) {
-        part.animate([{ opacity: 0, translate: "0 -4px" }, { opacity: 1, translate: "0 0" }], { duration: 240, easing: EASE_OUT });
+        part.animate(
+          [
+            { opacity: 0, translate: "0 -4px", filter: "blur(4px)" },
+            { opacity: 1, translate: "0 0", filter: "blur(0)" },
+          ],
+          { duration: 320, easing: EASE_OUT },
+        );
       }
     }
   });

@@ -38,7 +38,7 @@
                 aria-label="Close sections"
                 tabindex="-1"
                 onclick={close}
-                transition:fade={{ duration: motion(DURATION.fast) }}
+                transition:fade={{ duration: motion(DURATION.base) }}
             ></button>
         {/if}
         <button

@@ -3,7 +3,7 @@ import { cubicOut, quintOut } from "svelte/easing";
 import { slide, type TransitionConfig } from "svelte/transition";
 
 /** JS-side counterparts of the motion tokens in app.css, for Svelte transitions and the Web Animations API. */
-export const DURATION = { instant: 90, fast: 150, base: 240, slow: 420 } as const;
+export const DURATION = { instant: 90, fast: 200, base: 260, slow: 420 } as const;
 /** Matches --blur: how blurred things are as they appear. */
 export const BLUR_PX = 4;
 export const EASE_OUT = "cubic-bezier(0.22, 1, 0.36, 1)";
@@ -29,7 +29,7 @@ function isNearViewport(node: Element, margin = 200): boolean {
  */
 export function pop(
   _node: Element,
-  { duration = DURATION.fast, start = 0.96, y = 0, delay = 0 }: { duration?: number; start?: number; y?: number; delay?: number } = {},
+  { duration = DURATION.base, start = 0.96, y = 0, delay = 0 }: { duration?: number; start?: number; y?: number; delay?: number } = {},
 ): TransitionConfig {
   return {
     duration: motion(duration),
