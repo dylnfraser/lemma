@@ -895,14 +895,18 @@
             background-color var(--dur-base) var(--ease-out),
             scale var(--dur-instant) var(--ease-out);
 
-        &:hover {
-            color: var(--text-color);
-            background: color-mix(in oklch, var(--secondary) 40%, transparent);
+        /* hover-capable pointers only: a tap would leave the background stuck on */
+        @media (hover: hover) {
+            &:hover {
+                color: var(--text-color);
+                background: color-mix(in oklch, var(--secondary) 40%, transparent);
+            }
         }
 
+        /* no margin to sit in: it moves to the heading's right edge */
         @media (max-width: 1050px) {
             left: auto;
-            right: 1.75rem;
+            right: 0;
         }
     }
 
@@ -928,9 +932,11 @@
             background-color var(--dur-base) var(--ease-out),
             scale var(--dur-instant) var(--ease-out);
 
-        &:hover {
-            color: var(--text-color);
-            background: color-mix(in oklch, var(--secondary) 40%, transparent);
+        @media (hover: hover) {
+            &:hover {
+                color: var(--text-color);
+                background: color-mix(in oklch, var(--secondary) 40%, transparent);
+            }
         }
 
         @media (hover: none) {
@@ -956,6 +962,24 @@
             grid-area: 1 / 1;
             display: grid;
             place-items: center;
+        }
+
+        /* narrow screens: the fold button has the right edge, so the link sits just after the heading's text, like an
+           anchor mark */
+        @media (max-width: 1050px) {
+            position: relative;
+            right: auto;
+            bottom: auto;
+            display: inline-grid;
+            vertical-align: middle;
+            margin: -0.2em 0 0 0.3rem;
+        }
+    }
+
+    @media (max-width: 1050px) {
+        /* clear of the fold button at the right edge */
+        .article-body :global(.section-heading) {
+            padding-right: 2.25rem;
         }
     }
 
