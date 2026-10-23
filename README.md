@@ -87,8 +87,10 @@ The parser is covered by fixture-based tests in `src/lib/article/*.test.ts`.
 Lemma builds to static files with `@sveltejs/adapter-static`, configured in `vite.config.ts`:
 
 * `/` and `/about` are prerendered.
-* Every other path is served by the SPA fallback, `build/200.html`. `static/_redirects` tells Netlify to do this, and `netlify.toml` sets the build command and publish directory.
-* Social metadata (Open Graph and Twitter cards) lives in `src/app.html`. It needs an absolute site URL, which comes from `PUBLIC_SITE_URL`, then Netlify's built-in `URL` variable, then `http://localhost:4173`.
+* Every other path is served by the SPA fallback, `build/200.html`.
+* Social metadata (Open Graph and Twitter cards) lives in `src/app.html`. It needs an absolute site URL, which comes from `PUBLIC_SITE_URL` (falling back to `http://localhost:4173`).
+
+It's deployed on Cloudflare Workers with static assets. `wrangler.jsonc` points the Worker at `build/`; real files (the prerendered pages, scripts, styles) are served directly, and `cloudflare/worker.js` answers every other path with `200.html`. Build with `bun run build`, deploy with `npx wrangler deploy`, and set `PUBLIC_SITE_URL` in the build variables.
 
 Any other static host works the same way, as long as it serves `200.html` for unknown paths.
 

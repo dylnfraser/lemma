@@ -1,2 +1,0 @@
-# Articles are rendered in the browser; serve the SPA shell for any path without a prerendered file.
-/*    /200.html    200
