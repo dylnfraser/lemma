@@ -826,7 +826,7 @@
         --rule-gap: 2.25rem;
         margin-top: var(--rule-gap);
         padding-top: var(--rule-gap);
-        border-top: 1px solid color-mix(in oklch, var(--accent) 18%, var(--rule));
+        border-top: 1px solid var(--rule);
         font-size: 1.85rem;
         font-weight: 550;
         letter-spacing: -0.005em;
