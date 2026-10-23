@@ -180,8 +180,15 @@
                 <div class="cite-footer">
                     <span class="note">{revisionId ? "Links to the exact version you're reading" : "Links to the live article"}</span>
                     <button type="button" class="copy" class:copied onclick={copyCitation}>
-                        <span class="copy-icon"><Icon name={copied ? "check" : "copy"} size="0.85em" /></span>
-                        {copied ? "Copied" : "Copy"}
+                        <!-- icons and labels each share one cell and cross-fade, so nothing shifts -->
+                        <span class="copy-icon swap">
+                            <span class:off={copied}><Icon name="copy" size="0.85em" /></span>
+                            <span class:off={!copied}><Icon name="check" size="0.85em" /></span>
+                        </span>
+                        <span class="label-swap">
+                            <span class:off={copied} aria-hidden={copied}>Copy</span>
+                            <span class:off={!copied} aria-hidden={!copied}>Copied</span>
+                        </span>
                     </button>
                 </div>
             </div>
@@ -240,7 +247,7 @@
 
         > .off {
             opacity: 0;
-            filter: blur(var(--blur));
+            filter: blur(4px);
         }
     }
 
@@ -390,17 +397,25 @@
             background-color var(--dur-fast),
             scale var(--dur-instant) var(--ease-out);
 
-        &.copied .copy-icon {
-            animation: bookmark-pop var(--dur-slow) var(--ease-spring);
-
-            @media (prefers-reduced-motion: reduce) {
-                animation: none;
-            }
-        }
     }
 
     .copy-icon {
-        display: inline-flex;
+        display: inline-grid;
+
+        > span {
+            grid-area: 1 / 1;
+            display: inline-flex;
+            transition:
+                opacity var(--dur-slow) var(--ease-out),
+                filter var(--dur-slow) var(--ease-out),
+                scale var(--dur-slow) var(--ease-out);
+        }
+
+        > .off {
+            opacity: 0;
+            filter: blur(4px);
+            scale: 0.85;
+        }
     }
 
     /* ---------- listen ---------- */

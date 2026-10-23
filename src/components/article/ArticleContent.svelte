@@ -99,14 +99,14 @@
                         <!-- the link icon turns into a tick (or a cross), each fading through a blur into the next -->
                         <span class="copy-icon">
                             {#key copied ? (copied.ok ? "check" : "x") : "link"}
-                                <span class="copy-glyph" in:pop={{ start: 0.6, duration: DURATION.base }} out:pop={{ start: 0.6, duration: DURATION.fast }}>
+                                <span class="copy-glyph" in:pop={{ start: 0.85, duration: DURATION.slow }} out:pop={{ start: 0.85, duration: DURATION.base }}>
                                     <Icon name={copied ? (copied.ok ? "check" : "x") : "link"} size="0.95em" />
                                 </span>
                             {/key}
                         </span>
                     </button>
                     {#if copied}
-                        <span class="copy-note" aria-hidden="true" in:rise={{ y: 4 }} out:rise={{ y: -4, duration: DURATION.fast }}
+                        <span class="copy-note" aria-hidden="true" in:rise={{ y: 0, duration: DURATION.slow }} out:rise={{ y: 0, duration: DURATION.base }}
                             >{copied.ok ? "Copied" : "Couldn't copy"}</span
                         >
                     {/if}
