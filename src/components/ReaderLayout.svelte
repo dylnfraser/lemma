@@ -48,7 +48,6 @@
         <button
             type="button"
             class="outline-toggle"
-            class:open={outlineOpen}
             aria-controls="{uid}-outline"
             aria-expanded={outlineOpen}
             aria-label={outlineLabel ? `Sections (reading ${outlineLabel})` : "Sections"}
@@ -124,6 +123,11 @@
             --pill-height: 2.6rem;
             --pill-bottom: calc(1.25rem + env(safe-area-inset-bottom));
             --pill-left: max(1rem, env(safe-area-inset-left));
+            /* the pill and its card share one corner curve, one border and one shadow */
+            --pill-radius: calc(var(--pill-height) / 2);
+            --pill-border: 1px solid var(--rule);
+            --pill-shadow: 0 12px 32px -14px var(--shadow-color);
+            --close: calc(var(--dur-fast) * 0.7);
         }
 
         .content {
@@ -143,23 +147,21 @@
             box-sizing: border-box;
             padding: 1rem 0.6rem 0 0.4rem;
             background: var(--bg-color);
-            border: 1px solid var(--rule);
-            border-radius: 20px;
-            box-shadow:
-                0 24px 48px -20px var(--shadow-color),
-                0 2px 8px -4px var(--shadow-color);
-            transform-origin: 1.3rem 100%;
+            border: var(--pill-border);
+            border-radius: var(--pill-radius);
+            box-shadow: var(--pill-shadow);
+            transform-origin: var(--pill-radius) 100%;
 
             visibility: hidden;
             opacity: 0;
-            scale: 0.94;
-            translate: 0 8px;
-            /* closes a little quicker than it opens; visibility flips once it has faded */
+            scale: 0.95;
+            translate: 0 6px;
+            /* closes quicker than it opens; visibility flips once it has faded */
             transition:
-                opacity var(--dur-fast) ease-in,
-                scale var(--dur-fast) ease-in,
-                translate var(--dur-fast) ease-in,
-                visibility 0s linear var(--dur-fast);
+                opacity var(--close) ease-in,
+                scale var(--close) ease-in,
+                translate var(--close) ease-in,
+                visibility 0s linear var(--close);
 
             &.open {
                 visibility: visible;
@@ -167,9 +169,9 @@
                 scale: 1;
                 translate: none;
                 transition:
-                    opacity var(--dur-base) var(--ease-out),
-                    scale var(--dur-slow) var(--ease-out),
-                    translate var(--dur-slow) var(--ease-out);
+                    opacity var(--dur-fast) var(--ease-out),
+                    scale var(--dur-base) var(--ease-out),
+                    translate var(--dur-base) var(--ease-out);
             }
         }
 
@@ -199,24 +201,16 @@
             height: var(--pill-height);
             max-width: min(16rem, calc(100vw - 2rem));
             padding: 0 0.75rem 0 0.7rem;
-            border: 1px solid var(--rule);
-            border-radius: 999px;
-            background: color-mix(in oklch, var(--bg-color) 86%, transparent);
-            -webkit-backdrop-filter: blur(10px) saturate(1.2);
-            backdrop-filter: blur(10px) saturate(1.2);
-            box-shadow: 0 10px 28px -12px var(--shadow-color);
+            border: var(--pill-border);
+            border-radius: var(--pill-radius);
+            background: var(--bg-color);
+            box-shadow: var(--pill-shadow);
             font-size: 0.82rem;
             font-weight: 600;
             line-height: 1;
             color: var(--text-color);
             cursor: pointer;
-            transition:
-                scale var(--dur-instant) var(--ease-out),
-                background-color var(--dur-base) var(--ease-out);
-
-            &.open {
-                background: var(--bg-color);
-            }
+            transition: scale var(--dur-instant) var(--ease-out);
 
             > :global(svg:last-child) {
                 flex: none;
