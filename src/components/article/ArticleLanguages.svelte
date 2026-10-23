@@ -106,8 +106,9 @@
             <ul bind:this={list}>
                 {#each shown as language, i (language.code)}
                     <li style:--i={Math.min(i, 10)}>
-                        <a href={language.url} target="_blank" rel="noopener noreferrer" lang={language.code} hreflang={language.code}>
-                            <span class="autonym">{language.autonym}</span>
+                        <a href={language.url} target="_blank" rel="noopener noreferrer" hreflang={language.code}>
+                            <!-- only the language's own name is in it (the English name beside it isn't) -->
+                            <span class="autonym" lang={language.code}>{language.autonym}</span>
                             {#if language.name !== language.autonym}<span class="name">{language.name}</span>{/if}
                         </a>
                     </li>
