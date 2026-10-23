@@ -40,6 +40,16 @@
 
     $effect(() => stopPronunciation);
 
+    // Sections are told apart by their headings and the space above them; a rule only marks where the reading ends
+    // and the back matter (See also, Notes, References…) begins.
+    const BACK_MATTER =
+        /^(see also|notes|footnotes|explanatory notes|citations|references|notes and references|sources|bibliography|works cited|further reading|external links)$/i;
+    let backMatterId = $derived(
+        blocks
+            .flatMap((block) => (block.type === "heading" ? [block.heading] : []))
+            .find((heading) => heading.level === 2 && BACK_MATTER.test(heading.text.trim()))?.id ?? "",
+    );
+
     // The opening paragraph is styled as a standfirst.
     let leadIndex = $derived(blocks.findIndex((block) => block.type === "html" && block.kind === "paragraph"));
 
@@ -76,7 +86,7 @@
             {@const collapsed = collapsedSectionIds.has(heading.id)}
             {#if shown}
                 {@const copied = copyStatus?.id === heading.id ? copyStatus : null}
-                <svelte:element this={heading.tag.toLowerCase()} id={heading.id} class="section-heading" data-heading transition:fold>
+                <svelte:element this={heading.tag.toLowerCase()} id={heading.id} class="section-heading" class:divided={heading.id === backMatterId} data-heading transition:fold>
                     {#if isFoldableHeadingLevel(heading.level)}
                         <button
                             class="chev"
@@ -820,20 +830,24 @@
         text-wrap: balance;
     }
 
-    /* The section rule is the h2's top border, with the same space above it (to the text before) as below it (to
-       the heading's text). */
     .article-body :global(h2) {
-        --rule-gap: 2.25rem;
-        margin-top: var(--rule-gap);
-        padding-top: var(--rule-gap);
-        border-top: 1px solid var(--rule);
+        margin-top: 3.25rem;
         font-size: 1.85rem;
         font-weight: 550;
         letter-spacing: -0.005em;
     }
 
-    /* The section rule is the h2's own border: flash only the heading text below it, not the rule and padding. */
-    .article-body :global(h2.jump-flash) {
+    /* Where the back matter begins, a rule: the h2's top border, with the same space above it (to the text before)
+       as below it (to the heading's text). */
+    .article-body :global(h2.divided) {
+        --rule-gap: 2.25rem;
+        margin-top: var(--rule-gap);
+        padding-top: var(--rule-gap);
+        border-top: 1px solid var(--rule);
+    }
+
+    /* The rule is the h2's own border: flash only the heading text below it, not the rule and padding. */
+    .article-body :global(h2.divided.jump-flash) {
         isolation: isolate;
         border-radius: 0;
         animation: none;
