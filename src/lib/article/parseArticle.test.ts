@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { markCitationRuns, parseArticle } from "./parseArticle";
+import { markBreakableNoWrapRuns, markCitationRuns, parseArticle } from "./parseArticle";
 import {
   DUPLICATE_HEADINGS,
   EDIT_AFFORDANCES,
@@ -494,4 +494,13 @@ it("marks only citations that directly follow another", () => {
   root.innerHTML = '<p>a.<sup class="reference">1</sup> b,<sup class="reference">2</sup><sup class="reference">3</sup></p>';
   markCitationRuns(root);
   expect([...root.querySelectorAll("sup")].map((sup) => sup.classList.contains("follows-citation"))).toEqual([false, false, true]);
+});
+
+it("marks no-wrap runs that contain no-wrap groups", () => {
+  const root = document.createElement("div");
+  root.innerHTML =
+    '<span class="nowrap" id="outer"><span style="white-space:nowrap">123</span> <span class="nowrap">456</span></span><span class="nowrap" id="plain">7</span>';
+  markBreakableNoWrapRuns(root);
+  expect(root.querySelector("#outer")!.classList.contains("nowrap-groups")).toBe(true);
+  expect(root.querySelector("#plain")!.classList.contains("nowrap-groups")).toBe(false);
 });

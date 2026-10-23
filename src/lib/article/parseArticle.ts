@@ -202,6 +202,19 @@ export function markCitationRuns(root: HTMLElement) {
   }
 }
 
+const NO_WRAP = '.nowrap, [style*="white-space:nowrap"], [style*="white-space: nowrap"]';
+
+/**
+ * Marks no-wrap runs with no-wrap groups nested inside (templates like {{gaps}} write long numbers that way), so CSS
+ * can let the run break between its groups. Done here rather than with a `:has()` rule: Safari re-checks a rule
+ * like that across the whole article on every later style change, stalling things like opening an image.
+ */
+export function markBreakableNoWrapRuns(root: HTMLElement) {
+  for (const run of root.querySelectorAll(NO_WRAP)) {
+    if (run.querySelector(NO_WRAP)) run.classList.add("nowrap-groups");
+  }
+}
+
 export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
   // collected from the raw HTML: the sanitizer removes <style>
   const styles = extractTemplateStyles(pageContent.text);
@@ -214,6 +227,7 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
   tintMath(root);
   markDarkBackgrounds(root);
   markCitationRuns(root);
+  markBreakableNoWrapRuns(root);
   const spoken = extractSpokenAudio(root);
   const sisters = extractSisterLinks(root);
 

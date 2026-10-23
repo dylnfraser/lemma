@@ -133,7 +133,7 @@
             {@const caption = image.caption || block.caption}
             {#if shown}
                 <div class="wiki-images" transition:fold>
-                    <figure>
+                    <figure class:sized={image.width && image.height}>
                         <button
                             type="button"
                             class="zoomable"
@@ -191,8 +191,9 @@
         /* Long unbroken runs (digit sequences, URLs) must wrap rather than widen the page on phones. */
         overflow-wrap: break-word;
 
-        /* Templates like {{gaps}} nest no-wrap digit groups inside a no-wrap run; let the run break between groups. */
-        :global(:is(.nowrap, [style*="white-space:nowrap"], [style*="white-space: nowrap"]):has(:is(.nowrap, [style*="white-space:nowrap"], [style*="white-space: nowrap"]))) {
+        /* Templates like {{gaps}} nest no-wrap digit groups inside a no-wrap run; let the run break between groups
+           (marked when the article is parsed). */
+        :global(.nowrap-groups) {
             white-space: normal !important;
         }
 
@@ -1105,7 +1106,8 @@
      * set on the image's button (the image fills it), since a percentage width on the image itself would depend on
      * the button's, which depends on the image.
      */
-    .wiki-images figure:has(> .zoomable[style*="--ar"]) {
+    /* (a class rather than a :has() rule: Safari would re-check that on every style change in the article) */
+    .wiki-images figure.sized {
         width: 100%;
     }
 
