@@ -90,10 +90,13 @@
 
 <style>
     .infobox {
+        /* the toggle at the bottom sits this far in from the card's edges, its corners concentric with the card's */
+        --radius: 16px;
+        --inset: 0.5rem;
         box-sizing: border-box;
-        padding: 1rem 1rem 0.75rem;
+        padding: 1rem 1rem var(--inset);
         border: 1px solid var(--rule);
-        border-radius: 14px;
+        border-radius: var(--radius);
         background: color-mix(in oklch, var(--bg-color) 70%, var(--page-bg));
         box-shadow: 0 14px 34px -24px var(--shadow-color);
         font-size: 0.8rem;
@@ -533,11 +536,11 @@
 
     .toggle {
         display: block;
-        width: 100%;
-        margin-top: 0.6rem;
-        padding: 0.45rem;
+        width: calc(100% + 2 * (1rem - var(--inset)));
+        margin: 0.6rem calc(var(--inset) - 1rem) 0;
+        padding: 0.55rem;
         border: 1px solid var(--rule);
-        border-radius: 999px;
+        border-radius: calc(var(--radius) - var(--inset));
         background: var(--bg-color);
         font-size: 0.78rem;
         font-weight: 600;
