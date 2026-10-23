@@ -205,11 +205,31 @@
             margin: 0 0 1.15em;
         }
 
-        /* On wider screens the opening paragraph reads as a standfirst. */
+        /* The opening paragraph reads as a standfirst: set in the serif of the headings, a little larger, and on wider
+           screens opening with a drop cap. */
+        .lead :global(p) {
+            font-family: default-serif;
+            font-size: 1.06em;
+            line-height: 1.6;
+            letter-spacing: 0.003em;
+            /* set as a block; hyphenation keeps the justified lines from opening up wide gaps */
+            text-align: justify;
+            hyphens: auto;
+        }
+
         @media (min-width: 640px) {
             .lead :global(p) {
-                font-size: 1.1em;
-                line-height: 1.65;
+                font-size: 1.12em;
+                line-height: 1.6;
+            }
+
+            .lead :global(p:first-of-type::first-letter) {
+                float: left;
+                margin: 0.06em 0.1em 0 0;
+                font-size: 3.3em;
+                font-weight: 600;
+                line-height: 0.85;
+                color: var(--accent);
             }
         }
 
@@ -792,9 +812,15 @@
     .block {
         margin: 0 0 1.15em;
 
-        /* the opening paragraph stands apart from the rest of the article */
+        /* the standfirst is set apart from the article below by a rule, with equal space on either side */
         &.lead {
-            margin-bottom: 2.25em;
+            margin-bottom: 2em;
+            padding-bottom: 2em;
+            border-bottom: 1px solid var(--rule);
+
+            > :global(:last-child) {
+                margin-bottom: 0;
+            }
         }
 
         &.quote {
@@ -955,6 +981,24 @@
 
         @media (hover: none) {
             opacity: 0.6;
+        }
+
+        /* narrow screens: the fold button has the right edge, so the link sits just after the heading's text, like an
+           anchor mark */
+        @media (max-width: 1050px) {
+            position: relative;
+            right: auto;
+            bottom: auto;
+            display: inline-grid;
+            vertical-align: middle;
+            margin: -0.2em 0 0 0.3rem;
+        }
+    }
+
+    @media (max-width: 1050px) {
+        /* clear of the fold button at the right edge */
+        .article-body :global(.section-heading) {
+            padding-right: 2.25rem;
         }
     }
 
