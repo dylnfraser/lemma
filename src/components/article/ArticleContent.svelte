@@ -53,6 +53,16 @@
     // The opening paragraph is styled as a standfirst.
     let leadIndex = $derived(blocks.findIndex((block) => block.type === "html" && block.kind === "paragraph"));
 
+    // Blocks out of view skip rendering (see .skip-offscreen below), but only once the whole article has been laid out
+    // and each block's height remembered, so the page keeps its length and every section stays where it is.
+    let skipOffscreen = $state(false);
+    $effect.pre(() => {
+        void blocks;
+        skipOffscreen = false;
+        let frame = requestAnimationFrame(() => (frame = requestAnimationFrame(() => (skipOffscreen = true))));
+        return () => cancelAnimationFrame(frame);
+    });
+
     let copyStatus = $state<{ id: string; ok: boolean } | null>(null);
     let copiedResetTimer: ReturnType<typeof setTimeout>;
 
@@ -76,7 +86,7 @@
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions (delegates clicks on in-article links) -->
-<div class="article-body mw-parser-output" onclick={handleClick} use:templateStyles={styles}>
+<div class="article-body mw-parser-output" class:skip-offscreen={skipOffscreen} onclick={handleClick} use:templateStyles={styles}>
     {#each blocks as block, i (i)}
         <!-- each element sits directly in its own {#if shown}: Svelte's (local) transitions only play when the
              block immediately around an element is added or removed, so this is what lets folding animate -->
@@ -812,6 +822,37 @@
         &:focus-visible {
             outline: none;
         }
+    }
+
+    /* ---------- skipping what's out of view ---------- */
+
+    /*
+     * Safari repaints the whole article whenever anything on the page lays out again (an image loading, a panel
+     * opening): half a second on a long article, a stall in every animation. Text blocks out of view skip rendering
+     * instead, using the height they were last laid out at. A skipped block's painting is clipped to its box, so only
+     * text blocks do this, with room at the sides for hanging quote marks; inner margins stay inside it.
+     */
+    .article-body > :is(.block:is(.paragraph, .list, .references, .bibliography):not(.lead), .table-scroll) {
+        /* the width too: a table's box fits its table */
+        contain-intrinsic-size: auto 0px auto 10rem;
+    }
+
+    .article-body > .block:is(.paragraph, .list, .references, .bibliography):not(.lead) {
+        padding-inline: 1rem;
+        margin-inline: -1rem;
+
+        > :global(:first-child) {
+            margin-top: 0;
+        }
+
+        > :global(:last-child),
+        :global(:is(ul, ol):last-child > li:last-child) {
+            margin-bottom: 0;
+        }
+    }
+
+    .skip-offscreen > :is(.block:is(.paragraph, .list, .references, .bibliography):not(.lead), .table-scroll) {
+        content-visibility: auto;
     }
 
     /* ---------- block spacing ---------- */
