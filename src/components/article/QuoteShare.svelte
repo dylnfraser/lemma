@@ -114,15 +114,21 @@
         aria-label="Share the selected text"
         transition:pop={{ start: 0.92 }}
     >
-        <button type="button" onmousedown={(event) => event.preventDefault()} onclick={() => copy("quote")}>
-            <Icon name={copied === "quote" ? "check" : "quote"} size="0.9em" />
-            {copied === "quote" ? "Copied" : "Copy quote"}
-        </button>
-        <span class="divider" aria-hidden="true"></span>
-        <button type="button" onmousedown={(event) => event.preventDefault()} onclick={() => copy("link")}>
-            <Icon name={copied === "link" ? "check" : "link"} size="0.9em" />
-            {copied === "link" ? "Copied" : "Copy link"}
-        </button>
+        {#each [["quote", "Copy quote"], ["link", "Copy link"]] as const as [kind, label], i}
+            {#if i > 0}<span class="divider" aria-hidden="true"></span>{/if}
+            <!-- icons and labels each share one cell and cross-fade, so the button keeps its width and the toolbar
+                 (centred on the selection) doesn't shift -->
+            <button type="button" onmousedown={(event) => event.preventDefault()} onclick={() => copy(kind)}>
+                <span class="swap">
+                    <span class:off={copied === kind}><Icon name={kind} size="0.9em" /></span>
+                    <span class:off={copied !== kind}><Icon name="check" size="0.9em" /></span>
+                </span>
+                <span class="swap">
+                    <span class:off={copied === kind} aria-hidden={copied === kind}>{label}</span>
+                    <span class:off={copied !== kind} aria-hidden={copied !== kind}>Copied</span>
+                </span>
+            </button>
+        {/each}
     </div>
 {/if}
 
@@ -169,6 +175,26 @@
 
         &:hover {
             background: color-mix(in oklch, var(--bg-color) 16%, transparent);
+        }
+    }
+
+    .swap {
+        display: inline-grid;
+        justify-items: start;
+
+        > span {
+            grid-area: 1 / 1;
+            display: inline-flex;
+            transition:
+                opacity var(--dur-slow) var(--ease-out),
+                filter var(--dur-slow) var(--ease-out),
+                scale var(--dur-slow) var(--ease-out);
+        }
+
+        > .off {
+            opacity: 0;
+            filter: blur(4px);
+            scale: 0.85;
         }
     }
 
