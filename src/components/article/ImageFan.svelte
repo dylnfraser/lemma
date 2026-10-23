@@ -80,25 +80,44 @@
         }
     }
 
-    // How long expanding waits for the pictures to be decoded before animating anyway.
-    const DECODE_WAIT_MS = 150;
+    // How long a click waits for pictures that still aren't ready before animating anyway.
+    const DECODE_WAIT_MS = 100;
 
     /**
-     * Decodes the pictures before the grid shows them: otherwise each new image decodes mid-flight, and the
-     * animation stalls or a picture pops in late. Already-decoded pictures resolve at once.
+     * Downloads and decodes every picture, including those hidden behind the stack, so expanding never waits on the
+     * network or stalls mid-flight decoding one. Started ahead of time (see `preloadNearby`); repeat calls reuse it.
      */
+    let decoded: Promise<unknown> | null = null;
     function decodeImages() {
-        const decoded = images.map((image) => {
-            const preload = new Image();
-            preload.src = image.src;
-            return preload.decode().catch(() => {});
-        });
-        return Promise.race([Promise.all(decoded), new Promise((resolve) => setTimeout(resolve, DECODE_WAIT_MS))]);
+        decoded ??= Promise.all(
+            images.map((image) => {
+                const preload = new Image();
+                preload.src = image.src;
+                return preload.decode().catch(() => {});
+            }),
+        );
+        return decoded;
+    }
+
+    /** Starts decoding the pictures once the stack comes near the screen. */
+    function preloadNearby(node: HTMLElement) {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (!entries.some((entry) => entry.isIntersecting)) return;
+                decodeImages();
+                observer.disconnect();
+            },
+            { rootMargin: "600px 0px" },
+        );
+        observer.observe(node);
+        return { destroy: () => observer.disconnect() };
     }
 
     /** FLIP: render the grid, then fly each image out from the card it was shown on. */
     async function expand(event: MouseEvent) {
-        if (!prefersReducedMotion.current) await decodeImages();
+        if (!prefersReducedMotion.current) {
+            await Promise.race([decodeImages(), new Promise((resolve) => setTimeout(resolve, DECODE_WAIT_MS))]);
+        }
         const cards = measureCards();
         const stackHeight = fanButton?.parentElement?.getBoundingClientRect().height ?? 0;
         focusAfterToggle = isKeyboardClick(event);
@@ -237,8 +256,7 @@
                         onmousedown={preventMouseFocus}
                         onclick={(event) => openViewer(i, event)}
                     >
-                        <!-- not lazy: the cards already loaded these, and the animation needs their real size; decoded
-                             in step with painting (expand decodes them first) so none appears a frame late -->
+                        <!-- not lazy: the cards already loaded these, and the animation needs their real size -->
                         <img
                             alt={image.alt}
                             src={image.src}
@@ -248,7 +266,7 @@
                             style:--max-w={image.pixelWidth ? `${image.pixelWidth}px` : undefined}
                             class:invert-dark={image.invertInDarkMode}
                             class:light-backing={image.lightBacking}
-                            decoding="sync"
+                            decoding="async"
                         />
                     </button>
                     {#if image.caption}
@@ -270,8 +288,10 @@
             aria-label={`Show all ${images.length} images`}
             onmousedown={preventMouseFocus}
             onclick={expand}
+            onpointerenter={decodeImages}
             bind:this={fanButton}
             use:focusWhenToggled
+            use:preloadNearby
         >
             {#each fanned as image, i}
                 {@const t = cardTransform(i)}
