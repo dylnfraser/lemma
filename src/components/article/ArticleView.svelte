@@ -227,9 +227,9 @@
         }
     }
 
-    function openFromOutline(id: string, event: MouseEvent, close: () => void) {
+    // On small screens the outline stays open after a jump, so the reader can hop between sections.
+    function openFromOutline(id: string, event: MouseEvent) {
         event.preventDefault();
-        close();
         goToAnchor(id);
     }
 
@@ -574,7 +574,7 @@
 <div class="mood above" aria-hidden="true"></div>
 
 <ReaderLayout outlineLabel={highlightActive ? headingsById.get(activeHeadingId)?.text : undefined}>
-    {#snippet outline({ close })}
+    {#snippet outline()}
         {#if headings.length > 0}
             <ArticleBreadcrumbs
                 {headings}
@@ -582,7 +582,7 @@
                 {highlightActive}
                 collapsedIds={collapsedOutline}
                 onToggle={toggleOutline}
-                onOpen={(id, event) => openFromOutline(id, event, close)}
+                onOpen={openFromOutline}
             />
         {/if}
     {/snippet}
