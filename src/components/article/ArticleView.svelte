@@ -572,9 +572,6 @@
 <div class="mood" aria-hidden="true"></div>
 <!-- its mirror image above the page, only seen when the page is pulled down past the top (macOS rubber-banding) -->
 <div class="mood above" aria-hidden="true"></div>
-<Lightbox />
-<LinkPreview currentTitle={title} getReference={referenceHtml} />
-<QuoteShare {title} root={articleElement} />
 
 <ReaderLayout>
     {#snippet outline({ close })}
@@ -668,6 +665,12 @@
         </button>
     </div>
 {/if}
+
+<!-- Overlays come last: in Safari, adding an element ahead of the article restyles the whole article after it (a
+     visible stall when the image viewer or a preview appears). -->
+<Lightbox />
+<LinkPreview currentTitle={title} getReference={referenceHtml} />
+<QuoteShare {title} root={articleElement} />
 
 <style>
     /*
