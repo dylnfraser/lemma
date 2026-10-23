@@ -202,7 +202,7 @@
         min-width: 1.5rem;
         height: 1.5rem;
         padding: 0 0.35rem;
-        border: 1px solid color-mix(in oklch, var(--rule) 80%, transparent);
+        border: 1px solid var(--rule);
         border-bottom-width: 2px;
         border-radius: 6px;
         background: var(--page-bg);

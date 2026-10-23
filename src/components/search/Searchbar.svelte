@@ -294,7 +294,7 @@
         margin-inline: auto;
         overflow: hidden;
         background: var(--bg-color);
-        border: 1px solid var(--secondary);
+        border: 1px solid var(--rule);
         border-radius: 12px;
         box-shadow: 0 12px 32px var(--shadow-color);
         transition:
@@ -491,7 +491,7 @@
         width: 1.5rem;
         height: 1.5rem;
         padding: 0;
-        border: 1px solid color-mix(in oklch, var(--rule) 80%, transparent);
+        border: 1px solid var(--rule);
         border-radius: 6px;
         background: var(--bg-color);
         color: var(--muted);
@@ -694,7 +694,7 @@
         height: 1.375rem;
         min-width: 1.375rem;
         padding: 0 0.375rem;
-        border: 1px solid color-mix(in oklch, var(--rule) 80%, transparent);
+        border: 1px solid var(--rule);
         border-radius: 6px;
         background: var(--bg-color);
         font-family: inherit;

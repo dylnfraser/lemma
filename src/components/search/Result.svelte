@@ -121,7 +121,7 @@
     img {
         object-fit: cover;
         background: var(--secondary);
-        outline: 1px solid color-mix(in oklch, var(--text-color) 8%, transparent);
+        outline: 1px solid var(--image-edge);
         outline-offset: -1px;
     }
 
@@ -144,7 +144,7 @@
         height: 1.375rem;
         min-width: 1.375rem;
         padding: 0 0.375rem;
-        border: 1px solid color-mix(in oklch, var(--rule) 80%, transparent);
+        border: 1px solid var(--rule);
         border-radius: 6px;
         background: var(--bg-color);
         font-family: inherit;

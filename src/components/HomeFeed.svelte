@@ -173,7 +173,7 @@
         overflow: hidden;
         border-radius: 10px;
         background: var(--secondary);
-        outline: 1px solid color-mix(in oklch, var(--text-color) 8%, transparent);
+        outline: 1px solid var(--image-edge);
         outline-offset: -1px;
 
         img {

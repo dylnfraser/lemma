@@ -136,6 +136,8 @@ body *::-webkit-scrollbar-thumb {
     /* derived from the palette above, so they follow light/dark automatically */
     --muted: color-mix(in oklch, var(--text-color) 62%, var(--page-bg));
     --rule: color-mix(in oklch, var(--secondary) 75%, var(--page-bg));
+    /* the hairline drawn just inside an image's edge, so pale pictures don't bleed into the page */
+    --image-edge: color-mix(in oklch, var(--text-color) 9%, transparent);
 
     background: var(--page-bg);
     color: var(--text-color);
@@ -208,7 +210,7 @@ label,
     z-index: 50;
     padding: 0.5rem 0.75rem;
     background: var(--bg-color);
-    border: 1px solid var(--secondary);
+    border: 1px solid var(--rule);
     border-radius: 8px;
     transition: top var(--dur-base) var(--ease-out);
 
@@ -343,7 +345,7 @@ kbd {
     font-family: inherit;
     font-size: 0.75em;
     padding: 0.05rem 0.35rem;
-    border: 1px solid var(--secondary);
+    border: 1px solid var(--rule);
     border-radius: 4px;
     opacity: 0.8;
 }
@@ -417,7 +419,7 @@ kbd {
     margin-inline: auto;
     overflow: hidden;
     border-radius: 10px;
-    outline: 1px solid color-mix(in oklch, var(--text-color) 10%, transparent);
+    outline: 1px solid var(--image-edge);
     outline-offset: -1px;
     text-decoration: none;
 

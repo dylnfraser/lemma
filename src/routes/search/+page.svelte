@@ -345,7 +345,7 @@
         border-radius: 8px;
         object-fit: cover;
         background: var(--secondary);
-        outline: 1px solid color-mix(in oklch, var(--text-color) 8%, transparent);
+        outline: 1px solid var(--image-edge);
         outline-offset: -1px;
         transition: scale var(--dur-base) var(--ease-out);
     }

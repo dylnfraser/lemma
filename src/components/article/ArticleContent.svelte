@@ -1190,7 +1190,7 @@
             margin-inline: auto;
             object-fit: contain;
             border-radius: 8px;
-            outline: 1px solid color-mix(in oklch, var(--text-color) 8%, transparent);
+            outline: 1px solid var(--image-edge);
             outline-offset: -1px;
             box-shadow: 0 10px 30px -14px var(--shadow-color);
         }

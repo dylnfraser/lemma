@@ -320,7 +320,7 @@
             max-height: 0.95em;
             margin: 0;
             border-radius: 2px;
-            outline: 1px solid color-mix(in oklch, var(--text-color) 12%, transparent);
+            outline: 1px solid var(--image-edge);
             outline-offset: -1px;
         }
     }
