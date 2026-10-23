@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { afterNavigate, beforeNavigate } from "$app/navigation";
     import { onMount } from "svelte";
     import { prefersReducedMotion } from "svelte/motion";
     import type { FeaturedFeed } from "$lib/api/feed";
@@ -51,7 +52,14 @@
     const WORD_STAGGER_IN = 32;
     const WORDS_IN_AFTER = 160;
 
+    // The words' transitions are global (they sit in blocks nested inside the {#key}), so they'd also play when the
+    // whole page goes, keeping it on screen under the next one until the last word had blurred away. Leaving, they don't.
+    let leaving = false;
+    beforeNavigate(() => (leaving = true));
+    afterNavigate(() => (leaving = false));
+
     function word(_node: Element, { delay = 0, y = 4, duration = DURATION.base }: { delay?: number; y?: number; duration?: number }) {
+        if (leaving) return { duration: 0 };
         return {
             delay: motion(delay),
             duration: motion(duration),
