@@ -53,7 +53,8 @@
                 <kbd aria-hidden="true">/</kbd>
             </button>
         {/if}
-        <RandomButton />
+        <!-- on a phone, an article's navbar keeps to search and the library -->
+        <span class="random-slot" class:in-article={page.route.id === "/wiki/[title]"}><RandomButton /></span>
         <a
             class="library-link"
             href="/library"
@@ -67,6 +68,16 @@
 </header>
 
 <style>
+    .random-slot {
+        display: contents;
+
+        &.in-article {
+            @media (max-width: 600px) {
+                display: none;
+            }
+        }
+    }
+
     #navbar {
         position: fixed;
         inset: 0 0 auto;
