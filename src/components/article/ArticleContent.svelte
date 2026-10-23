@@ -995,6 +995,19 @@
         white-space: nowrap;
         color: var(--accent);
         pointer-events: none;
+
+        /* wide screens: the tick alone says it */
+        @media (min-width: 1051px) {
+            display: none;
+        }
+
+        /* narrow screens: inline, just after the link button */
+        @media (max-width: 1050px) {
+            position: static;
+            display: inline-flex;
+            vertical-align: middle;
+            margin: -0.2em 0 0 0;
+        }
     }
 
     /* ---------- works cited, sources, bibliography ---------- */
