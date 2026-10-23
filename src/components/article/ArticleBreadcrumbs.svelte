@@ -39,57 +39,69 @@
         }) ?? "";
     });
 
+    // The headings showing once any folding settles (rows on their way out don't count).
+    let visibleIds = $derived(headings.filter((heading) => !isHeadingHiddenByCollapsed(heading, collapsedIds)).map((heading) => heading.id));
+
+    // Where the marker should be, worked out from where its row will end up rather than where it is mid-animation:
+    // every row has the same height, so that's its place in the list times the row pitch. The marker can then glide
+    // straight there alongside the folding rows instead of chasing its row frame by frame.
     function placeIndicator() {
-        const active = track?.querySelector<HTMLElement>(".breadcrumb[data-marked]");
-        const next = active ? { y: active.offsetTop, height: active.offsetHeight } : null;
-        indicator = next;
-        if (next && !indicatorReady) requestAnimationFrame(() => (indicatorReady = true));
+        const index = visibleIds.indexOf(markedId);
+        const first = track?.querySelector<HTMLElement>(".breadcrumb-row");
+        const link = first?.querySelector<HTMLElement>(".breadcrumb");
+        if (index < 0 || !first || !link) {
+            indicator = null;
+            return;
+        }
+        // the first row is top-level and so never folds: its spacing is the settled spacing
+        const pitch = link.offsetHeight + (Number.parseFloat(getComputedStyle(first).marginBottom) || 0);
+        const next = { y: first.offsetTop + index * pitch, height: link.offsetHeight };
+        if (next.y !== indicator?.y || next.height !== indicator?.height) indicator = next;
+        if (!indicatorReady) requestAnimationFrame(() => (indicatorReady = true));
     }
 
-    $effect(() => {
-        void markedId;
-        void collapsedIds.size;
-        // untracked: placing the indicator reads and writes its own state, which must not re-trigger this effect
-        untrack(placeIndicator);
-    });
-
-    // While rows fold open or shut, the marker sticks to its row frame by frame (no easing of its own, which would have
-    // it chasing a moving target); otherwise it glides between entries.
-    let following = $state(false);
-    let followTimer: ReturnType<typeof setTimeout>;
+    // When folds change, the marker moves in step with the rows (same duration and easing); otherwise it glides
+    // between entries at its own, slower pace.
+    let syncing = $state(false);
+    let syncTimer: ReturnType<typeof setTimeout>;
     let lastFolds: number | null = null;
     $effect(() => {
         const folds = collapsedIds.size;
         if (lastFolds !== null && folds !== lastFolds) {
-            following = true;
-            clearTimeout(followTimer);
-            followTimer = setTimeout(() => (following = false), DURATION.base + 80);
+            syncing = true;
+            clearTimeout(syncTimer);
+            syncTimer = setTimeout(() => (syncing = false), DURATION.base);
         }
         lastFolds = folds;
-        return () => clearTimeout(followTimer);
+        return () => clearTimeout(syncTimer);
     });
 
-    // Folding entries animate their height; follow them frame by frame instead of jumping at the end.
     $effect(() => {
-        const observer = new ResizeObserver(placeIndicator);
+        void markedId;
+        void visibleIds;
+        // untracked: placing the indicator reads and writes its own state, which must not re-trigger this effect
+        untrack(placeIndicator);
+    });
+
+    // Text size can change the row pitch (fonts loading, zoom).
+    $effect(() => {
+        const observer = new ResizeObserver(() => placeIndicator());
         observer.observe(track);
         return () => observer.disconnect();
     });
 
-    // Keep the active entry visible by scrolling the outline itself (never the page).
+    // Keep the active entry visible by scrolling the outline itself (never the page), towards where it will settle.
     $effect(() => {
-        if (!markedId || !list) return;
-        const active = list.querySelector<HTMLElement>(".breadcrumb[data-marked]");
-        if (!active) return;
-
-        const padding = 40;
-        const listRect = list.getBoundingClientRect();
-        const itemRect = active.getBoundingClientRect();
-
-        let by = 0;
-        if (itemRect.top < listRect.top + padding) by = itemRect.top - (listRect.top + padding);
-        else if (itemRect.bottom > listRect.bottom - padding) by = itemRect.bottom - (listRect.bottom - padding);
-        if (by) list.scrollBy({ top: by, behavior: prefersReducedMotion.current ? "instant" : "smooth" });
+        if (!indicator || !list) return;
+        const { y, height } = indicator;
+        untrack(() => {
+            const padding = 40;
+            const top = track.offsetTop + y - list.scrollTop;
+            let by = 0;
+            if (top < padding) by = top - padding;
+            else if (top + height > list.clientHeight - padding) by = top + height - (list.clientHeight - padding);
+            if (by) list.scrollBy({ top: by, behavior: prefersReducedMotion.current ? "instant" : "smooth" });
+        });
     });
 </script>
 
@@ -99,8 +111,9 @@
         <span
             class="indicator"
             class:on={indicator && highlightActive}
-            class:ready={indicatorReady && !following}
-                style:--y="{indicator?.y ?? 0}px"
+            class:ready={indicatorReady}
+            class:syncing
+            style:--y="{indicator?.y ?? 0}px"
             style:--h="{indicator?.height ?? 0}px"
             aria-hidden="true"
         ></span>
@@ -207,6 +220,12 @@
                 transform var(--dur-slow) var(--ease-out),
                 height var(--dur-slow) var(--ease-out),
                 opacity var(--dur-fast) ease;
+        }
+
+        /* in step with folding rows: the fold transition's duration and easing (cubicOut) */
+        &.ready.syncing {
+            transition-duration: var(--dur-base), var(--dur-base), var(--dur-fast);
+            transition-timing-function: cubic-bezier(0.33, 1, 0.68, 1), cubic-bezier(0.33, 1, 0.68, 1), ease;
         }
     }
 
