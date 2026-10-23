@@ -191,6 +191,12 @@
         /* Long unbroken runs (digit sequences, URLs) must wrap rather than widen the page on phones. */
         overflow-wrap: break-word;
 
+        /* Safari's pretty wrapping re-balances every paragraph whenever the article lays out again (an image loading, a
+           section folding): about five times plain wrapping on a long article, enough to stall the animations. */
+        @supports (font: -apple-system-body) {
+            text-wrap: wrap;
+        }
+
         /* Templates like {{gaps}} nest no-wrap digit groups inside a no-wrap run; let the run break between groups
            (marked when the article is parsed). */
         :global(.nowrap-groups) {
@@ -1075,7 +1081,6 @@
             margin: 0 0 0.6em;
             padding-left: 1.5em;
             text-indent: -1.5em;
-            text-wrap: pretty;
         }
 
         :global(a) {
