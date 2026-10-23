@@ -253,6 +253,7 @@
 
     .save-icon {
         display: inline-flex;
+        transform-origin: 50% 50%;
     }
 
     .save.saved {
@@ -261,7 +262,8 @@
         background: color-mix(in oklch, var(--accent) 7%, var(--bg-color));
     }
 
-    /* the bookmark drops in when saved */
+    /* the bookmark pops in place when saved: from its own centre, out of a blur like the label beside it, and only
+       a touch larger than its resting size so it never crowds the label */
     .save.pop .save-icon {
         animation: bookmark-pop var(--dur-slow) var(--ease-spring);
 
@@ -273,10 +275,11 @@
     @keyframes bookmark-pop {
         0% {
             scale: 0.6;
-            translate: 0 -3px;
+            opacity: 0.4;
+            filter: blur(2px);
         }
-        60% {
-            scale: 1.2;
+        55% {
+            scale: 1.08;
         }
     }
 
