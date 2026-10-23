@@ -123,7 +123,7 @@
             --pill-height: 2.6rem;
             --pill-bottom: calc(1.25rem + env(safe-area-inset-bottom));
             --pill-left: max(1rem, env(safe-area-inset-left));
-            /* the pill and its card share one corner curve, one border and one shadow */
+            /* the pill and its card share one border and one shadow; the card has the corners of the site's other panels */
             --pill-radius: calc(var(--pill-height) / 2);
             --pill-border: 1px solid var(--rule);
             --pill-shadow: 0 12px 32px -14px var(--shadow-color);
@@ -148,7 +148,7 @@
             padding: 1rem 0.6rem 0 0.4rem;
             background: var(--bg-color);
             border: var(--pill-border);
-            border-radius: var(--pill-radius);
+            border-radius: 14px;
             box-shadow: var(--pill-shadow);
             transform-origin: var(--pill-radius) 100%;
 
