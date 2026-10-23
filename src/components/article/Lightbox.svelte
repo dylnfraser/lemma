@@ -122,17 +122,10 @@
         for (const element of [frame, crop]) element?.getAnimations().forEach((animation) => animation.cancel());
     }
 
-    function lockScroll(locked: boolean) {
-        const root = document.documentElement;
-        if (locked) {
-            // keep the page from shifting when the scrollbar disappears
-            root.style.paddingRight = `${innerWidth - root.clientWidth}px`;
-            root.style.overflow = "hidden";
-        } else {
-            root.style.overflow = "";
-            root.style.paddingRight = "";
-        }
-    }
+    // The page behind stays put without locking its scrolling (overflow: hidden on the root, which in Safari lays out
+    // the whole article again, a visible stall on opening): the viewer covers the screen and takes the wheel and touch
+    // gestures itself (captureWheel, touch-action), and these keys would otherwise scroll the page underneath.
+    const PAGE_SCROLL_KEYS = new Set([" ", "PageUp", "PageDown", "Home", "End", "ArrowUp", "ArrowDown"]);
 
     // ---------- zoom and pan ----------
 
@@ -202,7 +195,6 @@
         gesturing = false;
         pointers.clear();
         gesture = null;
-        lockScroll(true);
 
         tick().then(() => {
             if (lightbox.keyboard) closeButton?.focus({ preventScroll: true });
@@ -222,7 +214,6 @@
             crop.animate([{ clipPath: pose.clip }, { clipPath: FRAME_CLIP }], timing);
         });
 
-        return () => lockScroll(false);
     });
 
     // The thumbnail on show is hidden while the viewer has it, so it never appears twice: not while the picture flies
@@ -339,6 +330,8 @@
             zoomBy(1 / KEY_ZOOM_STEP);
         } else if (event.key === "0") {
             zoom = UNZOOMED;
+        } else if (PAGE_SCROLL_KEYS.has(event.key) && !(event.target as Element).closest?.("button, a, input")) {
+            event.preventDefault();
         } else if (event.key === "Tab") {
             // keep focus inside the viewer
             const focusable = [...document.querySelectorAll<HTMLElement>(".lightbox button, .lightbox a[href]")];
