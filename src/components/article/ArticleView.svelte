@@ -22,7 +22,7 @@
     import { sampleTint } from "$lib/imageTint";
     import { library, type ReadingPosition } from "$lib/library.svelte";
     import { trail } from "$lib/trail.svelte";
-    import { motionPaused, rise } from "$lib/motion";
+    import { DURATION, motionPaused, rise } from "$lib/motion";
     import ReaderLayout from "../ReaderLayout.svelte";
     import ArticleActions from "./ArticleActions.svelte";
     import ArticleBreadcrumbs from "./ArticleBreadcrumbs.svelte";
@@ -336,11 +336,15 @@
         (image) => !/\.svg/i.test(image.fileName ?? image.src),
     );
 
+    // Changing the hue restyles the whole page (in Safari a visible stall), so it waits for the entrance to finish.
+    const TINT_AFTER_MS = DURATION.slow + 120;
+
     $effect(() => {
         if (!leadPhoto) return;
         const controller = new AbortController();
         const root = document.documentElement;
-        sampleTint(resizeWikimediaThumb(leadPhoto.src, 120), controller.signal).then((tint) => {
+        const entered = new Promise((resolve) => setTimeout(resolve, TINT_AFTER_MS));
+        Promise.all([sampleTint(resizeWikimediaThumb(leadPhoto.src, 120), controller.signal), entered]).then(([tint]) => {
             if (!tint || controller.signal.aborted) return;
             // the short way round the colour wheel
             const delta = ((tint.hue - BASE_HUE + 540) % 360) - 180;
