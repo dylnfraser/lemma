@@ -1,5 +1,6 @@
 <script lang="ts">
     import { untrack } from "svelte";
+    import { prefersReducedMotion } from "svelte/motion";
     import { headingHasChildren, isHeadingHiddenByCollapsed } from "$lib/article/articleNavigation";
     import type { ArticleHeading } from "$lib/article/types";
     import { DURATION, fold } from "$lib/motion";
@@ -52,6 +53,22 @@
         untrack(placeIndicator);
     });
 
+    // While rows fold open or shut, the marker sticks to its row frame by frame (no easing of its own, which would have
+    // it chasing a moving target); otherwise it glides between entries.
+    let following = $state(false);
+    let followTimer: ReturnType<typeof setTimeout>;
+    let lastFolds: number | null = null;
+    $effect(() => {
+        const folds = collapsedIds.size;
+        if (lastFolds !== null && folds !== lastFolds) {
+            following = true;
+            clearTimeout(followTimer);
+            followTimer = setTimeout(() => (following = false), DURATION.base + 80);
+        }
+        lastFolds = folds;
+        return () => clearTimeout(followTimer);
+    });
+
     // Folding entries animate their height; follow them frame by frame instead of jumping at the end.
     $effect(() => {
         const observer = new ResizeObserver(placeIndicator);
@@ -69,11 +86,10 @@
         const listRect = list.getBoundingClientRect();
         const itemRect = active.getBoundingClientRect();
 
-        if (itemRect.top < listRect.top + padding) {
-            list.scrollTop -= listRect.top + padding - itemRect.top;
-        } else if (itemRect.bottom > listRect.bottom - padding) {
-            list.scrollTop += itemRect.bottom - (listRect.bottom - padding);
-        }
+        let by = 0;
+        if (itemRect.top < listRect.top + padding) by = itemRect.top - (listRect.top + padding);
+        else if (itemRect.bottom > listRect.bottom - padding) by = itemRect.bottom - (listRect.bottom - padding);
+        if (by) list.scrollBy({ top: by, behavior: prefersReducedMotion.current ? "instant" : "smooth" });
     });
 </script>
 
@@ -83,7 +99,7 @@
         <span
             class="indicator"
             class:on={indicator && highlightActive}
-            class:ready={indicatorReady}
+            class:ready={indicatorReady && !following}
                 style:--y="{indicator?.y ?? 0}px"
             style:--h="{indicator?.height ?? 0}px"
             aria-hidden="true"
@@ -92,7 +108,7 @@
             {#each headings as heading (heading.id)}
                 {#if !isHeadingHiddenByCollapsed(heading, collapsedIds)}
                     {@const collapsed = collapsedIds.has(heading.id)}
-                    <li class="breadcrumb-row" transition:fold={{ duration: DURATION.fast }}>
+                    <li class="breadcrumb-row" transition:fold={{ duration: DURATION.base }}>
                         {#if headingHasChildren(heading)}
                             <button
                                 class="breadcrumb-fold"
@@ -181,15 +197,15 @@
 
         &.ready {
             transition:
-                transform var(--dur-base) var(--ease-out),
-                height var(--dur-base) var(--ease-out),
+                transform var(--dur-slow) var(--ease-out),
+                height var(--dur-slow) var(--ease-out),
                 opacity var(--dur-fade) ease;
         }
 
         &.ready.on {
             transition:
-                transform var(--dur-base) var(--ease-out),
-                height var(--dur-base) var(--ease-out),
+                transform var(--dur-slow) var(--ease-out),
+                height var(--dur-slow) var(--ease-out),
                 opacity var(--dur-fast) ease;
         }
     }

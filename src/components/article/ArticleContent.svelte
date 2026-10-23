@@ -76,7 +76,7 @@
             {@const collapsed = collapsedSectionIds.has(heading.id)}
             {#if shown}
                 {@const copied = copyStatus?.id === heading.id ? copyStatus : null}
-                <svelte:element this={heading.tag.toLowerCase()} id={heading.id} data-heading transition:fold>
+                <svelte:element this={heading.tag.toLowerCase()} id={heading.id} class="section-heading" data-heading transition:fold>
                     {#if isFoldableHeadingLevel(heading.level)}
                         <button
                             class="chev"

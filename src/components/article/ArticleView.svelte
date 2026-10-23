@@ -69,6 +69,7 @@
     const headingsById = new Map(headings.map((heading) => [heading.id, heading]));
     const collapsedSections = new SvelteSet<string>();
     const collapsedOutline = new SvelteSet<string>(getCollapsibleHeadingIds(headings));
+    // branches opened automatically (to follow the reader), as opposed to ones the reader opened
     const autoExpandedOutline = new Set<string>();
 
     let activeHeadingId = $state(headings[0]?.id ?? "");
@@ -102,18 +103,16 @@
         toggle(collapsedOutline, id);
     }
 
-    // The outline starts folded; it opens the branches around the section being read and refolds them afterwards,
+    // The outline opens the branches around the section being read and folds them again once the reader has moved on,
     // without touching folds the reader toggled themselves.
     function syncOutlineToActive(id: string) {
         const ancestors = new Set(headingsById.get(id)?.ancestorIds ?? []);
-
         for (const sectionId of [...autoExpandedOutline]) {
             if (!ancestors.has(sectionId)) {
                 collapsedOutline.add(sectionId);
                 autoExpandedOutline.delete(sectionId);
             }
         }
-
         for (const sectionId of ancestors) {
             if (collapsedOutline.has(sectionId)) {
                 collapsedOutline.delete(sectionId);
@@ -122,24 +121,36 @@
         }
     }
 
-    // While the reader scrolls, the outline's branches only open and fold once the scrolling pauses: following every
-    // heading that flies past would set dozens of rows animating at once.
-    const OUTLINE_SETTLE_MS = 220;
+    // While the reader scrolls, only the marker moves; the branches follow once scrolling pauses, all in one change, so
+    // rows never jump about under a moving page. A deliberate jump to a section opens them straight away.
+    const OUTLINE_IDLE_MS = 260;
     let outlineTimer: ReturnType<typeof setTimeout>;
 
     function setActiveHeading(id: string, fromScroll = false) {
         if (id === activeHeadingId) return;
         activeHeadingId = id;
-        clearTimeout(outlineTimer);
-        if (fromScroll) outlineTimer = setTimeout(() => syncOutlineToActive(activeHeadingId), OUTLINE_SETTLE_MS);
-        else syncOutlineToActive(id);
+        if (!fromScroll) {
+            clearTimeout(outlineTimer);
+            syncOutlineToActive(id);
+        }
         if (!settling) highlightActive = true;
     }
+
+    function syncOutlineWhenIdle() {
+        clearTimeout(outlineTimer);
+        outlineTimer = setTimeout(() => syncOutlineToActive(activeHeadingId), OUTLINE_IDLE_MS);
+    }
+
+    // The rendered section headings. A live collection, so it follows sections folding and unfolding without the
+    // whole article being searched on every scroll frame.
+    let headingElements: HTMLCollectionOf<HTMLElement> | undefined;
+    const sectionHeadings = () =>
+        (headingElements ??= articleElement.getElementsByClassName("section-heading") as HTMLCollectionOf<HTMLElement>);
 
     function updateActiveHeading() {
         let id = headings[0]?.id ?? "";
 
-        for (const element of articleElement.querySelectorAll<HTMLElement>("[data-heading]")) {
+        for (const element of sectionHeadings()) {
             if (element.getBoundingClientRect().top > ACTIVE_OFFSET) break;
             id = element.id;
         }
@@ -396,7 +407,7 @@
     }
 
     function jumpToSection(direction: 1 | -1) {
-        const elements = [...articleElement.querySelectorAll<HTMLElement>("[data-heading]")];
+        const elements = [...sectionHeadings()];
         // relative to where a jump puts a heading (its scroll margin), so the heading just jumped to counts as "here"
         const tops = elements.map(
             (element) => element.getBoundingClientRect().top - (Number.parseFloat(getComputedStyle(element).scrollMarginTop) || 0),
@@ -534,6 +545,7 @@
 
     function handleScroll() {
         scheduleActiveUpdate();
+        syncOutlineWhenIdle();
         rememberPosition();
     }
 </script>
