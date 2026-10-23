@@ -566,6 +566,8 @@
 <div class="reading-progress" aria-hidden="true"></div>
 <!-- the article's mood: a faint wash of its colour across the top of the page -->
 <div class="mood" aria-hidden="true"></div>
+<!-- its mirror image above the page, only seen when the page is pulled down past the top (macOS rubber-banding) -->
+<div class="mood above" aria-hidden="true"></div>
 <Lightbox />
 <LinkPreview currentTitle={title} getReference={referenceHtml} />
 <QuoteShare {title} root={articleElement} />
@@ -738,6 +740,12 @@
 
         @media print {
             display: none;
+        }
+
+        /* reflected about the page's top edge, so the colour runs on seamlessly instead of stopping at a hard line */
+        &.above {
+            top: -115vh;
+            transform: scaleY(-1);
         }
     }
 

@@ -5,6 +5,9 @@
     // Overlay scrollbar for the page itself. The native one is hidden (app.css) because a styled native scrollbar
     // reserves a gutter the fixed navbar can't cover; this one floats over the content instead.
     const MIN_THUMB = 36;
+    // how much the thumb shortens per pixel of overscroll, and how short it can get
+    const SQUASH = 0.6;
+    const MIN_SQUASHED = 12;
     const IDLE_MS = 1200;
 
     let track = $state<HTMLElement>();
@@ -29,8 +32,12 @@
         if (!scrollable || !track) return;
 
         const trackHeight = track.clientHeight;
-        thumbSize = Math.max(MIN_THUMB, (trackHeight * innerHeight) / root().scrollHeight);
-        thumbOffset = (scrollY / range) * (trackHeight - thumbSize);
+        const size = Math.max(MIN_THUMB, (trackHeight * innerHeight) / root().scrollHeight);
+        // Rubber-banding past either end (macOS) reports a scroll position beyond the range: like the system's own
+        // scrollbar, the thumb stays pinned to that end and squashes against it, then springs back with the page.
+        const overscroll = scrollY < 0 ? -scrollY : Math.max(0, scrollY - range);
+        thumbSize = Math.max(MIN_SQUASHED, size - overscroll * SQUASH);
+        thumbOffset = scrollY < 0 ? 0 : scrollY > range ? trackHeight - thumbSize : (scrollY / range) * (trackHeight - thumbSize);
     }
 
     function scheduleMeasure() {
