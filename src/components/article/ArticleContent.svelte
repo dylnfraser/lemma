@@ -104,8 +104,8 @@
                                 </span>
                             {/key}
                         </span>
-                    </button>
-                    {#if copied}
+                    </button
+                    >{#if copied}
                         <span class="copy-note" aria-hidden="true" in:rise={{ y: 0, duration: DURATION.slow }} out:rise={{ y: 0, duration: DURATION.base }}
                             >{copied.ok ? "Copied" : "Couldn't copy"}</span
                         >
@@ -963,30 +963,12 @@
             display: grid;
             place-items: center;
         }
-
-        /* narrow screens: the fold button has the right edge, so the link sits just after the heading's text, like an
-           anchor mark */
-        @media (max-width: 1050px) {
-            position: relative;
-            right: auto;
-            bottom: auto;
-            display: inline-grid;
-            vertical-align: middle;
-            margin: -0.2em 0 0 0.3rem;
-        }
     }
 
-    @media (max-width: 1050px) {
-        /* clear of the fold button at the right edge */
-        .article-body :global(.section-heading) {
-            padding-right: 2.25rem;
-        }
-    }
-
-    /* "Copied", just left of the button */
+    /* "Copied", just left of the button's icon */
     .copy-note {
         position: absolute;
-        right: 2rem;
+        right: 1.6rem;
         bottom: calc((1.25em - 1.6rem) / 2);
         display: flex;
         align-items: center;
