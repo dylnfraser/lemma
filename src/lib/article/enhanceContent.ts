@@ -15,15 +15,23 @@ function canAnimate(element: Element): boolean {
 }
 
 /** Rows a sort moved glide from where they were (FLIP); only those on screen, so long tables stay cheap. */
-function glideRows(rows: HTMLTableRowElement[], before: Map<HTMLTableRowElement, number>) {
+function glideRows(table: HTMLTableElement, rows: HTMLTableRowElement[], before: Map<HTMLTableRowElement, number>) {
   const viewport = window.innerHeight;
+  const glides: Animation[] = [];
   for (const row of rows) {
     const rect = row.getBoundingClientRect();
     const from = before.get(row);
     if (from === undefined || from === rect.top) continue;
     if ((from < -100 || from > viewport + 100) && (rect.bottom < -100 || rect.top > viewport + 100)) continue;
-    row.animate([{ translate: `0 ${from - rect.top}px` }, { translate: "0 0" }], { duration: 320, easing: EASE_OUT });
+    glides.push(row.animate([{ translate: `0 ${from - rect.top}px` }, { translate: "0 0" }], { duration: 320, easing: EASE_OUT }));
   }
+
+  // Rows gliding in from past the table's edge briefly overflow its horizontal scroller, which would flash a vertical
+  // scrollbar on and off: it doesn't scroll vertically while they move.
+  const scroller = table.parentElement;
+  if (glides.length === 0 || !scroller || getComputedStyle(scroller).overflowY === "visible") return;
+  scroller.style.overflowY = "hidden";
+  Promise.allSettled(glides.map((glide) => glide.finished)).then(() => scroller.style.removeProperty("overflow-y"));
 }
 
 // ---------- sorting ----------
@@ -170,7 +178,7 @@ function makeSortable(table: HTMLTableElement) {
       const before = new Map(animate ? rows.map((row) => [row, row.getBoundingClientRect().top]) : []);
       rows.sort((a, b) => compareKeys(key(a), key(b)) * (ascending ? 1 : -1));
       body.append(...rows, ...bottom);
-      if (animate) glideRows(rows, before);
+      if (animate) glideRows(table, rows, before);
     });
   }
 }
