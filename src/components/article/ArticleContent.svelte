@@ -1129,6 +1129,20 @@
         cursor: zoom-in;
     }
 
+    /* on hover it grows a touch, in place */
+    .wiki-images .zoomable img {
+        transition:
+            transform var(--dur-slow) var(--ease-out),
+            box-shadow var(--dur-slow) var(--ease-out);
+    }
+
+    @media (hover: hover) {
+        .wiki-images .zoomable:is(:hover, :focus-visible) img {
+            transform: scale(1.02);
+            box-shadow: 0 16px 36px -16px var(--shadow-color);
+        }
+    }
+
     /* ---------- tables ---------- */
 
     .table-scroll {
