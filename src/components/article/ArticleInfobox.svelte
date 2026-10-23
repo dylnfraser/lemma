@@ -1,9 +1,11 @@
 <script lang="ts">
+    import { tick } from "svelte";
+    import { prefersReducedMotion } from "svelte/motion";
     import { MediaQuery } from "svelte/reactivity";
     import type { Infobox } from "$lib/article/types";
     import { openLightboxFromClick, preventMouseFocusOnZoomImages } from "$lib/lightbox.svelte";
     import { handlePronunciationClick } from "$lib/pronunciation";
-    import { DURATION, fold } from "$lib/motion";
+    import { DURATION, EASE_OUT } from "$lib/motion";
     import Icon from "../icons/Icon.svelte";
 
     // `expanded` is bindable so the article can keep it across back/forward navigation.
@@ -13,18 +15,54 @@
     const wide = new MediaQuery("min-width: 1280px");
     const PREVIEW_DATA_ROWS = 5;
 
-    // Rows only animate in when the reader toggles; restoring from back/forward lays them out instantly.
-    let animateRows = $state(false);
-
     // Preview: everything up to and including the first few label/value rows (keeps the lead image and map).
     let previewLength = $derived.by(() => {
         let dataRows = 0;
         const index = infobox.rows.findIndex((row) => row.kind === "data" && ++dataRows === PREVIEW_DATA_ROWS);
         return index === -1 ? infobox.rows.length : index + 1;
     });
-    let showAll = $derived(wide.current || expanded);
+    // While the extra rows fold away they stay rendered, so the box can shrink over them.
+    let collapsing = $state(false);
+    let showAll = $derived(wide.current || expanded || collapsing);
     let rows = $derived(showAll ? infobox.rows : infobox.rows.slice(0, previewLength));
     let hiddenCount = $derived(infobox.rows.length - previewLength);
+
+    let rowsElement = $state<HTMLElement>();
+
+    /**
+     * Showing or hiding the extra facts animates the list's height as one block, with the extra rows fading in or out
+     * together: one smooth change, rather than dozens of rows each animating (and any off screen snapping) at once.
+     */
+    async function toggleFacts() {
+        const list = rowsElement;
+        if (!list || prefersReducedMotion.current || collapsing) {
+            expanded = !expanded;
+            return;
+        }
+
+        const timing = { duration: DURATION.slow, easing: EASE_OUT };
+        const from = list.offsetHeight;
+        list.style.overflow = "clip";
+        let extras: Element[];
+        let to: number;
+        if (!expanded) {
+            expanded = true;
+            await tick();
+            to = list.offsetHeight;
+            extras = [...list.children].slice(previewLength);
+            for (const row of extras) row.animate([{ opacity: 0 }, { opacity: 1 }], timing);
+        } else {
+            collapsing = true;
+            expanded = false;
+            extras = [...list.children].slice(previewLength);
+            to = extras[0] ? extras[0].getBoundingClientRect().top - list.getBoundingClientRect().top : from;
+            for (const row of extras) row.animate([{ opacity: 1 }, { opacity: 0 }], { ...timing, fill: "forwards" });
+        }
+
+        await list.animate([{ height: `${from}px` }, { height: `${to}px` }], timing).finished.catch(() => {});
+        collapsing = false;
+        list.style.removeProperty("overflow");
+    }
 
 </script>
 
@@ -40,9 +78,9 @@
         <div class="title">{@html infobox.title}</div>
     {/if}
 
-    <div class="rows">
+    <div class="rows" bind:this={rowsElement}>
         {#each rows as row, i (i)}
-            <div class="row {row.kind}" transition:fold={{ duration: animateRows ? DURATION.base : 0 }} class:sub={row.kind === "data" && row.sub}>
+            <div class="row {row.kind}" class:sub={row.kind === "data" && row.sub}>
                 {#if row.kind === "data"}
                     <div class="label">{@html row.label}</div>
                     <div class="value">{@html row.html}</div>
@@ -78,10 +116,7 @@
             type="button"
             class="toggle"
             aria-expanded={expanded}
-            onclick={() => {
-                animateRows = true;
-                expanded = !expanded;
-            }}
+            onclick={toggleFacts}
         >
             {expanded ? "Show fewer facts" : `Show all facts (${hiddenCount} more)`}
         </button>
