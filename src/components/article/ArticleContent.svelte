@@ -268,7 +268,7 @@
             padding-left: 0.08em;
         }
 
-        :global(sup.reference + sup.reference::before) {
+        :global(sup.reference.follows-citation::before) {
             content: ",";
             color: var(--muted);
         }

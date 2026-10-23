@@ -191,6 +191,17 @@ function uniqueId(base: string, used: Set<string>): string {
   return id;
 }
 
+/**
+ * Marks citations that directly follow another ("…energy.[19][20][21]"), so CSS can put a comma between them. CSS
+ * alone can't tell: its sibling combinators skip over text, so a citation a few words after another would get one too.
+ */
+export function markCitationRuns(root: HTMLElement) {
+  for (const citation of root.querySelectorAll("sup.reference")) {
+    const previous = citation.previousSibling;
+    if (previous instanceof Element && previous.matches("sup.reference")) citation.classList.add("follows-citation");
+  }
+}
+
 export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
   // collected from the raw HTML: the sanitizer removes <style>
   const styles = extractTemplateStyles(pageContent.text);
@@ -202,6 +213,7 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
   convertMaps(root, coordinates);
   tintMath(root);
   markDarkBackgrounds(root);
+  markCitationRuns(root);
   const spoken = extractSpokenAudio(root);
   const sisters = extractSisterLinks(root);
 

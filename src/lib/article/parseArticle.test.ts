@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseArticle } from "./parseArticle";
+import { markCitationRuns, parseArticle } from "./parseArticle";
 import {
   DUPLICATE_HEADINGS,
   EDIT_AFFORDANCES,
@@ -487,4 +487,11 @@ describe("parseArticle image sizes", () => {
   it("drops an image repeated straight after itself (image overlays)", () => {
     expect(images.map((image) => image.alt)).toEqual(["Big", "Twice"]);
   });
+});
+
+it("marks only citations that directly follow another", () => {
+  const root = document.createElement("div");
+  root.innerHTML = '<p>a.<sup class="reference">1</sup> b,<sup class="reference">2</sup><sup class="reference">3</sup></p>';
+  markCitationRuns(root);
+  expect([...root.querySelectorAll("sup")].map((sup) => sup.classList.contains("follows-citation"))).toEqual([false, false, true]);
 });
