@@ -80,8 +80,25 @@
         }
     }
 
+    // How long expanding waits for the pictures to be decoded before animating anyway.
+    const DECODE_WAIT_MS = 150;
+
+    /**
+     * Decodes the pictures before the grid shows them: otherwise each new image decodes mid-flight, and the
+     * animation stalls or a picture pops in late. Already-decoded pictures resolve at once.
+     */
+    function decodeImages() {
+        const decoded = images.map((image) => {
+            const preload = new Image();
+            preload.src = image.src;
+            return preload.decode().catch(() => {});
+        });
+        return Promise.race([Promise.all(decoded), new Promise((resolve) => setTimeout(resolve, DECODE_WAIT_MS))]);
+    }
+
     /** FLIP: render the grid, then fly each image out from the card it was shown on. */
     async function expand(event: MouseEvent) {
+        if (!prefersReducedMotion.current) await decodeImages();
         const cards = measureCards();
         const stackHeight = fanButton?.parentElement?.getBoundingClientRect().height ?? 0;
         focusAfterToggle = isKeyboardClick(event);
@@ -220,7 +237,8 @@
                         onmousedown={preventMouseFocus}
                         onclick={(event) => openViewer(i, event)}
                     >
-                        <!-- not lazy: the cards already loaded these, and the animation needs their real size -->
+                        <!-- not lazy: the cards already loaded these, and the animation needs their real size; decoded
+                             in step with painting (expand decodes them first) so none appears a frame late -->
                         <img
                             alt={image.alt}
                             src={image.src}
@@ -230,7 +248,7 @@
                             style:--max-w={image.pixelWidth ? `${image.pixelWidth}px` : undefined}
                             class:invert-dark={image.invertInDarkMode}
                             class:light-backing={image.lightBacking}
-                            decoding="async"
+                            decoding="sync"
                         />
                     </button>
                     {#if image.caption}
