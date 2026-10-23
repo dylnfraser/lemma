@@ -6,9 +6,14 @@ import { defineConfig } from "vitest/config";
 // variables to the site's real address.
 process.env.PUBLIC_SITE_URL ??= "http://localhost:4173";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [
     sveltekit({
+      // In dev, components inject their own CSS instead of loading it as separate virtual stylesheet modules. Those
+      // modules occasionally fail to load in dev ("failed to load virtual css module"), and Vite then serves the raw
+      // .svelte file as CSS: its styles lose their scoping and leak onto the whole page. Builds are unaffected.
+      vitePlugin: { emitCss: command !== "serve" },
+
       compilerOptions: {
         // Force runes mode for the project, except for libraries. Can be removed in svelte 6.
         runes: ({ filename }) => (filename.split(/[/\\]/).includes("node_modules") ? undefined : true),
@@ -25,4 +30,4 @@ export default defineConfig({
     environment: "jsdom",
     include: ["src/**/*.test.ts"],
   },
-});
+}));
