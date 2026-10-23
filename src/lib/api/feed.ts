@@ -1,5 +1,3 @@
-import DOMPurify from "dompurify";
-import { rewriteArticleLink } from "$lib/article/articleLinks";
 import { normalizeProtocol, requestJson, WIKIPEDIA_ORIGIN, WikipediaError, type RequestOptions } from "./wikipedia";
 
 /** An article as the feed describes it: enough for a card. */
@@ -175,19 +173,4 @@ export async function fetchRandomTitle(options: RequestOptions = {}): Promise<st
   const title = json.query?.random?.[0]?.title;
   if (!title) throw new WikipediaError("invalid", "Wikipedia sent a response Lemma couldn't read.");
   return title;
-}
-
-/**
- * Feed stories are Parsoid HTML: links are relative ("./Limoges") and carry ids. Keep only inline text formatting and
- * links, then point the links at Lemma like article links are.
- */
-export function storyToHtml(storyHtml: string): string {
-  const clean = DOMPurify.sanitize(storyHtml, { ALLOWED_TAGS: ["a", "b", "i", "em", "strong"], ALLOWED_ATTR: ["href"] });
-  const doc = new DOMParser().parseFromString(`<body>${clean}</body>`, "text/html");
-  doc.querySelectorAll("a").forEach((link) => {
-    const href = link.getAttribute("href") ?? "";
-    if (href.startsWith("./")) link.setAttribute("href", `/wiki/${href.slice(2)}`);
-    rewriteArticleLink(link);
-  });
-  return doc.body.innerHTML.trim();
 }

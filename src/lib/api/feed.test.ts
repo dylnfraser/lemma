@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { feedDatePath, fetchFeaturedFeed, fetchRandomTitle, storyToHtml } from "./feed";
+import { feedDatePath, fetchFeaturedFeed, fetchRandomTitle } from "./feed";
 import { WikipediaError } from "./wikipedia";
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
@@ -91,17 +91,6 @@ describe("fetchFeaturedFeed", () => {
     const feed = await fetchFeaturedFeed(new Date(2026, 9, 21), { fetch: fetcher });
     expect(feed.onThisDay).toHaveLength(1);
     expect(feed.featured).toBeNull();
-  });
-});
-
-describe("storyToHtml", () => {
-  it("keeps text formatting, drops everything else, and points links at Lemma", () => {
-    const html = storyToHtml(
-      '<!--Oct 17-->The <a rel="mw:WikiLink" href="./Hôtel_de_Ville,_Limoges" id="mwBg">Hôtel</a> in <b id="x"><a href="./Limoges">Limoges</a></b> <img src=x onerror=alert(1)>burns',
-    );
-    expect(html).toBe(
-      'The <a href="/wiki/H%C3%B4tel_de_Ville%2C_Limoges">Hôtel</a> in <b><a href="/wiki/Limoges">Limoges</a></b> burns',
-    );
   });
 });
 
