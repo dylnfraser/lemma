@@ -18,9 +18,30 @@ export function motion(ms: number): number {
   return prefersReducedMotion.current || motionPaused.current ? 0 : ms;
 }
 
+// Which elements were near the viewport this frame, measured a whole row of siblings at a time (see below).
+let nearViewport: WeakMap<Element, boolean> | null = null;
+
+/**
+ * Folding a section runs a transition for each of its blocks, one after another, and each one's styles dirty the
+ * layout: measuring them one at a time would lay out the whole article again for every block (seconds, for a long
+ * section). So the first call measures the node's siblings in a single pass, and the answers last for the frame.
+ */
 function isNearViewport(node: Element, margin = 200): boolean {
-  const rect = node.getBoundingClientRect();
-  return rect.bottom > -margin && rect.top < window.innerHeight + margin;
+  if (!nearViewport) {
+    nearViewport = new WeakMap();
+    requestAnimationFrame(() => (nearViewport = null));
+  }
+  let near = nearViewport.get(node);
+  if (near === undefined) {
+    const top = -margin;
+    const bottom = window.innerHeight + margin;
+    for (const element of node.parentElement?.children ?? [node]) {
+      const rect = element.getBoundingClientRect();
+      nearViewport.set(element, rect.bottom > top && rect.top < bottom);
+    }
+    near = nearViewport.get(node) ?? false;
+  }
+  return near;
 }
 
 /**
@@ -58,7 +79,9 @@ export function rise(
  * so folding a section with hundreds of blocks only animates the handful the reader can actually see.
  */
 export function fold(node: Element, { duration = DURATION.base }: { duration?: number } = {}): TransitionConfig {
-  const slideConfig = slide(node, { duration: isNearViewport(node) ? motion(duration) : 0, easing: cubicOut });
+  // not even slide's own measuring for nodes off screen
+  if (!isNearViewport(node) || !motion(duration)) return { duration: 0 };
+  const slideConfig = slide(node, { duration: motion(duration), easing: cubicOut });
   return {
     ...slideConfig,
     css: (t, u) => `${slideConfig.css?.(t, u) ?? ""};opacity: ${cubicOut(t)};filter: blur(${u * (BLUR_PX / 2)}px);`,
