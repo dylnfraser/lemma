@@ -36,7 +36,7 @@
                     aria-label="{open.has(i) ? 'Hide' : 'Show'} related topics"
                     onclick={() => toggle(i)}
                 >
-                    <ChevronIcon size={16} />
+                    <ChevronIcon collapsed={!open.has(i)} />
                 </button>
                 <span class="title">{@html topic.title}</span>
                 <span class="count">{linkCount(topic)}</span>
@@ -76,13 +76,14 @@
         border-bottom: 1px solid color-mix(in oklch, var(--rule) 70%, transparent);
     }
 
+    /* the title lines up with "Related topics" above; the chevron hangs in the margin, like an article heading's */
     .summary {
+        position: relative;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.65rem 0;
+        gap: 0.75rem;
+        padding: 0.7rem 0;
         cursor: pointer;
-        list-style: none;
         font-weight: 600;
         line-height: 1.35;
 
@@ -92,22 +93,36 @@
     }
 
     .chevron {
+        position: absolute;
+        left: -2rem;
+        top: 50%;
+        translate: 0 -50%;
         display: grid;
         place-items: center;
-        flex: none;
+        width: 1.5rem;
+        height: 1.5rem;
         padding: 0;
         border: none;
+        border-radius: 6px;
         background: none;
         color: var(--muted);
         cursor: pointer;
-        rotate: 180deg;
         transition:
-            rotate var(--dur-base) var(--ease-out),
-            color var(--dur-base) var(--ease-out);
-    }
+            color var(--dur-base) var(--ease-out),
+            background-color var(--dur-base) var(--ease-out);
 
-    .topic.open .chevron {
-        rotate: 0deg;
+        @media (hover: hover) {
+            &:hover {
+                background: color-mix(in oklch, var(--secondary) 40%, transparent);
+            }
+        }
+
+        /* no margin to sit in: it moves to the row's right edge, after the count (as in the article) */
+        @media (max-width: 1050px) {
+            position: static;
+            translate: none;
+            order: 1;
+        }
     }
 
     .title {
@@ -137,10 +152,10 @@
 
     .groups {
         display: grid;
-        gap: 0.75rem;
-        padding: 0.25rem 0 1rem 1.6rem;
+        gap: 0.9rem;
+        padding: 0.15rem 0 1.25rem;
         font-size: 0.88rem;
-        line-height: 1.6;
+        line-height: 1.75;
     }
 
     .group {
@@ -184,9 +199,15 @@
             display: inline;
         }
 
+        /* an entry keeps its separator, so a wrapped line never starts with a stray dot */
+        :global(li:not(:has(> ul, > ol))) {
+            white-space: nowrap;
+        }
+
         :global(li:not(:last-child)::after) {
-            content: " · ";
-            color: var(--muted);
+            content: "·";
+            margin-inline: 0.45em;
+            color: color-mix(in oklch, var(--muted) 70%, transparent);
             font-weight: 700;
         }
 
@@ -199,14 +220,20 @@
             content: ")";
         }
 
+        /* a quiet list: links underline when hovered, rather than every entry carrying a line */
         :global(a) {
             color: inherit;
-            text-decoration-color: color-mix(in oklch, currentColor 30%, transparent);
+            text-decoration: underline;
+            text-decoration-color: transparent;
             text-underline-offset: 0.2em;
+            transition:
+                color var(--dur-base) var(--ease-out),
+                text-decoration-color var(--dur-base) var(--ease-out);
         }
 
         :global(a:hover) {
             color: var(--link-hover);
+            text-decoration-color: color-mix(in oklch, currentColor 45%, transparent);
         }
 
         :global(img.inline-icon) {
