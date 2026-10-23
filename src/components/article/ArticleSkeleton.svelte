@@ -76,8 +76,8 @@
 <style>
     .article-skeleton,
     .outline-skeleton {
-        /* held back briefly: preloaded or fast articles replace it before it ever flickers into view */
-        animation: fade-in var(--dur-base) var(--ease-out) 120ms backwards;
+        /* no hold-back: it only shows on a cold start or once an article is already slow (the route's load) */
+        animation: fade-in var(--dur-base) var(--ease-out) backwards;
     }
 
     .article-skeleton {
