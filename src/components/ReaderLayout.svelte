@@ -1,15 +1,18 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
     import { fade } from "svelte/transition";
-    import { DURATION, motion } from "$lib/motion";
+    import { DURATION, motion, rise } from "$lib/motion";
+    import ChevronIcon from "./icons/ChevronIcon.svelte";
 
     interface Props {
         children: Snippet;
         /** Section navigation; receives a `close` callback for dismissing the drawer on small screens. */
         outline?: Snippet<[{ close: () => void }]>;
+        /** The section being read, shown on the small-screen Sections button. */
+        outlineLabel?: string;
     }
 
-    let { children, outline }: Props = $props();
+    let { children, outline, outlineLabel }: Props = $props();
 
     const uid = $props.id();
     let outlineOpen = $state(false);
@@ -41,14 +44,26 @@
                 transition:fade={{ duration: motion(DURATION.base) }}
             ></button>
         {/if}
+        <!-- on small screens: a floating pill naming the section being read, with a ring that fills as you read -->
         <button
             type="button"
             class="outline-toggle"
+            class:open={outlineOpen}
             aria-controls="{uid}-outline"
             aria-expanded={outlineOpen}
+            aria-label={outlineLabel ? `Sections (reading ${outlineLabel})` : "Sections"}
             onclick={() => (outlineOpen = !outlineOpen)}
         >
-            Sections
+            <svg class="progress" viewBox="0 0 20 20" aria-hidden="true">
+                <circle class="rail" cx="10" cy="10" r="7.5" />
+                <circle class="read" cx="10" cy="10" r="7.5" pathLength="1" />
+            </svg>
+            <span class="label">
+                {#key outlineLabel}
+                    <span in:rise={{ y: 4, duration: DURATION.base }}>{outlineLabel ?? "Contents"}</span>
+                {/key}
+            </span>
+            <ChevronIcon collapsed={!outlineOpen} size={16} />
         </button>
     {/if}
 
@@ -105,40 +120,56 @@
         .reader {
             grid-template-columns: minmax(0, var(--measure));
             justify-content: center;
+            /* where the floating Sections pill sits; its card opens just above it */
+            --pill-height: 2.6rem;
+            --pill-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+            --pill-left: max(1rem, env(safe-area-inset-left));
         }
 
         .content {
             grid-column: 1;
         }
 
+        /* a card that grows up out of the pill */
         .outline {
             position: fixed;
             z-index: 25;
-            left: 0;
-            top: calc(var(--nav-height) + 1rem);
-            margin-left: env(safe-area-inset-left);
-            margin-top: 0;
-            width: min(85vw, 300px);
-            max-height: min(72dvh, 620px);
+            top: auto;
+            left: var(--pill-left);
+            bottom: calc(var(--pill-bottom) + var(--pill-height) + 0.6rem);
+            margin: 0;
+            width: min(20rem, calc(100vw - 2rem));
+            max-height: min(64dvh, 34rem);
             box-sizing: border-box;
-            padding: 0.9rem 0.85rem 0.5rem;
+            padding: 1rem 0.6rem 0 0.4rem;
             background: var(--bg-color);
-            border: 1px solid var(--secondary);
-            border-left: none;
-            border-radius: 0 12px 12px 0;
-            box-shadow: 0 12px 32px var(--shadow-color);
+            border: 1px solid var(--rule);
+            border-radius: 20px;
+            box-shadow:
+                0 24px 48px -20px var(--shadow-color),
+                0 2px 8px -4px var(--shadow-color);
+            transform-origin: 1.3rem 100%;
 
             visibility: hidden;
-            transform: translateX(-100%);
-            /* closes a little quicker than it opens; visibility flips once it's off-screen */
+            opacity: 0;
+            scale: 0.94;
+            translate: 0 8px;
+            /* closes a little quicker than it opens; visibility flips once it has faded */
             transition:
-                transform var(--dur-fast) ease-in,
+                opacity var(--dur-fast) ease-in,
+                scale var(--dur-fast) ease-in,
+                translate var(--dur-fast) ease-in,
                 visibility 0s linear var(--dur-fast);
 
             &.open {
                 visibility: visible;
-                transform: none;
-                transition: transform var(--dur-base) var(--ease-out);
+                opacity: 1;
+                scale: 1;
+                translate: none;
+                transition:
+                    opacity var(--dur-base) var(--ease-out),
+                    scale var(--dur-slow) var(--ease-out),
+                    translate var(--dur-slow) var(--ease-out);
             }
         }
 
@@ -148,7 +179,7 @@
             inset: 0;
             z-index: 24;
             border: none;
-            background: rgb(0 0 0 / 14%);
+            background: rgb(0 0 0 / 12%);
 
             /* a full-screen layer shouldn't take part in the global press-scale */
             &:active {
@@ -157,22 +188,89 @@
         }
 
         .outline-toggle {
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             position: fixed;
             z-index: 26;
-            left: env(safe-area-inset-left);
-            bottom: calc(1.5rem + env(safe-area-inset-bottom));
-            padding: 0.55rem 0.9rem 0.55rem 0.75rem;
-            background: var(--bg-color);
-            border: 1px solid var(--secondary);
-            border-left: none;
-            border-radius: 0 999px 999px 0;
-            box-shadow: 0 8px 24px var(--shadow-color);
-            font-size: 0.75rem;
-            font-weight: 650;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
+            left: var(--pill-left);
+            bottom: var(--pill-bottom);
+            box-sizing: border-box;
+            height: var(--pill-height);
+            max-width: min(16rem, calc(100vw - 2rem));
+            padding: 0 0.75rem 0 0.7rem;
+            border: 1px solid var(--rule);
+            border-radius: 999px;
+            background: color-mix(in oklch, var(--bg-color) 86%, transparent);
+            -webkit-backdrop-filter: blur(10px) saturate(1.2);
+            backdrop-filter: blur(10px) saturate(1.2);
+            box-shadow: 0 10px 28px -12px var(--shadow-color);
+            font-size: 0.82rem;
+            font-weight: 600;
+            line-height: 1;
+            color: var(--text-color);
             cursor: pointer;
+            transition:
+                scale var(--dur-instant) var(--ease-out),
+                background-color var(--dur-base) var(--ease-out);
+
+            &.open {
+                background: var(--bg-color);
+            }
+
+            > :global(svg:last-child) {
+                flex: none;
+                color: var(--muted);
+            }
+        }
+
+        .label {
+            display: grid;
+            min-width: 0;
+
+            span {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        }
+
+        /* reading progress: the ring fills as the page scrolls (where scroll-driven animations exist; else just the rail) */
+        .progress {
+            flex: none;
+            width: 1.1rem;
+            height: 1.1rem;
+            rotate: -90deg;
+            fill: none;
+            stroke-width: 2.5;
+
+            .rail {
+                stroke: color-mix(in oklch, var(--secondary) 70%, transparent);
+            }
+
+            .read {
+                stroke: var(--accent);
+                stroke-linecap: round;
+                stroke-dasharray: 1;
+                stroke-dashoffset: 1;
+            }
+        }
+
+        @supports (animation-timeline: scroll()) {
+            .progress .read {
+                animation: ring-fill linear both;
+                animation-timeline: scroll(root);
+            }
+        }
+    }
+
+    @keyframes ring-fill {
+        from {
+            stroke-dashoffset: 0.97;
+        }
+
+        to {
+            stroke-dashoffset: 0;
         }
     }
 </style>

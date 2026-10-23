@@ -573,7 +573,7 @@
 <!-- its mirror image above the page, only seen when the page is pulled down past the top (macOS rubber-banding) -->
 <div class="mood above" aria-hidden="true"></div>
 
-<ReaderLayout>
+<ReaderLayout outlineLabel={highlightActive ? headingsById.get(activeHeadingId)?.text : undefined}>
     {#snippet outline({ close })}
         {#if headings.length > 0}
             <ArticleBreadcrumbs
