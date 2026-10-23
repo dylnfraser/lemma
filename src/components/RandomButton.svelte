@@ -15,7 +15,11 @@
     let failed = $state(false);
     let failTimer: ReturnType<typeof setTimeout>;
 
+    // a click always gets at least one full hop, even when the article arrives straight away
+    let hopping = $state(false);
+
     async function openRandom() {
+        hopping = true;
         if (busy) return;
         busy = true;
         failed = false;
@@ -36,11 +40,12 @@
     type="button"
     class="random {variant}"
     class:busy
+    class:hopping
     aria-busy={busy}
     title="Open a random article"
     onclick={openRandom}
 >
-    <svg class="shuffle" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg class="shuffle" onanimationiteration={() => !busy && (hopping = false)} onanimationend={() => (hopping = false)} width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path
             d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22M18 2l4 4-4 4M2 6h1.9c1.5 0 2.9.9 3.6 2.2M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8M18 14l4 4-4 4"
             stroke="currentColor"
@@ -125,8 +130,11 @@
         }
     }
 
+    /* hover mirrors the arrows (scale); a click makes them hop (transform). Separate properties, so a hop plays on the
+       mirrored icon without undoing the flip */
     .shuffle {
         flex: none;
+        transform-origin: 50% 100%;
         transition: scale var(--dur-base) var(--ease-spring);
     }
 
@@ -134,35 +142,45 @@
         scale: -1 1;
     }
 
-    /* while a random article is found: the arrows keep shuffling, swapping sides like cards being dealt */
-    .busy .shuffle {
-        animation: deal 0.7s var(--ease-out) infinite;
+    /* up with a tilt, then a landing squash; repeating while a random article is being found */
+    .hopping .shuffle {
+        animation: hop 0.55s var(--ease-out);
+    }
 
-        @media (prefers-reduced-motion: reduce) {
+    .busy .shuffle {
+        animation: hop 0.55s var(--ease-out) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .hopping .shuffle,
+        .busy .shuffle {
             animation: none;
+        }
+
+        .shuffle {
+            transition: none;
         }
     }
 
-    @keyframes deal {
+    @keyframes hop {
         0% {
-            scale: 1 1;
-            rotate: 0deg;
+            transform: none;
         }
 
         35% {
-            scale: -1 1;
-            rotate: -10deg;
-            translate: 0 -1.5px;
+            transform: translateY(-5px) rotate(-16deg);
         }
 
-        70% {
-            scale: 1 1;
-            rotate: 6deg;
+        65% {
+            transform: rotate(4deg) scale(1.15, 0.85);
+        }
+
+        82% {
+            transform: scale(0.95, 1.06);
         }
 
         100% {
-            scale: 1 1;
-            rotate: 0deg;
+            transform: none;
         }
     }
 </style>
