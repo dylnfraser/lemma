@@ -27,7 +27,7 @@
         let active = true;
         view = { status: "loading" };
 
-        current.article.then(
+        current.article().then(
             (result) => active && (view = { status: "ready", ...result }),
             (error) => active && (view = { status: "error", error }),
         );
