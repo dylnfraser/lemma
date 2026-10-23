@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { darkVariant, markDarkBackgrounds, parseColor } from "./darkColors";
+import { darkVariant, lightVariant, markDarkBackgrounds, parseColor } from "./darkColors";
 
 describe("parseColor", () => {
   it("reads hex, rgb and names", () => {
@@ -35,4 +35,18 @@ it("marks inline backgrounds and bgcolor with a dark counterpart", () => {
   expect(white.style.getPropertyValue("--dark-bg")).toContain("var(--bg-color)");
   expect(blue.style.getPropertyValue("--dark-bg")).toMatch(/^oklch/);
   expect(gradient.style.getPropertyValue("--dark-bg")).toBe("");
+});
+
+describe("lightVariant", () => {
+  it("calms glaring colours, keeping hue and lightness", () => {
+    const [, l, c, h] = lightVariant([0, 0, 255])!.match(/oklch\(([\d.]+) ([\d.]+) ([\d.]+)\)/)!.map(Number);
+    expect(l).toBeCloseTo(0.452, 2);
+    expect(c).toBeLessThanOrEqual(0.16);
+    expect(h).toBeGreaterThan(250);
+  });
+
+  it("leaves muted colours alone", () => {
+    expect(lightVariant([234, 236, 240])).toBeNull();
+    expect(lightVariant([176, 196, 222])).toBeNull();
+  });
 });

@@ -2,7 +2,8 @@
  * Wikipedia's tables paint cells with fixed light colours (white, pale blue, a bright orange heat-map). On Lemma's dark
  * page those glare, so each inline background gets a dark-mode counterpart: the same hue, darker and calmer, with
  * near-white and grey backgrounds dropping away to the page's own card colour. The counterpart is stored as
- * --dark-bg on the element and only applied in dark mode (ArticleContent).
+ * --dark-bg on the element and only applied in dark mode (ArticleContent). Glaring colours also get a calmer
+ * light-mode counterpart, --light-bg.
  */
 
 import { rgbToOklch } from "$lib/imageTint";
@@ -78,11 +79,31 @@ export function darkVariant([r, g, b]: Rgb): string {
   return `oklch(${lightness.toFixed(3)} ${chroma.toFixed(3)} ${h.toFixed(1)})`;
 }
 
+/**
+ * The light-mode version of a glaring background (pure #0000ff, red, yellow: club colours, party colours), or null
+ * when the colour is calm enough to keep. Same hue and lightness, so the text on it stays as legible, with the chroma
+ * reined in to sit with the page's muted palette.
+ */
+export function lightVariant([r, g, b]: Rgb): string | null {
+  const { l, c, h } = rgbToOklch(r, g, b);
+  if (c <= VIVID_CHROMA) return null;
+  return `oklch(${l.toFixed(3)} ${VIVID_CHROMA.toFixed(3)} ${h.toFixed(1)})`;
+}
+
+const VIVID_CHROMA = 0.16;
+
+/** Stores a background's counterparts for each theme on the element. */
+function markVariants(element: HTMLElement, color: Rgb) {
+  element.style.setProperty("--dark-bg", darkVariant(color));
+  const light = lightVariant(color);
+  if (light) element.style.setProperty("--light-bg", light);
+}
+
 const BACKGROUND = /background(?:-color)?\s*:\s*([^;!]+)/i;
 
 /**
  * After render: backgrounds that come from template classes rather than inline styles (a purple table caption) get
- * a dark counterpart too. Only clearly light, opaque backgrounds are touched.
+ * counterparts too. Only opaque backgrounds that are clearly light (for dark mode) or glaring (for both) are touched.
  */
 export function markComputedDarkBackgrounds(root: Element) {
   for (const element of root.querySelectorAll<HTMLElement>("table, caption, tr, th, td, div")) {
@@ -90,8 +111,9 @@ export function markComputedDarkBackgrounds(root: Element) {
     const match = getComputedStyle(element).backgroundColor.match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?/);
     if (!match || (match[4] !== undefined && Number(match[4]) < 0.5)) continue;
     const rgb: Rgb = [Number(match[1]), Number(match[2]), Number(match[3])];
-    if (rgbToOklch(...rgb).l < 0.8) continue;
-    element.style.setProperty("--dark-bg", darkVariant(rgb));
+    const { l, c } = rgbToOklch(...rgb);
+    if (c > VIVID_CHROMA) markVariants(element, rgb);
+    else if (l >= 0.8) element.style.setProperty("--dark-bg", darkVariant(rgb));
   }
 }
 
@@ -103,6 +125,6 @@ export function markDarkBackgrounds(root: Element) {
     if (declared.includes("var(")) continue;
     const color = parseColor(declared.split(/\s+(?![^(]*\))/)[0] ?? "");
     if (!color) continue;
-    element.style.setProperty("--dark-bg", darkVariant(color));
+    markVariants(element, color);
   }
 }

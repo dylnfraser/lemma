@@ -1244,6 +1244,11 @@
         }
     }
 
+    /* Glaring cell colours (pure blues and reds: club and party colours) calm to the same hue, less saturated. */
+    .article-body :global([style*="--light-bg"]:not(.legend-color, .legend-color *)) {
+        background: var(--light-bg) !important;
+    }
+
     /*
      * Dark mode: Wikipedia's light cell colours swap for their dark counterparts (--dark-bg, worked out when the article
      * is parsed: same hue, darker; whites become the card colour), and the text on them follows the page's palette.
