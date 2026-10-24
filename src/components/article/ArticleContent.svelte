@@ -948,7 +948,7 @@
             position: absolute;
             inset: calc(var(--rule-gap) + 1px) 0 0;
             z-index: -1;
-            border-radius: 4px;
+            border-radius: 2px;
             animation: jump-flash 1.6s var(--ease-out);
         }
     }
