@@ -4,12 +4,12 @@
     import { getArticlePath } from "$lib/article/articleUtils";
 
     interface Props {
-        /** "nav": the navbar's 36px box; "pill": a bordered pill for page content; "text": a plain text link. */
-        variant?: "nav" | "pill" | "text";
+        /** "text": a plain text link; "pill": a bordered pill for page content. */
+        variant?: "text" | "pill";
         label?: string;
     }
 
-    let { variant = "nav", label = "Random" }: Props = $props();
+    let { variant = "text", label = "Random article" }: Props = $props();
 
     let busy = $state(false);
     let failed = $state(false);
@@ -75,21 +75,6 @@
 
         &.busy {
             cursor: progress;
-        }
-    }
-
-    /* matches the navbar's search button: the same 36px box as the logo */
-    .nav {
-        height: 36px;
-        padding: 0 0.5rem 0 0.4rem;
-        background: none;
-        border: 1px solid transparent;
-        border-radius: 8px;
-        color: var(--muted);
-
-        &:hover {
-            color: var(--text-color);
-            border-color: var(--secondary);
         }
     }
 
