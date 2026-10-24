@@ -1,16 +1,28 @@
 <script lang="ts">
     import Icon from "../icons/Icon.svelte";
     import { prefersReducedMotion } from "svelte/motion";
-    import { getWikipediaArticleUrl, getWikipediaHistoryUrl } from "$lib/api/wikipedia";
+    import { getWikipediaArticleUrl, getWikipediaHistoryUrl, type EditActivity, type Protection } from "$lib/api/wikipedia";
     import { isKeyboardClick } from "$lib/focus";
 
     interface Props {
         title: string;
-        /** From the article's edit activity (ArticleView fetches it), once it arrives. */
-        lastEdited: Date | null;
+        /** The article's recent editing (ArticleView fetches it), once it arrives. */
+        activity: EditActivity | null;
+        /** Who may edit it, when that's restricted. */
+        protection: Protection | null;
     }
 
-    let { title, lastEdited }: Props = $props();
+    let { title, activity, protection }: Props = $props();
+
+    // how the article is being edited, beside when it last was
+    const PROTECTIONS = {
+        semi: "Semi-protected: only established accounts can edit it",
+        extended: "Extended protected: only experienced editors can edit it",
+        full: "Fully protected: only administrators can edit it",
+        pending: "Edits by new accounts are reviewed before they show",
+    } as const;
+
+    let edits = $derived(activity?.editsThisWeek ?? 0);
 
     const CC_BY_SA_URL = "https://creativecommons.org/licenses/by-sa/4.0/";
 
@@ -33,11 +45,24 @@
         </button>
     </div>
 
-    {#if lastEdited}
+    {#if activity || protection}
         <p class="edited">
-            Last edited on <time datetime={lastEdited.toISOString()}
-                >{lastEdited.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}</time
-            >
+            {#if activity}
+                <span
+                    >Last edited on <time datetime={activity.lastEdited.toISOString()}
+                        >{activity.lastEdited.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}</time
+                    ></span
+                >
+                {#if edits > 0}
+                    <span
+                        >{edits >= 50 ? "50+" : edits} {edits === 1 ? "edit" : "edits"} in the past week{#if activity.editorsThisWeek > 1}&nbsp;by
+                            {activity.editorsThisWeek} editors{/if}</span
+                    >
+                {/if}
+            {/if}
+            {#if protection}
+                <span class="protection"><Icon name="lock" size="0.9em" />{PROTECTIONS[protection]}</span>
+            {/if}
         </p>
     {/if}
 
@@ -93,10 +118,20 @@
         text-wrap: pretty;
     }
 
+    /* when and how it's being edited, as one line of facts (wrapping between them, not inside) */
     .edited {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.2rem 1rem;
         font-weight: 500;
         /* it arrives after the article, so ease it in rather than popping */
         animation: fade-in var(--dur-base) var(--ease-out) backwards;
+    }
+
+    .protection {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
     }
 
     .license a {

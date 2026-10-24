@@ -625,10 +625,8 @@
             {/if}
             <ArticleHealth
                 assessment={meta.assessment ?? null}
-                protection={meta.protection ?? null}
                 sources={article.sources}
                 claims={article.claimsNeedingSources}
-                {activity}
                 {sourcesTarget}
                 onJump={goToAnchor}
             />
@@ -674,7 +672,7 @@
 
         <ArticleReadNext {title} categories={meta.categories} sisters={article.sisters} />
 
-        <ArticleFooter {title} lastEdited={activity?.lastEdited ?? null} />
+        <ArticleFooter {title} {activity} protection={meta.protection ?? null} />
     </article>
 </ReaderLayout>
 

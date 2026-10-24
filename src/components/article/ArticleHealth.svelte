@@ -1,35 +1,25 @@
 <script lang="ts">
-    import type { Assessment, EditActivity, Protection } from "$lib/api/wikipedia";
+    import type { Assessment } from "$lib/api/wikipedia";
     import { SOURCE_KINDS, SOURCE_LABELS, percentOf, totalSources, type SourceMix } from "$lib/article/sources";
     import Icon from "../icons/Icon.svelte";
 
-    // A quiet line under the title on how far to trust what follows: Wikipedia's own rating, how it's sourced, what
-    // its editors have flagged, who may edit it, and how busy the editing is right now.
+    // A quiet line under the title on how far to trust what follows: Wikipedia's own rating, how it's sourced, and what
+    // its editors have flagged. (How it's being edited, and by whom, is in the footer.)
     interface Props {
         assessment: Assessment | null;
-        protection: Protection | null;
         sources: SourceMix;
         /** Ids of the claims flagged as needing a source. */
         claims: string[];
-        /** Arrives after the article (a separate request), or never. */
-        activity: EditActivity | null;
         /** The References section, for the sources count to jump to. */
         sourcesTarget: string;
         onJump: (id: string) => void;
     }
 
-    let { assessment, protection, sources, claims, activity, sourcesTarget, onJump }: Props = $props();
+    let { assessment, sources, claims, sourcesTarget, onJump }: Props = $props();
 
     const RATINGS = {
         featured: { icon: "star", label: "Featured article", help: "One of Wikipedia's best articles, as judged by its editors" },
         good: { icon: "badge-check", label: "Good article", help: "Meets Wikipedia's good article criteria, as reviewed by its editors" },
-    } as const;
-
-    const PROTECTIONS = {
-        semi: { label: "Semi-protected", help: "Only established accounts can edit it, usually after vandalism" },
-        extended: { label: "Extended protected", help: "Only experienced editors can edit it, usually because it's contentious" },
-        full: { label: "Fully protected", help: "Only administrators can edit it, usually during a dispute" },
-        pending: { label: "Edits reviewed", help: "Edits by new accounts are checked before they show" },
     } as const;
 
     let total = $derived(totalSources(sources));
@@ -45,10 +35,9 @@
         nextClaim++;
     }
 
-    let edits = $derived(activity?.editsThisWeek ?? 0);
 </script>
 
-{#if assessment || total > 0 || claims.length > 0 || protection || edits > 0}
+{#if assessment || total > 0 || claims.length > 0}
     <ul class="health" aria-label="About this article">
         {#if assessment}
             <li class="rating {assessment}" title={RATINGS[assessment].help}>
@@ -74,15 +63,6 @@
                     <Icon name="flag" size="0.95em" />{claims.length}
                     {claims.length === 1 ? "claim needs" : "claims need"} a source
                 </button>
-            </li>
-        {/if}
-        {#if protection}
-            <li title={PROTECTIONS[protection].help}><Icon name="lock" size="0.95em" />{PROTECTIONS[protection].label}</li>
-        {/if}
-        {#if edits > 0}
-            <li class="arrived" title="Edits to this article in the past seven days">
-                <Icon name="pencil" size="0.95em" />{edits >= 50 ? "50+" : edits}
-                {edits === 1 ? "edit" : "edits"} this week{#if activity && activity.editorsThisWeek > 1}&nbsp;by {activity.editorsThisWeek} editors{/if}
             </li>
         {/if}
     </ul>
@@ -176,10 +156,5 @@
 
     .segment.web {
         --source-color: var(--source-web);
-    }
-
-    /* edit activity comes a moment after the article */
-    .arrived {
-        animation: fade-in var(--dur-base) var(--ease-out) backwards;
     }
 </style>
