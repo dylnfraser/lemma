@@ -1,4 +1,5 @@
-import type { ArticleLanguage } from "$lib/api/wikipedia";
+import type { ArticleLanguage, Assessment, Protection } from "$lib/api/wikipedia";
+import type { SourceMix } from "./sources";
 
 export type ArticleHeadingTag = "H1" | "H2" | "H3" | "H4" | "H5" | "H6";
 
@@ -161,6 +162,10 @@ export interface ParsedArticle {
   coordinates: Coordinates | null;
   spoken: SpokenAudio | null;
   sisters: SisterLink[];
+  /** How many of the footnotes cite each kind of source (see sources.ts). */
+  sources: SourceMix;
+  /** Ids of the claims flagged as needing a source ("citation needed"), in reading order. */
+  claimsNeedingSources: string[];
 }
 
 /** Facts about the article that come with it but aren't part of its text. */
@@ -175,4 +180,8 @@ export interface ArticleMeta {
   disambiguation?: boolean;
   /** The revision being read. */
   revisionId?: number | null;
+  /** Wikipedia's own quality rating, when it's one of its best: a featured or good article. */
+  assessment?: Assessment | null;
+  /** Who may edit it, when that's restricted. */
+  protection?: Protection | null;
 }

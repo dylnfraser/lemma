@@ -29,7 +29,11 @@
         | "image"
         | "folder"
         | "chevron-down"
-        | "globe";
+        | "globe"
+        | "lock"
+        | "pencil"
+        | "flag"
+        | "book-open";
 </script>
 
 <script lang="ts">

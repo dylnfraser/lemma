@@ -55,7 +55,27 @@ export type WikipediaPageContent = {
   disambiguation?: boolean;
   /** The revision this text is from, for permanent links. */
   revisionId?: number;
+  /** Featured or good article (Wikipedia's top quality ratings). */
+  assessment?: Assessment;
+  /** Restrictions on who may edit it. */
+  protection?: Protection;
 };
+
+export type Assessment = "featured" | "good";
+/** Semi: only established accounts; extended: only experienced editors; full: only administrators; pending: edits are reviewed before they show. */
+export type Protection = "semi" | "extended" | "full" | "pending";
+
+type Indicator = { name: string; "*"?: string };
+
+/** Wikipedia shows an article's rating and protection as icons by its title ("indicators"); read them back. */
+function readIndicators(indicators: Indicator[]): { assessment?: Assessment; protection?: Protection } {
+  const names = new Set(indicators.map((indicator) => indicator.name));
+  const assessment = names.has("featured-star") ? "featured" : names.has("good-star") ? "good" : undefined;
+  // the protection icon links to the part of the policy for its level ("…Protection_policy#semi")
+  const lock = indicators.find((indicator) => indicator.name.startsWith("pp-"))?.["*"] ?? "";
+  const level = lock.match(/Protection_policy#(semi|extended|full|pending)/)?.[1] as Protection | undefined;
+  return { assessment, protection: level };
+}
 
 
 type ParseResponse =
@@ -67,6 +87,7 @@ type ParseResponse =
         langlinks?: { lang: string; url: string; langname?: string; autonym?: string; "*": string }[];
         categories?: { "*": string; hidden?: string }[];
         properties?: { name: string; "*"?: string }[];
+        indicators?: Indicator[];
         revid?: number;
       };
     }
@@ -168,7 +189,7 @@ export async function fetchArticle(title: string, options: RequestOptions = {}):
   url.search = new URLSearchParams({
     action: "parse",
     page: title,
-    prop: "text|langlinks|categories|properties|revid",
+    prop: "text|langlinks|categories|properties|indicators|revid",
     redirects: "1",
     // cacheable for a few minutes, by the browser and by Wikipedia's edge servers: an article someone opened recently
     // comes back noticeably faster than one Wikipedia has to look up again
@@ -207,6 +228,7 @@ export async function fetchArticle(title: string, options: RequestOptions = {}):
     categories: (json.parse.categories ?? []).filter((category) => !("hidden" in category)).map((category) => category["*"].replaceAll("_", " ")),
     disambiguation: properties.some((property) => property.name === "disambiguation"),
     revisionId: json.parse.revid || undefined,
+    ...readIndicators(json.parse.indicators ?? []),
   };
 }
 
@@ -250,19 +272,32 @@ export async function fetchRelatedArticles(title: string, options: RequestOption
 }
 
 type RevisionsResponse = {
-  query?: { pages?: { revisions?: { timestamp?: string }[] }[] };
+  query?: { pages?: { revisions?: { timestamp?: string; user?: string }[] }[] };
 };
 
+/** How busy an article's editing is: when it was last edited, and how much in the past week. */
+export type EditActivity = {
+  lastEdited: Date;
+  /** Edits in the past seven days (counted from the latest 50, so 50 means "50 or more"). */
+  editsThisWeek: number;
+  /** Different editors among those edits. */
+  editorsThisWeek: number;
+};
+
+const RECENT_REVISIONS = 50;
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
 /**
- * When the article was last edited, for the attribution footer. The parse API doesn't report it, so this is a separate,
- * best-effort request: any failure (including a caller abort) resolves to null rather than throwing.
+ * The article's recent editing, for the header and the attribution footer. The parse API doesn't report it, so this is
+ * a separate, best-effort request: any failure (including a caller abort) resolves to null rather than throwing.
  */
-export async function fetchLastEdited(title: string, options: RequestOptions = {}): Promise<Date | null> {
+export async function fetchEditActivity(title: string, options: RequestOptions = {}, now = Date.now()): Promise<EditActivity | null> {
   const url = new URL("/w/api.php", WIKIPEDIA_ORIGIN);
   url.search = new URLSearchParams({
     action: "query",
     prop: "revisions",
-    rvprop: "timestamp",
+    rvprop: "timestamp|user",
+    rvlimit: String(RECENT_REVISIONS),
     titles: title,
     redirects: "1",
     format: "json",
@@ -272,12 +307,24 @@ export async function fetchLastEdited(title: string, options: RequestOptions = {
 
   try {
     const json = await requestJson<RevisionsResponse>(url, options);
-    const timestamp = json.query?.pages?.[0]?.revisions?.[0]?.timestamp;
-    const date = timestamp ? new Date(timestamp) : null;
-    return date && !Number.isNaN(date.getTime()) ? date : null;
+    const revisions = (json.query?.pages?.[0]?.revisions ?? [])
+      .map((revision) => ({ at: new Date(revision.timestamp ?? ""), user: revision.user ?? "" }))
+      .filter((revision) => !Number.isNaN(revision.at.getTime()));
+    if (revisions.length === 0) return null;
+    const thisWeek = revisions.filter((revision) => now - revision.at.getTime() < WEEK_MS);
+    return {
+      lastEdited: revisions[0].at,
+      editsThisWeek: thisWeek.length,
+      editorsThisWeek: new Set(thisWeek.map((revision) => revision.user)).size,
+    };
   } catch {
     return null;
   }
+}
+
+/** When the article was last edited (see fetchEditActivity). */
+export async function fetchLastEdited(title: string, options: RequestOptions = {}): Promise<Date | null> {
+  return (await fetchEditActivity(title, options))?.lastEdited ?? null;
 }
 
 /** Where a reader can see an article's contributors, as CC BY-SA attribution asks. */

@@ -40,6 +40,8 @@ export const load: PageLoad = async ({ params, fetch }) => {
         categories: content.categories ?? [],
         disambiguation: content.disambiguation ?? false,
         revisionId: content.revisionId ?? null,
+        assessment: content.assessment ?? null,
+        protection: content.protection ?? null,
       },
     })));
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   fetchArticle,
+  fetchEditActivity,
   fetchImageCredit,
   fetchLastEdited,
   fetchRelatedArticles,
@@ -142,6 +143,26 @@ describe("fetchLastEdited", () => {
   });
 });
 
+describe("fetchEditActivity", () => {
+  const now = Date.parse("2026-10-20T12:00:00Z");
+  const revision = (daysAgo: number, user: string) => ({ timestamp: new Date(now - daysAgo * 86_400_000).toISOString(), user });
+
+  it("counts the past week's edits and editors from the latest revisions", async () => {
+    const fetcher = mockFetch(
+      json({ query: { pages: [{ revisions: [revision(0.5, "A"), revision(2, "B"), revision(3, "A"), revision(9, "C")] }] } }),
+    );
+    const activity = await fetchEditActivity("Moon", { fetch: fetcher }, now);
+    expect(activity).toEqual({ lastEdited: new Date(now - 0.5 * 86_400_000), editsThisWeek: 3, editorsThisWeek: 2 });
+    const params = new URL(String(fetcher.mock.calls[0][0])).searchParams;
+    expect(params.get("rvprop")).toBe("timestamp|user");
+    expect(params.get("rvlimit")).toBe("50");
+  });
+
+  it("resolves to null when there's nothing to go on", async () => {
+    await expect(fetchEditActivity("A", { fetch: mockFetch(json({ query: { pages: [{ missing: true }] } })) })).resolves.toBeNull();
+  });
+});
+
 describe("getWikipediaHistoryUrl", () => {
   it("links to the article's revision history", () => {
     expect(getWikipediaHistoryUrl("Alan Turing")).toBe("https://en.wikipedia.org/w/index.php?title=Alan_Turing&action=history");
@@ -231,11 +252,37 @@ describe("fetchArticle extras", () => {
       }),
     );
     const article = await fetchArticle("Turing", { fetch: fetcher });
-    expect(new URL(String(fetcher.mock.calls[0][0])).searchParams.get("prop")).toBe("text|langlinks|categories|properties|revid");
+    expect(new URL(String(fetcher.mock.calls[0][0])).searchParams.get("prop")).toBe("text|langlinks|categories|properties|indicators|revid");
     expect(article.redirectedFrom).toBe("Turing");
     expect(article.languages).toEqual([{ code: "fr", name: "French", autonym: "français", title: "Alan Turing", url: "https://fr.wikipedia.org/wiki/Alan_Turing" }]);
     expect(article.categories).toEqual(["British cryptographers"]);
     expect(article.disambiguation).toBe(false);
+  });
+
+  it("reads Wikipedia's rating and protection from the page indicators", async () => {
+    const indicator = (name: string, html = "") => ({ name, "*": html });
+    const featured = await fetchArticle("Moon", {
+      fetch: mockFetch(
+        json({
+          parse: {
+            title: "Moon",
+            text: { "*": "<p>Hi</p>" },
+            indicators: [
+              indicator("featured-star"),
+              indicator("pp-default", '<a href="/wiki/Wikipedia:Protection_policy#semi" title="This article is semi-protected">'),
+            ],
+          },
+        }),
+      ),
+    });
+    expect(featured.assessment).toBe("featured");
+    expect(featured.protection).toBe("semi");
+
+    const good = await fetchArticle("X", {
+      fetch: mockFetch(json({ parse: { title: "X", text: { "*": "<p>Hi</p>" }, indicators: [indicator("good-star"), indicator("coordinates")] } })),
+    });
+    expect(good.assessment).toBe("good");
+    expect(good.protection).toBeUndefined();
   });
 
   it("recognises disambiguation pages", async () => {

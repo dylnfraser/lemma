@@ -13,6 +13,7 @@
     import { SvelteSet } from "svelte/reactivity";
     import { page } from "$app/state";
     import { replaceState } from "$app/navigation";
+    import { fetchEditActivity, type EditActivity } from "$lib/api/wikipedia";
     import { getCollapsibleHeadingIds } from "$lib/article/articleNavigation";
     import { collectText, findTextRanges, normalizeQuery } from "$lib/article/findText";
     import { isTypingTarget } from "$lib/search/searchOverlay.svelte";
@@ -29,6 +30,7 @@
     import ArticleContent from "./ArticleContent.svelte";
     import Icon from "../icons/Icon.svelte";
     import ArticleFooter from "./ArticleFooter.svelte";
+    import ArticleHealth from "./ArticleHealth.svelte";
     import ArticleInfobox from "./ArticleInfobox.svelte";
     import ArticleLanguages from "./ArticleLanguages.svelte";
     import ArticleReadNext from "./ArticleReadNext.svelte";
@@ -81,6 +83,23 @@
     let frame = 0;
     let restoredFrom: ArticleViewState | null = null;
     let infoboxExpanded = $state(false);
+
+    // Recent editing, for the header (how busy it is) and the footer (when it was last edited): one best-effort request
+    // after the article, which never holds it up.
+    let activity = $state<EditActivity | null>(null);
+    $effect(() => {
+        const controller = new AbortController();
+        fetchEditActivity(title, { signal: controller.signal }).then((result) => {
+            if (!controller.signal.aborted) activity = result;
+        });
+        return () => controller.abort();
+    });
+
+    // The header's source count jumps to the section holding the first reference list that cites anything.
+    let sourcesTarget = $derived(
+        article.blocks.find((block) => block.type === "html" && block.kind === "references" && block.html.includes("data-source="))
+            ?.sectionIds.at(-1) ?? "",
+    );
     // Set when goToAnchor changes the hash itself, so the hashchange listener doesn't handle that jump twice.
     let ownHashChange: string | null = null;
 
@@ -604,6 +623,15 @@
                     Redirected from <span class="from">{meta.redirectedFrom}</span>
                 </p>
             {/if}
+            <ArticleHealth
+                assessment={meta.assessment ?? null}
+                protection={meta.protection ?? null}
+                sources={article.sources}
+                claims={article.claimsNeedingSources}
+                {activity}
+                {sourcesTarget}
+                onJump={goToAnchor}
+            />
             <ArticleActions
                 {title}
                 {description}
@@ -637,6 +665,7 @@
             collapsedSectionIds={collapsedSections}
             onToggleSection={toggleSection}
             styles={article.styles}
+            sources={article.sources}
         />
 
         {#if article.related.length > 0}
@@ -645,7 +674,7 @@
 
         <ArticleReadNext {title} categories={meta.categories} sisters={article.sisters} />
 
-        <ArticleFooter {title} />
+        <ArticleFooter {title} lastEdited={activity?.lastEdited ?? null} />
     </article>
 </ReaderLayout>
 

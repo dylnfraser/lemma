@@ -1,27 +1,18 @@
 <script lang="ts">
     import Icon from "../icons/Icon.svelte";
     import { prefersReducedMotion } from "svelte/motion";
-    import { fetchLastEdited, getWikipediaArticleUrl, getWikipediaHistoryUrl } from "$lib/api/wikipedia";
+    import { getWikipediaArticleUrl, getWikipediaHistoryUrl } from "$lib/api/wikipedia";
     import { isKeyboardClick } from "$lib/focus";
 
     interface Props {
         title: string;
+        /** From the article's edit activity (ArticleView fetches it), once it arrives. */
+        lastEdited: Date | null;
     }
 
-    let { title }: Props = $props();
+    let { title, lastEdited }: Props = $props();
 
     const CC_BY_SA_URL = "https://creativecommons.org/licenses/by-sa/4.0/";
-
-    let lastEdited = $state<Date | null>(null);
-
-    // Best-effort and only for the footer, so it never holds up the article itself.
-    $effect(() => {
-        const controller = new AbortController();
-        fetchLastEdited(title, { signal: controller.signal }).then((date) => {
-            if (!controller.signal.aborted) lastEdited = date;
-        });
-        return () => controller.abort();
-    });
 
     function backToTop(event: MouseEvent) {
         window.scrollTo({ top: 0, behavior: prefersReducedMotion.current ? "auto" : "smooth" });

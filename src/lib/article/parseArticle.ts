@@ -16,6 +16,7 @@ import { markDarkBackgrounds } from "./darkColors";
 import { convertMaps, findArticleCoordinates, tintMath } from "./mapsAndMath";
 import { extractTemplateStyles } from "./templateStyles";
 import { convertCollapsibleLists, parseInfobox } from "./parseInfobox";
+import { markSources } from "./sources";
 import {
   countWords,
   EDIT_AFFORDANCE_SELECTOR,
@@ -60,6 +61,14 @@ function sanitizeArticleHtml(html: string): string {
 function parseDocument(html: string): Document {
   // DOMParser documents are inert: images don't load and nothing executes while we work on them.
   return new DOMParser().parseFromString(sanitizeArticleHtml(html), "text/html");
+}
+
+/**
+ * The claims Wikipedia's editors have flagged as needing a source ({{citation needed}}, {{better source needed}}…),
+ * each given an id so the reader can step through them. Returns the ids in reading order.
+ */
+export function markClaimsNeedingSources(root: HTMLElement): string[] {
+  return [...root.querySelectorAll<HTMLElement>(".Template-Fact")].map((flag, i) => (flag.id = `lemma-flag-${i + 1}`));
 }
 
 function removeClutter(root: HTMLElement) {
@@ -251,6 +260,9 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
 
   const related = extractRelatedTopics(root);
   removeClutter(root);
+  // before links are rewritten: sources are told apart partly by where their links point
+  const sources = markSources(root);
+  const claimsNeedingSources = markClaimsNeedingSources(root);
   // in the body (tables, mostly), lists like "Other names" stay folded so rows stay compact; the infobox, already
   // lifted out, shows its short ones plainly
   convertCollapsibleLists(root, 0);
@@ -424,5 +436,7 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
     coordinates,
     spoken,
     sisters,
+    sources,
+    claimsNeedingSources,
   };
 }

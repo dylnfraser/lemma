@@ -10,6 +10,8 @@
     import ChevronIcon from "../icons/ChevronIcon.svelte";
     import Icon from "../icons/Icon.svelte";
     import ImageFan from "./ImageFan.svelte";
+    import SourceMix from "./SourceMix.svelte";
+    import { totalSources, type SourceMix as Sources } from "$lib/article/sources";
 
     interface Props {
         blocks: ArticleBlock[];
@@ -18,9 +20,18 @@
         onclick?: (event: MouseEvent) => void;
         /** Wikipedia's TemplateStyles for this article (scoped to .mw-parser-output, which this body carries). */
         styles?: string;
+        /** The kinds of source the footnotes cite, summed up above the reference list. */
+        sources?: Sources;
     }
 
-    let { blocks, collapsedSectionIds, onToggleSection, onclick, styles = "" }: Props = $props();
+    let { blocks, collapsedSectionIds, onToggleSection, onclick, styles = "", sources }: Props = $props();
+
+    // the summary goes before the first reference list that cites anything (not a list of explanatory notes)
+    let sourcesAt = $derived(
+        sources && totalSources(sources) > 0
+            ? blocks.findIndex((block) => block.type === "html" && block.kind === "references" && block.html.includes("data-source="))
+            : -1,
+    );
 
     /** Adds the article's template CSS to the page while it's shown. textContent keeps it inert as markup. */
     function templateStyles(_node: HTMLElement, css: string) {
@@ -176,6 +187,9 @@
             {#if shown}<div class="table-scroll" transition:fold use:enhanceContent>{@html block.html}</div>{/if}
         {:else}
             <!-- spacing lives on this wrapper (not the HTML inside) so folding never jumps by a collapsed margin -->
+            {#if shown && i === sourcesAt && sources}
+                <SourceMix {sources} />
+            {/if}
             {#if shown}
                 <div class="block {block.kind}" class:lead={i === leadIndex} transition:fold use:enhanceContent>
                     {@html block.html}
@@ -1108,6 +1122,50 @@
     /* ---------- works cited, sources, bibliography ---------- */
 
     /* compact like the reference list: each work as a hanging-indented entry, its links quiet until hovered */
+    /* each reference's kind of source (data-source, from sources.ts), as a small tag after it */
+    .article-body :global(li[data-source])::after {
+        content: var(--source-label);
+        display: inline-block;
+        margin-left: 0.5em;
+        padding: 0.05em 0.4em;
+        border-radius: 4px;
+        background: color-mix(in oklch, var(--source-color) 13%, transparent);
+        font-family: default-sans;
+        font-size: 0.68em;
+        font-weight: 650;
+        line-height: 1.4;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        text-indent: 0;
+        vertical-align: 0.1em;
+        color: var(--source-color);
+    }
+
+    .article-body :global(li[data-source="academic"]) {
+        --source-color: var(--source-academic);
+        --source-label: "Academic";
+    }
+
+    .article-body :global(li[data-source="book"]) {
+        --source-color: var(--source-book);
+        --source-label: "Book";
+    }
+
+    .article-body :global(li[data-source="news"]) {
+        --source-color: var(--source-news);
+        --source-label: "News";
+    }
+
+    .article-body :global(li[data-source="government"]) {
+        --source-color: var(--source-government);
+        --source-label: "Government";
+    }
+
+    .article-body :global(li[data-source="web"]) {
+        --source-color: var(--source-web);
+        --source-label: "Website";
+    }
+
     .block.bibliography {
         font-size: 0.85rem;
         line-height: 1.55;
