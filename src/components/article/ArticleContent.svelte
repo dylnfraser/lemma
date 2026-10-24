@@ -1268,6 +1268,12 @@
             font-variant-numeric: lining-nums tabular-nums;
         }
 
+        /* the frame is the table's outline: a table's own (Wikipedia's toccolours boxes, timelines) would double it.
+           Tables inside cells keep theirs. */
+        > :global(table) {
+            border: none !important;
+        }
+
         /* Tables take the width their content needs (up to the column, then they scroll). Wikipedia's own widths don't
            fit here: fixed ones (15em) were sized for its smaller text, and percentages ("70%") would be a share of this
            wrapper, which itself shrinks to the table, leaving an empty strip beside it. */
