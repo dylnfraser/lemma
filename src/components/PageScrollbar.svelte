@@ -19,7 +19,11 @@
 
     let idleTimer: ReturnType<typeof setTimeout>;
     let frame = 0;
-    let dragStart: { pointerY: number; scrollY: number } | null = null;
+    // Fixed for the whole drag: on phones the viewport's height changes as the browser's toolbars slide away, and the
+    // thumb shortens at either end, either of which would otherwise shift where the page is under the finger.
+    let dragStart: { pointerY: number; scrollY: number; pixelsPerTrackPixel: number } | null = null;
+    let dragY = 0;
+    let dragFrame = 0;
 
     const root = () => document.documentElement;
     const scrollRange = () => root().scrollHeight - innerHeight;
@@ -58,26 +62,40 @@
     function startDrag(event: PointerEvent) {
         event.preventDefault();
         event.stopPropagation();
+        if (!track) return;
         (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
         dragging = true;
-        dragStart = { pointerY: event.clientY, scrollY };
+        dragY = event.clientY;
+        dragStart = {
+            pointerY: event.clientY,
+            scrollY: Math.min(Math.max(scrollY, 0), scrollRange()),
+            pixelsPerTrackPixel: scrollRange() / Math.max(1, track.clientHeight - thumbSize),
+        };
     }
 
+    // at most one scroll a frame, to wherever the pointer is by then (touch moves can come several times a frame)
     function drag(event: PointerEvent) {
-        if (!dragStart || !track) return;
-        const pixelsPerTrackPixel = scrollRange() / (track.clientHeight - thumbSize);
-        scrollTo({ top: dragStart.scrollY + (event.clientY - dragStart.pointerY) * pixelsPerTrackPixel, behavior: "instant" });
+        if (!dragStart) return;
+        dragY = event.clientY;
+        dragFrame ||= requestAnimationFrame(() => {
+            dragFrame = 0;
+            if (!dragStart) return;
+            scrollTo({ top: dragStart.scrollY + (dragY - dragStart.pointerY) * dragStart.pixelsPerTrackPixel, behavior: "instant" });
+        });
     }
 
     function endDrag() {
         dragging = false;
         dragStart = null;
+        cancelAnimationFrame(dragFrame);
+        dragFrame = 0;
         wake();
     }
 
-    // Clicking the track pages toward the click (smoothly, unless the reader prefers reduced motion).
+    // Clicking the track pages toward the click (smoothly, unless the reader prefers reduced motion). Mouse only: on a
+    // touch screen the edge of the page is for swiping.
     function pageToward(event: PointerEvent) {
-        if (!track) return;
+        if (!track || event.pointerType === "touch") return;
         const clickY = event.clientY - track.getBoundingClientRect().top;
         const direction = clickY < thumbOffset ? -1 : 1;
         scrollBy({ top: direction * innerHeight * 0.85, behavior: prefersReducedMotion.current ? "instant" : "smooth" });
@@ -96,6 +114,7 @@
         return () => {
             observer.disconnect();
             cancelAnimationFrame(frame);
+            cancelAnimationFrame(dragFrame);
             clearTimeout(idleTimer);
         };
     });
@@ -171,10 +190,33 @@
         background: color-mix(in oklch, var(--accent) 70%, var(--text-color));
     }
 
+    /*
+     * Touch: the edge of the page stays the page's, so swipes there scroll it as anywhere else. Only the thumb takes a
+     * finger, and only while it's showing (as the page scrolls), through a target much wider than it looks.
+     */
     @media (pointer: coarse) {
-        /* touch: show while scrolling, but no hover-widening */
         .track {
             width: 8px;
+            pointer-events: none;
+            touch-action: auto;
+        }
+
+        .thumb {
+            touch-action: none;
+
+            &::before {
+                content: "";
+                position: absolute;
+                inset: -10px -4px -10px -28px;
+            }
+        }
+
+        .track.active .thumb {
+            pointer-events: auto;
+        }
+
+        .track.dragging .thumb {
+            width: 6px;
         }
     }
 </style>
