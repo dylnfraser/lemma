@@ -1,6 +1,6 @@
 # lemma
 
-Lemma is a lightweight, distraction-free Wikipedia client built with SvelteKit. It strips out Wikipedia's default interface clutter to deliver a clean reading experience with customizable typography, article metrics, and streamlined navigation.
+Lemma is a lightweight, distraction-free Wikipedia client built with SvelteKit. It strips out Wikipedia's default interface clutter to deliver a clean reading experience with customizable themes and typography (see [Reader settings](#reader-settings)), article metrics, and streamlined navigation.
 
 All requests are made directly from the reader's browser to Wikipedia, without intermediate proxies, tracking, or API keys.
 
@@ -81,6 +81,27 @@ Requests carry no custom headers (not even Wikimedia's optional `Api-User-Agent`
 5. Every block records which foldable sections contain it, and every element id maps to its block, so collapsing sections and jumping to citations are cheap lookups.
 
 The parser is covered by fixture-based tests in `src/lib/article/*.test.ts`.
+
+### Reader settings
+
+The **Aa** button in the navbar opens the reader settings (`src/components/ReaderSettings.svelte`):
+
+| Setting | Options |
+| --- | --- |
+| Theme | Auto (follows the device), Light, Sepia, Dark |
+| Text size | Five steps, 90% to 132% |
+| Font | Mixed (serif headings and titles over sans text), Serif, Sans |
+| Line width | Narrow, Normal, Wide |
+
+Like the library, the settings are stored only in the browser (`localStorage`, key `lemma:settings:v1`) and stay in step across tabs. `src/lib/settings.svelte.ts` owns them and applies them as attributes on `<html>`, which `src/app.css` reads:
+
+* `data-theme` is the theme as chosen; `data-scheme` is the resolved `light` or `dark` (Auto follows `prefers-color-scheme` live). Dark-mode styles key off `[data-scheme="dark"]` rather than the media query, so they follow the reader's choice. Sepia overrides the light palette.
+* `data-font` sets `--display-font` and `--body-font`; components use those variables rather than naming a typeface.
+* `data-width` and the `--text-scale` property set the reading measure and root font size. Larger text keeps the column's width on screen and fits fewer words per line.
+
+A small inline script in `src/app.html` applies the stored settings before the first paint, so a dark or sepia page never flashes light. It reads the same key, so keep the two in step when adding a setting.
+
+Larger text or a wider line leaves less margin, so whether the infobox sits in the right margin isn't a fixed breakpoint: `ReaderLayout` measures the margin and exposes the result as `layout.infoboxInMargin` (`src/lib/layout.svelte.ts`) and the `.infobox-in-margin` class.
 
 ## Deployment
 
