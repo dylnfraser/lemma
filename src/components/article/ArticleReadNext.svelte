@@ -130,12 +130,17 @@
         gap: 0.6rem;
     }
 
+    /* every card the same height: room for a title and a two-line description, shorter ones centred in it */
+    .cards {
+        --card-height: calc(2 * 0.6rem + 0.95rem * 1.3 + 2 * 0.78rem * 1.3);
+    }
+
     .card {
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        min-height: 4rem;
-        padding: 0.5rem;
+        height: var(--card-height);
+        padding: 0.6rem;
         box-sizing: border-box;
         border: 1px solid var(--rule);
         border-radius: 12px;
@@ -220,7 +225,7 @@
     }
 
     .skeleton {
-        height: 4rem;
+        height: var(--card-height);
         background: color-mix(in oklch, var(--secondary) 25%, var(--bg-color));
         animation: pulse 1.4s ease-in-out infinite;
 
