@@ -121,20 +121,8 @@
             {#each headings as heading (heading.id)}
                 {#if !isHeadingHiddenByCollapsed(heading, collapsedIds)}
                     {@const collapsed = collapsedIds.has(heading.id)}
-                    <li class="breadcrumb-row" transition:fold={{ duration: DURATION.base }}>
-                        {#if headingHasChildren(heading)}
-                            <button
-                                class="breadcrumb-fold"
-                                type="button"
-                                aria-label={`${collapsed ? "Expand" : "Collapse"} ${heading.text}`}
-                                aria-expanded={!collapsed}
-                                onclick={() => onToggle(heading.id)}
-                            >
-                                <ChevronIcon {collapsed} size={16} />
-                            </button>
-                        {:else}
-                            <span class="breadcrumb-fold-spacer"></span>
-                        {/if}
+                    {@const depth = Math.max(0, Number(heading.tag.slice(1)) - 2)}
+                    <li class="breadcrumb-row" class:nested={depth > 0} style:--depth={depth} transition:fold={{ duration: DURATION.base }}>
                         <a
                             class="breadcrumb breadcrumb-{heading.tag.toLowerCase()}"
                             class:active={activeId === heading.id && highlightActive}
@@ -144,6 +132,17 @@
                             href="#{encodeURIComponent(heading.id)}"
                             onclick={(event) => onOpen(heading.id, event)}>{heading.text}</a
                         >
+                        {#if headingHasChildren(heading)}
+                            <button
+                                class="breadcrumb-fold"
+                                type="button"
+                                aria-label={`${collapsed ? "Expand" : "Collapse"} ${heading.text}`}
+                                aria-expanded={!collapsed}
+                                onclick={() => onToggle(heading.id)}
+                            >
+                                <ChevronIcon {collapsed} size={14} />
+                            </button>
+                        {/if}
                     </li>
                 {/if}
             {/each}
@@ -153,8 +152,8 @@
 
 <style>
     .outline-title {
-        /* aligned with the entries' text: rail padding + fold-button column */
-        margin: 0 0 0.85rem calc(12px + 1.2rem + 2px);
+        /* aligned with the top-level entries */
+        margin: 0 0 0.6rem 14px;
         font-size: 0.72rem;
         font-weight: 650;
         letter-spacing: 0.08em;
@@ -235,60 +234,54 @@
         list-style: none;
     }
 
+    /*
+     * Every row is the same height (the marker's position is worked out from that), whatever its level. Levels are told
+     * apart by indent, size and weight; a nested group hangs off a faint guide line under its parent's name, and a
+     * branch's fold chevron sits at the end of its row, so names start right by the rail.
+     */
     .breadcrumb-row {
+        --row: 1.5rem;
+        --indent: calc(var(--depth) * 0.85rem);
+        position: relative;
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         gap: 0.2rem;
         min-width: 0;
-        margin-bottom: 0.25rem;
+        height: var(--row);
+        padding-left: var(--indent);
 
         /* fingers need taller rows than a pointer does */
         @media (pointer: coarse) {
             --row: 2.1rem;
-            margin-bottom: 0;
         }
-    }
 
-    .breadcrumb-fold,
-    .breadcrumb-fold-spacer {
-        flex: 0 0 1rem;
-        width: 1rem;
-        height: var(--row, 1.25rem);
-        margin: 0;
-    }
-
-    .breadcrumb-fold {
-        display: grid;
-        place-items: center;
-        border: none;
-        padding: 0;
-        background: none;
-        color: var(--muted);
-        cursor: pointer;
-        transition: color var(--dur-base) var(--ease-out);
-
-        &:hover {
-            color: var(--text-color);
+        &.nested::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: calc(var(--indent) - 0.5rem);
+            width: 1px;
+            background: color-mix(in oklch, var(--rule) 80%, transparent);
         }
     }
 
     .breadcrumb {
+        flex: 1;
         display: block;
         min-width: 0;
-        line-height: var(--row, 1.25rem);
-        opacity: 0.8;
+        line-height: var(--row);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         text-decoration: none;
+        color: color-mix(in oklch, var(--text-color) 82%, var(--page-bg));
         transition:
             color var(--dur-fast) ease,
-            font-weight var(--dur-fast) ease,
-            opacity var(--dur-fast) ease;
+            font-weight var(--dur-fast) ease;
 
         &:hover {
-            opacity: 1;
-            text-decoration: underline;
+            color: var(--text-color);
         }
 
         /* the post-load highlight eases out slowly rather than snapping off */
@@ -299,42 +292,55 @@
 
     .breadcrumb.active {
         color: var(--accent);
-        font-weight: 700;
-        opacity: 1;
-    }
-
-    .breadcrumb-h1 {
-        font-size: 1rem;
         font-weight: 650;
     }
 
+    /* top-level sections lead; each level down is a step smaller and quieter */
+    .breadcrumb-h1,
     .breadcrumb-h2 {
-        font-size: 0.95rem;
-        font-weight: 600;
-        margin-left: 0.35rem;
+        font-size: 0.9rem;
+        font-weight: 550;
     }
 
     .breadcrumb-h3 {
-        font-size: 0.85rem;
-        font-weight: 500;
-        margin-left: 0.9rem;
-    }
-
-    .breadcrumb-h4 {
-        font-size: 0.78rem;
+        font-size: 0.83rem;
         font-weight: 450;
-        margin-left: 1.35rem;
+        color: var(--muted);
     }
 
-    .breadcrumb-h5 {
-        font-size: 0.72rem;
-        font-weight: 425;
-        margin-left: 1.75rem;
-    }
-
+    .breadcrumb-h4,
+    .breadcrumb-h5,
     .breadcrumb-h6 {
-        font-size: 0.68rem;
-        font-weight: 400;
-        margin-left: 2.1rem;
+        font-size: 0.78rem;
+        font-weight: 425;
+        color: color-mix(in oklch, var(--muted) 85%, var(--page-bg));
+    }
+
+    .breadcrumb-fold {
+        flex: none;
+        display: grid;
+        place-items: center;
+        width: 1.25rem;
+        height: 1.25rem;
+        margin: 0;
+        padding: 0;
+        border: none;
+        border-radius: 5px;
+        background: none;
+        color: color-mix(in oklch, var(--muted) 80%, transparent);
+        cursor: pointer;
+        transition:
+            color var(--dur-base) var(--ease-out),
+            background-color var(--dur-base) var(--ease-out);
+
+        &:hover {
+            color: var(--text-color);
+            background: color-mix(in oklch, var(--secondary) 40%, transparent);
+        }
+
+        /* folded branches point at where they'd open (right), open ones down */
+        :global(svg.collapsed) {
+            transform: rotate(-90deg);
+        }
     }
 </style>
