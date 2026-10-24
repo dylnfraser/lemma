@@ -1122,50 +1122,6 @@
     /* ---------- works cited, sources, bibliography ---------- */
 
     /* compact like the reference list: each work as a hanging-indented entry, its links quiet until hovered */
-    /* each reference's kind of source (data-source, from sources.ts), as a small tag after it */
-    .article-body :global(li[data-source])::after {
-        content: var(--source-label);
-        display: inline-block;
-        margin-left: 0.5em;
-        padding: 0.05em 0.4em;
-        border-radius: 4px;
-        background: color-mix(in oklch, var(--source-color) 13%, transparent);
-        font-family: default-sans;
-        font-size: 0.68em;
-        font-weight: 650;
-        line-height: 1.4;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        text-indent: 0;
-        vertical-align: 0.1em;
-        color: var(--source-color);
-    }
-
-    .article-body :global(li[data-source="academic"]) {
-        --source-color: var(--source-academic);
-        --source-label: "Academic";
-    }
-
-    .article-body :global(li[data-source="book"]) {
-        --source-color: var(--source-book);
-        --source-label: "Book";
-    }
-
-    .article-body :global(li[data-source="news"]) {
-        --source-color: var(--source-news);
-        --source-label: "News";
-    }
-
-    .article-body :global(li[data-source="government"]) {
-        --source-color: var(--source-government);
-        --source-label: "Government";
-    }
-
-    .article-body :global(li[data-source="web"]) {
-        --source-color: var(--source-web);
-        --source-label: "Website";
-    }
-
     .block.bibliography {
         font-size: 0.85rem;
         line-height: 1.55;

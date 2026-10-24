@@ -32,6 +32,8 @@ export const EDIT_AFFORDANCE_SELECTOR = [
   ".taxobox-edit-taxonomy",
   ".asof-tag",
   ".citation-comment",
+  // "Cite error: …", for the article's editors
+  ".mw-ext-cite-error",
   'a[href*="action=edit"]:not([href*="redlink=1"])',
   'a[href*="veaction=edit"]',
   'a[title^="Edit this"]',

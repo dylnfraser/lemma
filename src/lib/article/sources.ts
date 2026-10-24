@@ -97,22 +97,35 @@ export function classifySource(item: Element): SourceKind | null {
 export const emptySourceMix = (): SourceMix => ({ academic: 0, news: 0, book: 0, government: 0, web: 0 });
 
 /**
- * Labels every reference in the footnote lists (and every work in a bibliography) with `data-source`, and counts the
- * footnotes' sources. Bibliography entries are labelled but not counted: the footnotes citing them already are.
+ * Labels a reference: `data-source` on its list item, and a tag naming the kind at the start of its text (the same
+ * place in every entry, so the tags read as a column; and part of the reference wherever it's shown, as in previews).
+ */
+function label(item: HTMLElement, kind: SourceKind) {
+  item.dataset.source = kind;
+  const tag = item.ownerDocument.createElement("span");
+  tag.className = `source-tag ${kind}`;
+  tag.textContent = SOURCE_LABELS[kind];
+  const text = item.querySelector(":scope > .reference-text") ?? item;
+  text.prepend(tag, " ");
+}
+
+/**
+ * Labels every reference in the footnote lists (and every work in a bibliography), and counts the footnotes' sources.
+ * Bibliography entries are labelled but not counted: the footnotes citing them already are.
  */
 export function markSources(root: HTMLElement): SourceMix {
   const mix = emptySourceMix();
   for (const item of root.querySelectorAll<HTMLElement>("ol.references > li")) {
     const kind = classifySource(item);
     if (!kind) continue;
-    item.dataset.source = kind;
+    label(item, kind);
     mix[kind]++;
   }
   for (const citation of root.querySelectorAll("li > cite.citation, li > .citation")) {
     const item = citation.parentElement!;
     if (item.parentElement?.matches("ol.references") || item.dataset.source) continue;
     const kind = classifySource(item);
-    if (kind) item.dataset.source = kind;
+    if (kind) label(item, kind);
   }
   return mix;
 }

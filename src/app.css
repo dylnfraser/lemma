@@ -603,6 +603,46 @@ figcaption .legend-group {
     background: none !important;
 }
 
+/* each reference's kind of source (from sources.ts), as a small tag leading the entry, in the article and in previews */
+.source-tag {
+    display: inline-block;
+    margin-right: 0.15em;
+    padding: 0.05em 0.4em;
+    border-radius: 4px;
+    background: color-mix(in oklch, var(--source-color) 13%, transparent);
+    font-family: default-sans;
+    font-size: 0.68em;
+    font-style: normal;
+    font-weight: 650;
+    line-height: 1.4;
+    letter-spacing: 0.04em;
+    text-indent: 0;
+    text-transform: uppercase;
+    vertical-align: 0.1em;
+    color: var(--source-color);
+    user-select: none;
+}
+
+.source-tag.academic {
+    --source-color: var(--source-academic);
+}
+
+.source-tag.book {
+    --source-color: var(--source-book);
+}
+
+.source-tag.news {
+    --source-color: var(--source-news);
+}
+
+.source-tag.government {
+    --source-color: var(--source-government);
+}
+
+.source-tag.web {
+    --source-color: var(--source-web);
+}
+
 /* jumping to a citation or section briefly lights it up, then fades (see ArticleView): a faint wash a little past its
    edges, with barely rounded corners */
 .jump-flash {
