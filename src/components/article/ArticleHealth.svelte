@@ -18,8 +18,8 @@
     let { assessment, sources, claims, sourcesTarget, onJump }: Props = $props();
 
     const RATINGS = {
-        featured: { icon: "star", label: "Featured article", help: "One of Wikipedia's best articles, as judged by its editors" },
-        good: { icon: "badge-check", label: "Good article", help: "Meets Wikipedia's good article criteria, as reviewed by its editors" },
+        featured: { icon: "star", label: "Featured", help: "Featured article: one of Wikipedia's best, as judged by its editors" },
+        good: { icon: "badge-check", label: "Good article", help: "Good article: meets Wikipedia's good article criteria, as reviewed by its editors" },
     } as const;
 
     let total = $derived(totalSources(sources));
@@ -59,9 +59,14 @@
         {/if}
         {#if claims.length > 0}
             <li>
-                <button type="button" class="flags" title="Go to the next one" onclick={goToNextClaim}>
+                <button
+                    type="button"
+                    class="flags"
+                    title="Claims Wikipedia's editors have flagged as needing a source: go to the next one"
+                    onclick={goToNextClaim}
+                >
                     <Icon name="flag" size="0.95em" />{claims.length}
-                    {claims.length === 1 ? "claim needs" : "claims need"} a source
+                    {claims.length === 1 ? "citation" : "citations"} needed
                 </button>
             </li>
         {/if}
@@ -69,15 +74,16 @@
 {/if}
 
 <style>
+    /* after the action pills, centred on their line (and level with the column's edge when they wrap below them) */
     .health {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 0.3rem 1.1rem;
-        margin: 0.7rem 0 0;
+        gap: 0.3rem 0.85rem;
+        margin: 0 0 0 0.25rem;
         padding: 0;
         list-style: none;
-        font-size: 0.8rem;
+        font-size: 0.77rem;
         line-height: 1.4;
         color: var(--muted);
     }
@@ -125,7 +131,7 @@
     .mix {
         display: inline-flex;
         gap: 1px;
-        width: 2.75rem;
+        width: 2.2rem;
         height: 0.4rem;
         margin-left: 0.15rem;
         overflow: hidden;

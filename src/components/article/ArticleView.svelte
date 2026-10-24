@@ -617,12 +617,6 @@
             {#if description}
                 <p class="description">{description}</p>
             {/if}
-            {#if meta.redirectedFrom && meta.redirectedFrom !== title}
-                <p class="redirected">
-                    <Icon name="corner-down-right" size="0.9em" />
-                    Redirected from <span class="from">{meta.redirectedFrom}</span>
-                </p>
-            {/if}
             <ArticleHealth
                 assessment={meta.assessment ?? null}
                 sources={article.sources}
@@ -630,6 +624,12 @@
                 {sourcesTarget}
                 onJump={goToAnchor}
             />
+            {#if meta.redirectedFrom && meta.redirectedFrom !== title}
+                <p class="redirected">
+                    <Icon name="corner-down-right" size="0.9em" />
+                    Redirected from <span class="from">{meta.redirectedFrom}</span>
+                </p>
+            {/if}
             <ArticleActions
                 {title}
                 {description}
@@ -824,8 +824,8 @@
     /* the rule under the header has the same space on both sides */
     .article-header {
         position: relative;
-        margin: 1.5rem 0 1.75rem;
-        padding-bottom: 1.75rem;
+        margin: 1.5rem 0 1.5rem;
+        padding-bottom: 1.5rem;
         border-bottom: 1px solid var(--rule);
     }
 

@@ -195,12 +195,12 @@
         {/if}
     </span>
 
-    <button type="button" class="action-pill print" onclick={() => window.print()}>
-        <Icon name="printer" size="0.9em" />
-        Print
-    </button>
-
     {@render children?.()}
+
+    <!-- rarely needed (and ⌘P works), so just its icon -->
+    <button type="button" class="action-pill print icon-only" aria-label="Print" title="Print" onclick={() => window.print()}>
+        <Icon name="printer" size="0.95em" />
+    </button>
 </div>
 
 {#if spoken && listening}
@@ -225,8 +225,20 @@
     .actions {
         display: flex;
         flex-wrap: wrap;
+        align-items: center;
         gap: 0.4rem;
         margin-top: 1rem;
+    }
+
+    /* a round button, as tall as it is wide */
+    .icon-only {
+        justify-content: center;
+        width: 1.9rem;
+        padding: 0;
+
+        @media (pointer: coarse) {
+            width: 2.25rem;
+        }
     }
 
     .detail {
@@ -235,17 +247,25 @@
         color: var(--muted);
     }
 
+    /* The showing label sets the width (so the padding matches the other pills); the one fading out lies over it from
+       the same start, out of the layout. */
     .label-swap {
+        position: relative;
         display: grid;
 
         > span {
             grid-area: 1 / 1;
+            text-align: start;
+            white-space: nowrap;
             transition:
                 opacity var(--dur-base) var(--ease-out),
                 filter var(--dur-base) var(--ease-out);
         }
 
         > .off {
+            position: absolute;
+            top: 0;
+            left: 0;
             opacity: 0;
             filter: blur(4px);
         }
