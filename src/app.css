@@ -603,6 +603,45 @@ figcaption .legend-group {
     background: none !important;
 }
 
+/*
+ * The reader's citation setting (reader settings): footnote markers as small dots that still open their preview, or
+ * not shown at all. The reference lists are unchanged. (!important: the article's own marker styles are more specific.)
+ */
+[data-citations="subtle"] article sup.reference {
+    &.follows-citation::before {
+        content: none !important;
+    }
+
+    a {
+        display: inline-block;
+        box-sizing: content-box;
+        width: 0.3rem;
+        height: 0.3rem;
+        margin-left: 0.1em;
+        /* a larger target than the dot itself */
+        padding: 0.2rem 0.1rem;
+        border-radius: 50%;
+        background: color-mix(in oklch, var(--muted) 55%, transparent) content-box;
+        font-size: 0 !important;
+        vertical-align: 0.15em;
+    }
+
+    a:hover {
+        background-color: var(--link-hover);
+    }
+}
+
+/* shrunk to nothing rather than removed, so the reference list's "^" links can still scroll to where each was cited */
+[data-citations="hidden"] article sup.reference {
+    padding: 0 !important;
+    font-size: 0 !important;
+    pointer-events: none;
+
+    &.follows-citation::before {
+        content: none !important;
+    }
+}
+
 /* each reference's kind of source (from sources.ts), as a small tag leading the entry, in the article and in previews */
 .source-tag {
     display: inline-block;

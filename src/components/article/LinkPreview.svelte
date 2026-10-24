@@ -118,14 +118,32 @@
         return title;
     }
 
-    /** The reference a footnote marker points to: its number/letter and text. */
+    const escapeHtml = (text: string) => text.replace(/[&<>"]/g, (char) => `&${{ "&": "amp", "<": "lt", ">": "gt", '"': "quot" }[char]};`);
+
+    /**
+     * What a footnote marker points to: its label ("Reference 38") and the reference, with the page it cites when it
+     * names one. A marker standing for a run of citations ("4–7") lists each of them.
+     */
     function referenceFor(link: HTMLAnchorElement): { label: string; html: string } | null {
         const href = link.getAttribute("href");
         if (!href?.startsWith("#") || !link.closest("sup.reference")) return null;
-        const html = getReference(safeDecodeURIComponent(href.slice(1)));
-        if (!html) return null;
-        const label = (link.textContent ?? "").replace(/[[\]]/g, "").trim();
-        return { label, html };
+        const marker = (link.textContent ?? "").replace(/[[\]]/g, "").trim();
+        const ids = link.dataset.refs?.split(" ") ?? [safeDecodeURIComponent(href.slice(1))];
+        const labels = link.dataset.labels?.split("|") ?? [marker];
+        const ats = link.dataset.ats?.split("|") ?? [link.closest<HTMLElement>("sup.reference")?.dataset.at ?? ""];
+        const at = (i: number) => (ats[i] ? `<p class="reference-at">${escapeHtml(ats[i])}</p>` : "");
+        const items = ids.flatMap((id, i) => {
+            const html = getReference(id);
+            return html ? [{ label: labels[i] ?? "", html: html + at(i) }] : [];
+        });
+        if (items.length === 0) return null;
+        if (items.length === 1) return { label: `Reference ${items[0].label}`, html: items[0].html };
+        return {
+            label: `References ${marker}`,
+            html: items
+                .map((item) => `<div class="reference-item"><span class="reference-number">${escapeHtml(item.label)}</span><div>${item.html}</div></div>`)
+                .join(""),
+        };
     }
 
     function linkFrom(target: EventTarget | null): HTMLAnchorElement | null {
@@ -281,7 +299,7 @@
         class="link-preview reference"
         class:above={preview.above}
         role="note"
-        aria-label="Reference {preview.label}"
+        aria-label={preview.label}
         style:left="{preview.left}px"
         style:--origin-x="{preview.originX}px"
         style:top={preview.top !== undefined ? `${preview.top}px` : undefined}
@@ -292,7 +310,7 @@
         in:drop
         out:lift
     >
-        <p class="reference-label">Reference {preview.label}</p>
+        <p class="reference-label">{preview.label}</p>
         <div class="reference-text">{@html preview.html}</div>
     </div>
 {:else if visible && preview?.kind === "article"}
@@ -447,6 +465,33 @@
         letter-spacing: 0.07em;
         text-transform: uppercase;
         color: var(--muted);
+    }
+
+    /* the page a citation points to, under its reference */
+    .reference-text :global(.reference-at) {
+        margin: 0.3rem 0 0;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--muted);
+    }
+
+    /* a run of citations: each reference numbered, one after another */
+    .reference-text :global(.reference-item) {
+        display: grid;
+        grid-template-columns: 1.6rem 1fr;
+        gap: 0.4rem;
+
+        & + :global(.reference-item) {
+            margin-top: 0.55rem;
+            padding-top: 0.55rem;
+            border-top: 1px solid color-mix(in oklch, var(--rule) 70%, transparent);
+        }
+    }
+
+    .reference-text :global(.reference-number) {
+        font-weight: 650;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
     }
 
     .reference-text {

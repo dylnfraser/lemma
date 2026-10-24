@@ -2,7 +2,7 @@
     import { tick } from "svelte";
     import { isKeyboardClick } from "$lib/focus";
     import { DURATION, pop } from "$lib/motion";
-    import { BODY_FONTS, LINE_WIDTHS, TEXT_SIZES, THEMES, settings } from "$lib/settings.svelte";
+    import { BODY_FONTS, CITATION_STYLES, LINE_WIDTHS, TEXT_SIZES, THEMES, settings } from "$lib/settings.svelte";
     import { slidingTabs } from "$lib/slidingTabs";
 
     // How articles read: theme, text size, body font and line width. A popover from the navbar ("Aa").
@@ -14,6 +14,7 @@
     const THEME_NAMES = { system: "Auto", light: "Light", sepia: "Sepia", dark: "Dark" } as const;
     const FONT_NAMES = { mixed: "Mixed", serif: "Serif", sans: "Sans" } as const;
     const WIDTH_NAMES = { narrow: "Narrow", normal: "Normal", wide: "Wide" } as const;
+    const CITATION_NAMES = { show: "Show", subtle: "Subtle", hidden: "Hidden" } as const;
 
     async function toggle(event: MouseEvent) {
         open = !open;
@@ -144,6 +145,24 @@
                             onclick={() => settings.setWidth(width)}
                             onkeydown={(event) => radioKeys(event, LINE_WIDTHS, settings.width, settings.setWidth)}
                             >{WIDTH_NAMES[width]}</button
+                        >
+                    {/each}
+                </div>
+            </div>
+
+            <div class="setting">
+                <span class="label" id="{uid}-citations">Citations</span>
+                <div class="segments" role="radiogroup" aria-labelledby="{uid}-citations" use:slidingTabs={settings.citations}>
+                    {#each CITATION_STYLES as style}
+                        {@const checked = settings.citations === style}
+                        <button
+                            type="button"
+                            role="radio"
+                            aria-checked={checked}
+                            tabindex={checked ? 0 : -1}
+                            onclick={() => settings.setCitations(style)}
+                            onkeydown={(event) => radioKeys(event, CITATION_STYLES, settings.citations, settings.setCitations)}
+                            >{CITATION_NAMES[style]}</button
                         >
                     {/each}
                 </div>

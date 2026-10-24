@@ -7,18 +7,21 @@
 export type Theme = "system" | "light" | "sepia" | "dark";
 export type BodyFont = "mixed" | "serif" | "sans";
 export type LineWidth = "narrow" | "normal" | "wide";
+/** How footnote markers show in the text: as numbers, as small dots, or not at all. */
+export type CitationStyle = "show" | "subtle" | "hidden";
 
 export const THEMES: readonly Theme[] = ["system", "light", "sepia", "dark"];
 /** mixed: serif headings and titles over sans text (Lemma's own); serif or sans: one typeface throughout. */
 export const BODY_FONTS: readonly BodyFont[] = ["mixed", "serif", "sans"];
 export const LINE_WIDTHS: readonly LineWidth[] = ["narrow", "normal", "wide"];
+export const CITATION_STYLES: readonly CitationStyle[] = ["show", "subtle", "hidden"];
 /** Text sizes as multiples of the default; the setting is an index into this. */
 export const TEXT_SIZES = [0.9, 1, 1.1, 1.2, 1.32] as const;
 const DEFAULT_TEXT_SIZE = 1;
 
-export type ReaderSettings = { theme: Theme; textSize: number; font: BodyFont; width: LineWidth };
+export type ReaderSettings = { theme: Theme; textSize: number; font: BodyFont; width: LineWidth; citations: CitationStyle };
 
-const DEFAULTS: ReaderSettings = { theme: "system", textSize: DEFAULT_TEXT_SIZE, font: "mixed", width: "normal" };
+const DEFAULTS: ReaderSettings = { theme: "system", textSize: DEFAULT_TEXT_SIZE, font: "mixed", width: "normal", citations: "show" };
 // app.html reads the same key
 const STORAGE_KEY = "lemma:settings:v1";
 
@@ -34,6 +37,7 @@ function read(): ReaderSettings {
       textSize: pick(TEXT_SIZES.map((_, i) => i), value.textSize, DEFAULTS.textSize),
       font: pick(BODY_FONTS, value.font, DEFAULTS.font),
       width: pick(LINE_WIDTHS, value.width, DEFAULTS.width),
+      citations: pick(CITATION_STYLES, value.citations, DEFAULTS.citations),
     };
   } catch {
     return { ...DEFAULTS };
@@ -52,6 +56,7 @@ function apply() {
   root.dataset.scheme = state.theme === "dark" || (state.theme === "system" && systemDark?.matches) ? "dark" : "light";
   root.dataset.font = state.font;
   root.dataset.width = state.width;
+  root.dataset.citations = state.citations;
   root.style.setProperty("--text-scale", String(TEXT_SIZES[state.textSize]));
 }
 
@@ -101,6 +106,9 @@ export const settings = {
   get width() {
     return state.width;
   },
+  get citations() {
+    return state.citations;
+  },
   get isDefault() {
     return (Object.keys(DEFAULTS) as (keyof ReaderSettings)[]).every((key) => state[key] === DEFAULTS[key]);
   },
@@ -108,6 +116,7 @@ export const settings = {
   setTheme: (theme: Theme) => update({ theme }),
   setFont: (font: BodyFont) => update({ font }),
   setWidth: (width: LineWidth) => update({ width }),
+  setCitations: (citations: CitationStyle) => update({ citations }),
   /** Steps the text size up (1) or down (-1), within the available sizes. */
   stepTextSize: (by: 1 | -1) =>
     update({ textSize: Math.min(Math.max(state.textSize + by, 0), TEXT_SIZES.length - 1) }),

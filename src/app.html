@@ -42,6 +42,7 @@
 				root.dataset.scheme = dark ? "dark" : "light";
 				root.dataset.font = s.font === "serif" || s.font === "sans" ? s.font : "mixed";
 				root.dataset.width = s.width === "narrow" || s.width === "wide" ? s.width : "normal";
+				root.dataset.citations = s.citations === "subtle" || s.citations === "hidden" ? s.citations : "show";
 				var sizes = [0.9, 1, 1.1, 1.2, 1.32];
 				root.style.setProperty("--text-scale", String(sizes[s.textSize] || 1));
 			})();

@@ -16,6 +16,7 @@ import { markDarkBackgrounds } from "./darkColors";
 import { convertMaps, findArticleCoordinates, tintMath } from "./mapsAndMath";
 import { extractTemplateStyles } from "./templateStyles";
 import { convertCollapsibleLists, parseInfobox } from "./parseInfobox";
+import { foldCitationPages, groupCitationRuns } from "./citations";
 import { markSources } from "./sources";
 import {
   countWords,
@@ -235,6 +236,8 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
   convertMaps(root, coordinates);
   tintMath(root);
   markDarkBackgrounds(root);
+  foldCitationPages(root);
+  groupCitationRuns(root);
   markCitationRuns(root);
   markBreakableNoWrapRuns(root);
   const spoken = extractSpokenAudio(root);

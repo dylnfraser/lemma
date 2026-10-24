@@ -315,18 +315,18 @@
             cursor: help;
         }
 
-        /* citations: small, muted, no brackets; adjacent ones are separated by commas */
+        /* citations: small and quiet (they darken when reached for), no brackets; adjacent ones are separated by commas */
         :global(sup.reference),
         :global(.mw-ref) {
             line-height: 0;
-            font-size: 0.68em;
+            font-size: 0.64em;
             font-variant-numeric: lining-nums tabular-nums;
             padding-left: 0.08em;
         }
 
         :global(sup.reference.follows-citation::before) {
             content: ",";
-            color: var(--muted);
+            color: color-mix(in oklch, var(--muted) 70%, var(--page-bg));
         }
 
         :global(sup.reference .cite-bracket) {
@@ -334,9 +334,10 @@
         }
 
         :global(sup.reference a) {
-            color: var(--muted);
+            color: color-mix(in oklch, var(--muted) 75%, var(--page-bg));
             text-decoration: none;
-            font-weight: 600;
+            font-weight: 550;
+            transition: color var(--dur-fast) ease;
         }
 
         :global(sup.reference a:hover) {

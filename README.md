@@ -92,11 +92,13 @@ The **Aa** button in the navbar opens the reader settings (`src/components/Reade
 | Text size | Five steps, 90% to 132% |
 | Font | Mixed (serif headings and titles over sans text), Serif, Sans |
 | Line width | Narrow, Normal, Wide |
+| Citations | Show (numbers), Subtle (small dots that still open their preview), Hidden |
 
 Like the library, the settings are stored only in the browser (`localStorage`, key `lemma:settings:v1`) and stay in step across tabs. `src/lib/settings.svelte.ts` owns them and applies them as attributes on `<html>`, which `src/app.css` reads:
 
 * `data-theme` is the theme as chosen; `data-scheme` is the resolved `light` or `dark` (Auto follows `prefers-color-scheme` live). Dark-mode styles key off `[data-scheme="dark"]` rather than the media query, so they follow the reader's choice. Sepia overrides the light palette.
 * `data-font` sets `--display-font` and `--body-font`; components use those variables rather than naming a typeface.
+* `data-citations` restyles the footnote markers in the text (the reference lists are unchanged).
 * `data-width` and the `--text-scale` property set the reading measure and root font size. Larger text keeps the column's width on screen and fits fewer words per line.
 
 A small inline script in `src/app.html` applies the stored settings before the first paint, so a dark or sepia page never flashes light. It reads the same key, so keep the two in step when adding a setting.
