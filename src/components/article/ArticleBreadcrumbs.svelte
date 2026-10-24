@@ -123,15 +123,6 @@
                     {@const collapsed = collapsedIds.has(heading.id)}
                     {@const depth = Math.max(0, Number(heading.tag.slice(1)) - 2)}
                     <li class="breadcrumb-row" class:nested={depth > 0} style:--depth={depth} transition:fold={{ duration: DURATION.base }}>
-                        <a
-                            class="breadcrumb breadcrumb-{heading.tag.toLowerCase()}"
-                            class:active={activeId === heading.id && highlightActive}
-                            class:faded={activeId === heading.id && !highlightActive}
-                            aria-current={activeId === heading.id ? "location" : undefined}
-                            data-marked={markedId === heading.id ? "" : undefined}
-                            href="#{encodeURIComponent(heading.id)}"
-                            onclick={(event) => onOpen(heading.id, event)}>{heading.text}</a
-                        >
                         {#if headingHasChildren(heading)}
                             <button
                                 class="breadcrumb-fold"
@@ -142,7 +133,18 @@
                             >
                                 <ChevronIcon {collapsed} size={14} />
                             </button>
+                        {:else}
+                            <span class="breadcrumb-fold-spacer"></span>
                         {/if}
+                        <a
+                            class="breadcrumb breadcrumb-{heading.tag.toLowerCase()}"
+                            class:active={activeId === heading.id && highlightActive}
+                            class:faded={activeId === heading.id && !highlightActive}
+                            aria-current={activeId === heading.id ? "location" : undefined}
+                            data-marked={markedId === heading.id ? "" : undefined}
+                            href="#{encodeURIComponent(heading.id)}"
+                            onclick={(event) => onOpen(heading.id, event)}>{heading.text}</a
+                        >
                     </li>
                 {/if}
             {/each}
@@ -151,9 +153,15 @@
 </nav>
 
 <style>
+    /* the fold chevrons' column, which is also each level's indent */
+    .outline-title,
+    .crumbs {
+        --fold: 1.1rem;
+    }
+
     .outline-title {
         /* aligned with the top-level entries */
-        margin: 0 0 0.6rem 14px;
+        margin: 0 0 0.6rem calc(8px + var(--fold) + 0.2rem);
         font-size: 0.72rem;
         font-weight: 650;
         letter-spacing: 0.08em;
@@ -175,7 +183,7 @@
     /* entries sit right of a faint rail; the active marker always rides that same rail, at every level */
     .track {
         position: relative;
-        padding-left: 12px;
+        padding-left: 8px;
 
         &::before {
             content: "";
@@ -236,12 +244,12 @@
 
     /*
      * Every row is the same height (the marker's position is worked out from that), whatever its level. Levels are told
-     * apart by indent, size and weight; a nested group hangs off a faint guide line under its parent's name, and a
-     * branch's fold chevron sits at the end of its row, so names start right by the rail.
+     * apart by indent, size and weight. Each level steps in by one fold-chevron's width, so a nested group's chevrons sit
+     * under its parent's name and a faint guide line runs down from the parent's chevron, like a tree.
      */
     .breadcrumb-row {
         --row: 1.5rem;
-        --indent: calc(var(--depth) * 0.85rem);
+        --indent: calc(var(--depth) * var(--fold));
         position: relative;
         display: flex;
         align-items: center;
@@ -260,7 +268,7 @@
             position: absolute;
             top: 0;
             bottom: 0;
-            left: calc(var(--indent) - 0.5rem);
+            left: calc(var(--indent) - var(--fold) / 2);
             width: 1px;
             background: color-mix(in oklch, var(--rule) 80%, transparent);
         }
@@ -316,12 +324,16 @@
         color: color-mix(in oklch, var(--muted) 85%, var(--page-bg));
     }
 
-    .breadcrumb-fold {
+    .breadcrumb-fold,
+    .breadcrumb-fold-spacer {
         flex: none;
+        width: var(--fold);
+        height: var(--fold);
+    }
+
+    .breadcrumb-fold {
         display: grid;
         place-items: center;
-        width: 1.25rem;
-        height: 1.25rem;
         margin: 0;
         padding: 0;
         border: none;

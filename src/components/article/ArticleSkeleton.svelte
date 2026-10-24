@@ -221,7 +221,7 @@
 
     /* matches the outline in ArticleBreadcrumbs: label, then entries beside a faint rail */
     .outline-title {
-        margin: 0 0 0.6rem 14px;
+        margin: 0 0 0.6rem calc(8px + 1.1rem + 0.2rem);
         font-size: 0.72rem;
         font-weight: 650;
         letter-spacing: 0.08em;
@@ -232,7 +232,7 @@
     .track {
         position: relative;
         /* bars start where the real entries' text does */
-        padding-left: 14px;
+        padding-left: calc(8px + 1.1rem + 0.2rem);
 
         &::before {
             content: "";
