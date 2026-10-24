@@ -188,7 +188,7 @@
     .placeholder {
         display: grid;
         place-items: center;
-        font-family: default-serif;
+        font-family: var(--display-font);
         font-weight: 600;
         color: var(--muted);
     }
@@ -201,7 +201,7 @@
 
     .title {
         overflow: hidden;
-        font-family: default-serif;
+        font-family: var(--display-font);
         font-size: 0.95rem;
         font-weight: 600;
         text-overflow: ellipsis;

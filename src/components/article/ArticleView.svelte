@@ -815,7 +815,7 @@
 
     .description {
         margin: 0.6rem 0 0;
-        font-family: default-serif;
+        font-family: var(--display-font);
         font-size: 1.15rem;
         line-height: 1.4;
         color: var(--muted);

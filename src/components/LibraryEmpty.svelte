@@ -186,7 +186,7 @@
         margin: 0 0 0.4rem;
         padding: 0;
         border: none;
-        font-family: default-serif;
+        font-family: var(--display-font);
         font-size: 1.35rem;
         font-weight: 600;
         color: var(--text-color);

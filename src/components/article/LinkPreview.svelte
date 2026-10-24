@@ -405,7 +405,7 @@
     }
 
     .title {
-        font-family: default-serif;
+        font-family: var(--display-font);
         font-size: 1.05rem;
         font-weight: 600;
         line-height: 1.25;

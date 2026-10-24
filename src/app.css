@@ -101,6 +101,8 @@ body *::-webkit-scrollbar-thumb {
     --measure: calc(64ch * var(--width-scale) / var(--text-scale));
     --leading: 1.7;
     --nav-height: 52px;
+    /* the reader's font choice (reader settings): mixed is serif headings and titles over sans text */
+    --display-font: default-serif;
     --body-font: default-sans;
     font-size: calc(100% * var(--text-scale));
 
@@ -114,6 +116,10 @@ body *::-webkit-scrollbar-thumb {
 
     &[data-font="serif"] {
         --body-font: default-serif;
+    }
+
+    &[data-font="sans"] {
+        --display-font: default-sans;
     }
 
 
@@ -264,14 +270,14 @@ p {
 }
 
 h1 {
-    font-family: default-serif;
+    font-family: var(--display-font);
     font-size: 2rem;
     font-weight: 600;
     margin-bottom: -0.5rem;
 }
 
 h2 {
-    font-family: default-serif;
+    font-family: var(--display-font);
     font-weight: 550;
     font-size: 1.75rem;
     margin-bottom: -0.25rem;
@@ -279,7 +285,7 @@ h2 {
 }
 
 h3 {
-    font-family: default-serif;
+    font-family: var(--display-font);
     font-weight: 500;
     font-size: 1.5rem;
     margin-bottom: -0.25rem;
@@ -287,21 +293,21 @@ h3 {
 }
 
 h4 {
-    font-family: default-serif;
+    font-family: var(--display-font);
     font-weight: 500;
     font-size: 1.25rem;
     margin-bottom: -0.75rem;
 }
 
 h5 {
-    font-family: default-serif;
+    font-family: var(--display-font);
     font-weight: 600;
     font-size: 1rem;
     margin-bottom: -0.75rem;
 }
 
 h6 {
-    font-family: default-serif;
+    font-family: var(--display-font);
     font-weight: 300;
     font-size: 0.75rem;
     margin-bottom: -0.5rem;

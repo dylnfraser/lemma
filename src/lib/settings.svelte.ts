@@ -5,11 +5,12 @@
  */
 
 export type Theme = "system" | "light" | "sepia" | "dark";
-export type BodyFont = "sans" | "serif";
+export type BodyFont = "mixed" | "serif" | "sans";
 export type LineWidth = "narrow" | "normal" | "wide";
 
 export const THEMES: readonly Theme[] = ["system", "light", "sepia", "dark"];
-export const BODY_FONTS: readonly BodyFont[] = ["sans", "serif"];
+/** mixed: serif headings and titles over sans text (Lemma's own); serif or sans: one typeface throughout. */
+export const BODY_FONTS: readonly BodyFont[] = ["mixed", "serif", "sans"];
 export const LINE_WIDTHS: readonly LineWidth[] = ["narrow", "normal", "wide"];
 /** Text sizes as multiples of the default; the setting is an index into this. */
 export const TEXT_SIZES = [0.9, 1, 1.1, 1.2, 1.32] as const;
@@ -17,7 +18,7 @@ const DEFAULT_TEXT_SIZE = 1;
 
 export type ReaderSettings = { theme: Theme; textSize: number; font: BodyFont; width: LineWidth };
 
-const DEFAULTS: ReaderSettings = { theme: "system", textSize: DEFAULT_TEXT_SIZE, font: "sans", width: "normal" };
+const DEFAULTS: ReaderSettings = { theme: "system", textSize: DEFAULT_TEXT_SIZE, font: "mixed", width: "normal" };
 // app.html reads the same key
 const STORAGE_KEY = "lemma:settings:v1";
 

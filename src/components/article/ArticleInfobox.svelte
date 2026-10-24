@@ -149,7 +149,7 @@
 
     .title {
         margin-bottom: 0.75rem;
-        font-family: default-serif;
+        font-family: var(--display-font);
         font-size: 1.15rem;
         font-weight: 600;
         line-height: 1.25;

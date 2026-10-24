@@ -298,7 +298,7 @@
         .placeholder {
             display: grid;
             place-items: center;
-            font-family: default-serif;
+            font-family: var(--display-font);
             font-weight: 600;
             color: var(--muted);
         }
@@ -314,7 +314,7 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        font-family: default-serif;
+        font-family: var(--display-font);
         font-size: 0.98rem;
         font-weight: 600;
         transition: color var(--dur-fast);

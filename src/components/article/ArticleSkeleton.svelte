@@ -131,7 +131,7 @@
     /* set exactly like ArticleView's #title */
     .title {
         margin: 0;
-        font-family: default-serif;
+        font-family: var(--display-font);
         font-size: clamp(2.1rem, 1.6rem + 2vw, 2.75rem);
         font-weight: 600;
         line-height: 1.1;

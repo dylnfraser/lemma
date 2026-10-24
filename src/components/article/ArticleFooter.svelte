@@ -80,7 +80,7 @@
     }
 
     .wikipedia-link {
-        font-family: default-serif;
+        font-family: var(--display-font);
         font-size: 1.1rem;
         font-weight: 550;
         color: var(--text-color);

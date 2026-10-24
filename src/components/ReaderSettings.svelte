@@ -12,7 +12,7 @@
     let panel = $state<HTMLElement>();
 
     const THEME_NAMES = { system: "Auto", light: "Light", sepia: "Sepia", dark: "Dark" } as const;
-    const FONT_NAMES = { sans: "Sans", serif: "Serif" } as const;
+    const FONT_NAMES = { mixed: "Mixed", serif: "Serif", sans: "Sans" } as const;
     const WIDTH_NAMES = { narrow: "Narrow", normal: "Normal", wide: "Wide" } as const;
 
     async function toggle(event: MouseEvent) {
@@ -418,14 +418,15 @@
             }
         }
 
-        /* each font's name is set in it */
-        .font-sans {
+        /* each choice's name is set in it ("Mixed" in both: a serif capital, sans after) */
+        .font-sans,
+        .font-mixed {
             font-family: default-sans;
         }
 
-        .font-serif {
+        .font-serif,
+        .font-mixed::first-letter {
             font-family: default-serif;
-            font-size: 0.95em;
         }
     }
 

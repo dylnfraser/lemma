@@ -229,7 +229,7 @@
         /* The opening paragraph reads as a standfirst: set in the serif of the headings, a little larger, and on wider
            screens opening with a drop cap. */
         .lead :global(p) {
-            font-family: default-serif;
+            font-family: var(--display-font);
             font-size: 1.06em;
             line-height: 1.6;
             letter-spacing: 0.003em;
@@ -365,7 +365,7 @@
             margin: 1.75em 0;
             padding: 0.1em 0 0.1em 1.25em;
             border-left: 2px solid color-mix(in oklch, var(--accent) 55%, var(--rule));
-            font-family: default-serif;
+            font-family: var(--display-font);
             font-size: 1.05em;
             line-height: 1.6;
             color: color-mix(in oklch, var(--text-color) 85%, var(--page-bg));

@@ -95,7 +95,7 @@
     }
 
     .title {
-        font-family: default-serif;
+        font-family: var(--display-font);
         font-size: 0.9rem;
     }
 
