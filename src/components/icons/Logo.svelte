@@ -1,0 +1,59 @@
+<script lang="ts">
+    // Lemma's mark, drawn inline so its colours follow the reader's theme (an <img> of logo.svg can only follow the
+    // device's). The tile and ink colours are --logo-tile and --logo-ink, set per theme in app.css.
+    let { size = 36 }: { size?: number } = $props();
+    const uid = $props.id();
+</script>
+
+<svg class="logo" width={size} height={size} viewBox="0 0 108 108" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<rect width="108" height="108" rx="32" fill="#F9F6F1"/>
+<path d="M22 22H86V86H47.6C38.6392 86 34.1587 86 30.7362 84.2561C27.7256 82.7221 25.2779 80.2744 23.7439 77.2638C22 73.8413 22 69.3608 22 60.4V22Z" stroke="url(#{uid}-paint0_linear_2_66)" stroke-width="6" stroke-linejoin="round"/>
+<path d="M22 22H86V86H47.6C38.6392 86 34.1587 86 30.7362 84.2561C27.7256 82.7221 25.2779 80.2744 23.7439 77.2638C22 73.8413 22 69.3608 22 60.4V22Z" stroke="url(#{uid}-paint1_linear_2_66)" stroke-width="6" stroke-linejoin="round"/>
+<path d="M86 54L54 54L54 22L60.4 22C69.3608 22 73.8413 22 77.2639 23.7439C80.2744 25.2779 82.7221 27.7256 84.2561 30.7362C86 34.1587 86 38.6392 86 47.6L86 54Z" stroke="url(#{uid}-paint2_linear_2_66)" stroke-width="6" stroke-linejoin="round"/>
+<path d="M86 54L54 54L54 22L60.4 22C69.3608 22 73.8413 22 77.2639 23.7439C80.2744 25.2779 82.7221 27.7256 84.2561 30.7362C86 34.1587 86 38.6392 86 47.6L86 54Z" stroke="url(#{uid}-paint3_linear_2_66)" stroke-width="6" stroke-linejoin="round"/>
+<path d="M40 40.1863L54.1863 26L68.3726 40.1863L67.7627 40.7961C63.0105 45.5483 60.6344 47.9244 57.8945 48.8147C55.4844 49.5978 52.8882 49.5978 50.4781 48.8147C47.7381 47.9244 45.362 45.5483 40.6098 40.7961L40 40.1863Z" stroke="url(#{uid}-paint4_linear_2_66)" stroke-width="6" stroke-linejoin="round"/>
+<path d="M40 40.1863L54.1863 26L68.3726 40.1863L67.7627 40.7961C63.0105 45.5483 60.6344 47.9244 57.8945 48.8147C55.4844 49.5978 52.8882 49.5978 50.4781 48.8147C47.7381 47.9244 45.362 45.5483 40.6098 40.7961L40 40.1863Z" stroke="url(#{uid}-paint5_linear_2_66)" stroke-width="6" stroke-linejoin="round"/>
+<defs>
+<linearGradient id="{uid}-paint0_linear_2_66" x1="22" y1="86" x2="86" y2="22" gradientUnits="userSpaceOnUse">
+<stop stop-color="#402800" stop-opacity="0.75"/>
+<stop offset="0.12" stop-color="#402800" stop-opacity="0.5"/>
+<stop offset="0.5" stop-color="#402800" stop-opacity="0"/>
+</linearGradient>
+<linearGradient id="{uid}-paint1_linear_2_66" x1="22" y1="86" x2="86" y2="22" gradientUnits="userSpaceOnUse">
+<stop stop-color="#402800" stop-opacity="0.75"/>
+<stop offset="0.12" stop-color="#402800" stop-opacity="0.5"/>
+<stop offset="0.5" stop-color="#402800" stop-opacity="0"/>
+</linearGradient>
+<linearGradient id="{uid}-paint2_linear_2_66" x1="86" y1="22" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+<stop stop-color="#402800" stop-opacity="0.75"/>
+<stop offset="0.12" stop-color="#402800" stop-opacity="0.5"/>
+<stop offset="0.5" stop-color="#402800" stop-opacity="0"/>
+</linearGradient>
+<linearGradient id="{uid}-paint3_linear_2_66" x1="86" y1="22" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+<stop stop-color="#402800" stop-opacity="0.75"/>
+<stop offset="0.12" stop-color="#402800" stop-opacity="0.5"/>
+<stop offset="0.5" stop-color="#402800" stop-opacity="0"/>
+</linearGradient>
+<linearGradient id="{uid}-paint4_linear_2_66" x1="54.1863" y1="54.3726" x2="54.1863" y2="26" gradientUnits="userSpaceOnUse">
+<stop stop-color="#402800" stop-opacity="0.75"/>
+<stop offset="0.0747015" stop-color="#402800" stop-opacity="0.5"/>
+<stop offset="0.5" stop-color="#402800" stop-opacity="0"/>
+</linearGradient>
+<linearGradient id="{uid}-paint5_linear_2_66" x1="54.1863" y1="54.3726" x2="54.1863" y2="26" gradientUnits="userSpaceOnUse">
+<stop stop-color="#402800" stop-opacity="0.75"/>
+<stop offset="0.0747015" stop-color="#402800" stop-opacity="0.5"/>
+<stop offset="0.5" stop-color="#402800" stop-opacity="0"/>
+</linearGradient>
+</defs>
+</svg>
+
+<style>
+    .logo rect {
+        fill: var(--logo-tile);
+        transition: fill var(--dur-base) var(--ease-out);
+    }
+
+    .logo stop {
+        stop-color: var(--logo-ink);
+    }
+</style>

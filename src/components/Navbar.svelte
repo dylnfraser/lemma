@@ -5,6 +5,7 @@
     import { trail } from "$lib/trail.svelte";
     import ReaderSettings from "./ReaderSettings.svelte";
     import Icon from "./icons/Icon.svelte";
+    import Logo from "./icons/Logo.svelte";
     import SearchIcon from "./icons/SearchIcon.svelte";
 
     const wordmark = [..."Lemma"];
@@ -24,7 +25,7 @@
 
 <header id="navbar">
     <a id="header" href="/" aria-label="Lemma home">
-        <img src="/logo.svg" alt="" width="36" height="36" />
+        <Logo />
         <span class="wordmark" aria-hidden="true">
             {#each wordmark as char, i}
                 <span class="char" style:--i={i}>{char}</span>
@@ -93,9 +94,8 @@
         color: inherit;
         text-decoration: none;
 
-        img {
-            width: 36px;
-            height: 36px;
+        :global(.logo) {
+            flex: none;
         }
     }
 

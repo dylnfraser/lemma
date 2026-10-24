@@ -157,6 +157,10 @@ body *::-webkit-scrollbar-thumb {
         --stagger: 0ms;
     }
 
+    /* Lemma's mark (Logo.svelte): a paper tile with brown ink */
+    --logo-tile: #f9f6f1;
+    --logo-ink: #402800;
+
     /* derived from the palette above, so they follow light/dark automatically */
     --muted: color-mix(in oklch, var(--text-color) 62%, var(--page-bg));
     --rule: color-mix(in oklch, var(--secondary) 75%, var(--page-bg));
@@ -175,11 +179,14 @@ body *::-webkit-scrollbar-thumb {
         --secondary: oklch(0.82 0.04 75);
         --bg-color: oklch(0.96 0.024 82);
         --shadow-color: oklch(0.5 0.06 65 / 22%);
+        --logo-tile: oklch(0.955 0.028 82);
     }
 
     /* "system" follows the device; data-scheme is the resolved light or dark */
     &[data-scheme="dark"] {
         color-scheme: dark;
+        --logo-tile: #2a2622;
+        --logo-ink: #efe1c9;
         --page-bg: oklch(0.2 0.005 var(--hue));
         --text-color: oklch(0.8 0.05 var(--hue));
         --secondary: oklch(0.35 0.02 var(--hue));
