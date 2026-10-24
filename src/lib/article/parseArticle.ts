@@ -16,6 +16,16 @@ import { markDarkBackgrounds } from "./darkColors";
 import { convertMaps, findArticleCoordinates, tintMath } from "./mapsAndMath";
 import { extractTemplateStyles } from "./templateStyles";
 import { convertCollapsibleLists, parseInfobox } from "./parseInfobox";
+import {
+  chipIdentifiers,
+  foldArchiveNotes,
+  markExplanatoryNotes,
+  markExternalLinks,
+  markSeeAlso,
+  markYearLists,
+  sourceListFilter,
+  tidyBacklinks,
+} from "./backMatter";
 import { foldCitationPages, groupCitationRuns } from "./citations";
 import { markSources } from "./sources";
 import {
@@ -264,8 +274,16 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
   const related = extractRelatedTopics(root);
   removeClutter(root);
   // before links are rewritten: sources are told apart partly by where their links point
-  const sources = markSources(root);
+  const sources = markSources(root, sourceListFilter(root));
   const claimsNeedingSources = markClaimsNeedingSources(root);
+  // the end of the article, tidied (see backMatter.ts)
+  tidyBacklinks(root);
+  foldArchiveNotes(root);
+  chipIdentifiers(root);
+  markExplanatoryNotes(root);
+  markSeeAlso(root);
+  markExternalLinks(root);
+  markYearLists(root);
   // in the body (tables, mostly), lists like "Other names" stay folded so rows stay compact; the infobox, already
   // lifted out, shows its short ones plainly
   convertCollapsibleLists(root, 0);

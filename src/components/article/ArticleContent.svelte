@@ -1138,6 +1138,74 @@
     /* ---------- works cited, sources, bibliography ---------- */
 
     /* compact like the reference list: each work as a hanging-indented entry, its links quiet until hovered */
+    /* ---------- back matter (see backMatter.ts) ---------- */
+
+    /* explanatory notes are asides, not sources: they read as footnotes at the body's colour, the way back at the end */
+    .article-body :global(ol.references.explanatory) {
+        color: var(--text-color);
+
+        :global(.mw-cite-backlink) {
+            margin-left: 0.15em;
+        }
+    }
+
+    /* "See also": each link a small card, its description (if any) beneath it */
+    .article-body :global(ul.see-also) {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
+        gap: 0.5rem;
+        padding: 0;
+        list-style: none;
+
+        :global(li) {
+            display: grid;
+            align-content: center;
+            gap: 0.1rem;
+            margin: 0;
+            padding: 0.55rem 0.8rem;
+            border: 1px solid var(--rule);
+            border-radius: 10px;
+            background: var(--bg-color);
+            line-height: 1.35;
+        }
+
+        :global(li > a:first-child) {
+            font-weight: 600;
+        }
+
+        :global(.see-also-description) {
+            font-size: 0.82em;
+            color: var(--muted);
+        }
+    }
+
+    /* "External links": the site each one goes to, in small type after it */
+    .article-body :global(ul.external-links .site) {
+        margin-left: 0.15em;
+        font-size: 0.78em;
+        color: color-mix(in oklch, var(--muted) 85%, var(--page-bg));
+        white-space: nowrap;
+    }
+
+    /* lists of "1921 – Nobel Prize…": the years as a column of their own */
+    .article-body :global(ul.year-list) {
+        padding: 0;
+        list-style: none;
+
+        :global(li) {
+            display: grid;
+            grid-template-columns: 5.5em 1fr;
+            gap: 0 1em;
+            margin-bottom: 0.4em;
+        }
+
+        :global(.year) {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums lining-nums;
+            color: var(--muted);
+        }
+    }
+
     .block.bibliography {
         font-size: 0.85rem;
         line-height: 1.55;

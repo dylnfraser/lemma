@@ -642,6 +642,77 @@ figcaption .legend-group {
     }
 }
 
+/* ---------- references (in the article and in previews; see backMatter.ts) ---------- */
+
+/* the way back to where a reference is cited: one quiet arrow, with how many places when there are several */
+.mw-cite-backlink .backlink {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.1em;
+    margin-right: 0.2em;
+    font-weight: 600;
+    color: color-mix(in oklch, var(--muted) 80%, var(--page-bg));
+    text-decoration: none;
+
+    &:hover {
+        color: var(--link-hover);
+    }
+}
+
+.backlink-count {
+    font-size: 0.75em;
+    font-variant-numeric: tabular-nums;
+}
+
+/* bookkeeping a reader rarely needs, kept but quiet: when the source was retrieved, and its archived copy */
+.reference-accessdate {
+    color: color-mix(in oklch, var(--muted) 75%, var(--page-bg));
+}
+
+a.archived,
+a.identifier {
+    display: inline-block;
+    /* not the hanging indent of the list entry they're in */
+    text-indent: 0;
+    padding: 0 0.35em;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    font-family: default-sans;
+    font-size: 0.78em;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--muted);
+    text-decoration: none;
+    vertical-align: 0.05em;
+    transition:
+        color var(--dur-fast) ease,
+        border-color var(--dur-fast) ease;
+
+    &:hover {
+        color: var(--link-hover);
+        border-color: var(--secondary);
+    }
+
+    &::after {
+        display: none !important;
+    }
+}
+
+/* identifiers (DOI, PubMed…), gathered at the end of the citation */
+.identifiers {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.25em;
+    text-indent: 0;
+    vertical-align: 0.05em;
+}
+
+/* freely readable: a green edge, as Wikipedia's open lock */
+a.identifier.free {
+    border-color: color-mix(in oklch, oklch(0.6 0.13 150) 55%, var(--rule));
+}
+
 /* each reference's kind of source (from sources.ts), as a small tag leading the entry, in the article and in previews */
 .source-tag {
     display: inline-block;

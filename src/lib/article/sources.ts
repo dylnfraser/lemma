@@ -110,10 +110,11 @@ function label(item: HTMLElement, kind: SourceKind) {
 }
 
 /**
- * Labels every reference in the footnote lists (and every work in a bibliography), and counts the footnotes' sources.
- * Bibliography entries are labelled but not counted: the footnotes citing them already are.
+ * Labels every reference in the footnote lists (and every work in a bibliography: the citations in other lists that
+ * `isSource` accepts), and counts the footnotes' sources. Bibliography entries are labelled but not counted: the
+ * footnotes citing them already are.
  */
-export function markSources(root: HTMLElement): SourceMix {
+export function markSources(root: HTMLElement, isSource: (item: Element) => boolean = () => true): SourceMix {
   const mix = emptySourceMix();
   for (const item of root.querySelectorAll<HTMLElement>("ol.references > li")) {
     const kind = classifySource(item);
@@ -123,7 +124,7 @@ export function markSources(root: HTMLElement): SourceMix {
   }
   for (const citation of root.querySelectorAll("li > cite.citation, li > .citation")) {
     const item = citation.parentElement!;
-    if (item.parentElement?.matches("ol.references") || item.dataset.source) continue;
+    if (item.parentElement?.matches("ol.references") || item.dataset.source || !isSource(item)) continue;
     const kind = classifySource(item);
     if (kind) label(item, kind);
   }
