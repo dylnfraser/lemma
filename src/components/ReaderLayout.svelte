@@ -1,7 +1,9 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
     import { fade } from "svelte/transition";
+    import { layout } from "$lib/layout.svelte";
     import { DURATION, motion, rise } from "$lib/motion";
+    import { settings } from "$lib/settings.svelte";
     import ChevronIcon from "./icons/ChevronIcon.svelte";
 
     interface Props {
@@ -16,6 +18,29 @@
 
     const uid = $props.id();
     let outlineOpen = $state(false);
+    let reader: HTMLElement;
+
+    // The infobox goes in the right margin when that margin is at least this wide (at the default settings, from a
+    // window about 1280px wide; larger text or a wider line need a wider window).
+    const MARGIN_INFOBOX_REM = 16.25;
+
+    $effect(() => {
+        // the settings change the column's width without changing the window's
+        void settings.textSize;
+        void settings.width;
+        const measure = () => {
+            const style = getComputedStyle(reader);
+            const px = (property: string) => Number.parseFloat(property) || 0;
+            const side =
+                (reader.clientWidth - px(style.paddingLeft) - px(style.paddingRight) - px(style.getPropertyValue("--measure-px")) - 2 * px(style.columnGap)) / 2;
+            const rem = px(getComputedStyle(document.documentElement).fontSize);
+            layout.infoboxInMargin = side >= MARGIN_INFOBOX_REM * rem;
+        };
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(reader);
+        return () => observer.disconnect();
+    });
 
     function close() {
         outlineOpen = false;
@@ -28,7 +53,7 @@
 
 <svelte:window onkeydown={handleWindowKeydown} />
 
-<div class="reader">
+<div class="reader" class:infobox-in-margin={layout.infoboxInMargin} bind:this={reader}>
     {#if outline}
         <aside id="{uid}-outline" class="outline" class:open={outlineOpen} aria-label="Sections">
             {@render outline({ close })}

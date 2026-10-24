@@ -891,10 +891,8 @@
         display: grid;
     }
 
-    @media (prefers-color-scheme: dark) {
-        img.invert-dark {
-            filter: invert(1) hue-rotate(180deg);
-        }
+    :global([data-scheme="dark"]) img.invert-dark {
+        filter: invert(1) hue-rotate(180deg);
     }
 
     @media (max-width: 640px) {

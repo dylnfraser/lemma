@@ -176,19 +176,17 @@
         display: none;
     }
 
-    @media (min-width: 1280px) {
-        .infobox-skeleton {
-            display: block;
-            position: absolute;
-            top: 1.5rem;
-            left: calc(100% + var(--gap));
-            box-sizing: border-box;
-            width: min(21rem, var(--side-width));
-            padding: 1rem;
-            border: 1px solid var(--rule);
-            border-radius: 14px;
-            background: color-mix(in oklch, var(--bg-color) 70%, var(--page-bg));
-        }
+    :global(.infobox-in-margin) .infobox-skeleton {
+        display: block;
+        position: absolute;
+        top: 1.5rem;
+        left: calc(100% + var(--gap));
+        box-sizing: border-box;
+        width: min(21rem, var(--side-width));
+        padding: 1rem;
+        border: 1px solid var(--rule);
+        border-radius: 14px;
+        background: color-mix(in oklch, var(--bg-color) 70%, var(--page-bg));
     }
 
     .infobox-title {

@@ -1,18 +1,19 @@
 <script lang="ts">
     import { tick } from "svelte";
     import { prefersReducedMotion } from "svelte/motion";
-    import { MediaQuery } from "svelte/reactivity";
     import type { Infobox } from "$lib/article/types";
     import { openLightboxFromClick, preventMouseFocusOnZoomImages } from "$lib/lightbox.svelte";
     import { handlePronunciationClick } from "$lib/pronunciation";
+    import { layout } from "$lib/layout.svelte";
     import { DURATION, EASE_OUT } from "$lib/motion";
     import Icon from "../icons/Icon.svelte";
 
     // `expanded` is bindable so the article can keep it across back/forward navigation.
     let { infobox, expanded = $bindable(false) }: { infobox: Infobox; expanded?: boolean } = $props();
 
-    // In the right margin (wide screens) the whole infobox shows; inline (narrow) it starts as a short preview.
-    const wide = new MediaQuery("min-width: 1280px");
+    // In the right margin (where there's room: see ReaderLayout) the whole infobox shows; inline it starts as a short
+    // preview.
+    const wide = $derived(layout.infoboxInMargin);
     const PREVIEW_DATA_ROWS = 5;
 
     // Preview: everything up to and including the first few label/value rows (keeps the lead image and map).
@@ -23,7 +24,7 @@
     });
     // While the extra rows fold away they stay rendered, so the box can shrink over them.
     let collapsing = $state(false);
-    let showAll = $derived(wide.current || expanded || collapsing);
+    let showAll = $derived(wide || expanded || collapsing);
     let rows = $derived(showAll ? infobox.rows : infobox.rows.slice(0, previewLength));
     let hiddenCount = $derived(infobox.rows.length - previewLength);
 
@@ -69,7 +70,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions (delegates clicks from the image buttons inside; see zoomableImages.ts) -->
 <aside
     class="infobox"
-    class:inline={!wide.current}
+    class:inline={!wide}
     aria-label="Quick facts"
     onmousedown={preventMouseFocusOnZoomImages}
     onclick={(event) => handlePronunciationClick(event) || openLightboxFromClick(event, infobox.images)}
@@ -111,7 +112,7 @@
         {/each}
     </div>
 
-    {#if !wide.current && hiddenCount > 0}
+    {#if !wide && hiddenCount > 0}
         <button
             type="button"
             class="toggle"
@@ -562,11 +563,9 @@
         }
     }
 
-    @media (prefers-color-scheme: dark) {
-        .infobox :global(img.mw-invert),
-        .infobox :global(img.skin-invert) {
-            filter: invert(1) hue-rotate(180deg);
-        }
+    :global([data-scheme="dark"]) .infobox :global(img.mw-invert),
+    :global([data-scheme="dark"]) .infobox :global(img.skin-invert) {
+        filter: invert(1) hue-rotate(180deg);
     }
 
     .toggle {

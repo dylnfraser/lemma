@@ -725,7 +725,7 @@
         mask-image: linear-gradient(to bottom, black 35%, transparent);
 
         /* colour carries further on a dark page: half as strong there */
-        @media (prefers-color-scheme: dark) {
+        :global([data-scheme="dark"]) & {
             opacity: 0.5;
         }
 
@@ -738,11 +738,9 @@
             mix-blend-mode: multiply;
         }
 
-        @media (prefers-color-scheme: dark) {
-            &::after {
-                mix-blend-mode: screen;
-                opacity: 0.03;
-            }
+        :global([data-scheme="dark"]) &::after {
+            mix-blend-mode: screen;
+            opacity: 0.03;
         }
 
         @media print {
@@ -787,14 +785,13 @@
         }
     }
 
-    /* Wide screens: the infobox sits in the right margin, level with the title. Narrower: inline under the header. */
-    @media (min-width: 1280px) {
-        .infobox-slot {
-            position: absolute;
-            top: 1.5rem;
-            left: calc(100% + var(--gap));
-            width: min(21rem, var(--side-width));
-        }
+    /* With room in the right margin (ReaderLayout measures it), the infobox sits there, level with the title.
+       Otherwise: inline under the header. */
+    :global(.infobox-in-margin) .infobox-slot {
+        position: absolute;
+        top: 1.5rem;
+        left: calc(100% + var(--gap));
+        width: min(21rem, var(--side-width));
     }
 
     /* the rule under the header has the same space on both sides */

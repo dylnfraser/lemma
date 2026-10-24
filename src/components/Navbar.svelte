@@ -4,6 +4,7 @@
     import { getArticlePath, safeDecodeURIComponent } from "$lib/article/articleUtils";
     import { trail } from "$lib/trail.svelte";
     import RandomButton from "./RandomButton.svelte";
+    import ReaderSettings from "./ReaderSettings.svelte";
     import Icon from "./icons/Icon.svelte";
     import SearchIcon from "./icons/SearchIcon.svelte";
 
@@ -55,6 +56,7 @@
         {/if}
         <!-- on a phone, an article's navbar keeps to search and the library -->
         <span class="random-slot" class:in-article={page.route.id === "/wiki/[title]"}><RandomButton /></span>
+        <ReaderSettings />
         <a
             class="library-link"
             href="/library"

@@ -94,10 +94,28 @@ body *::-webkit-scrollbar-thumb {
     --accent-hue: var(--hue);
     transition: --accent-hue var(--dur-fade) var(--ease-out);
 
-    /* reading layout */
-    --measure: 64ch;
+    /* reading layout, adjusted by the reader settings (src/lib/settings.svelte.ts, applied as attributes here) */
+    --text-scale: 1;
+    --width-scale: 1;
+    /* the column keeps its width on screen as text grows: larger text just fits fewer words to a line */
+    --measure: calc(64ch * var(--width-scale) / var(--text-scale));
     --leading: 1.7;
     --nav-height: 52px;
+    --body-font: default-sans;
+    font-size: calc(100% * var(--text-scale));
+
+    &[data-width="narrow"] {
+        --width-scale: 0.86;
+    }
+
+    &[data-width="wide"] {
+        --width-scale: 1.16;
+    }
+
+    &[data-font="serif"] {
+        --body-font: default-serif;
+    }
+
 
     --page-bg: oklch(0.975 0.0075 var(--hue));
     --text-color: oklch(0.3 0.064 var(--hue));
@@ -142,8 +160,20 @@ body *::-webkit-scrollbar-thumb {
     background: var(--page-bg);
     color: var(--text-color);
     font-family: default-sans;
+    color-scheme: light;
 
-    @media (prefers-color-scheme: dark) {
+    /* paper: warmer and darker than the light page, the cards a shade lighter than it */
+    &[data-theme="sepia"] {
+        --page-bg: oklch(0.935 0.03 80);
+        --text-color: oklch(0.31 0.06 60);
+        --secondary: oklch(0.82 0.04 75);
+        --bg-color: oklch(0.96 0.024 82);
+        --shadow-color: oklch(0.5 0.06 65 / 22%);
+    }
+
+    /* "system" follows the device; data-scheme is the resolved light or dark */
+    &[data-scheme="dark"] {
+        color-scheme: dark;
         --page-bg: oklch(0.2 0.005 var(--hue));
         --text-color: oklch(0.8 0.05 var(--hue));
         --secondary: oklch(0.35 0.02 var(--hue));
@@ -384,10 +414,8 @@ kbd {
  * Diagrams and maps are usually dark line art on transparency, which disappears on a dark page; give them the light
  * sheet they were drawn for. Only formats that can be see-through are tagged (see mayHaveTransparency).
  */
-@media (prefers-color-scheme: dark) {
-    img.light-backing {
-        background-color: oklch(0.95 0.006 var(--hue));
-    }
+[data-scheme="dark"] img.light-backing {
+    background-color: oklch(0.95 0.006 var(--hue));
 }
 
 /* Images inside Wikipedia's HTML (galleries, the infobox) that open the viewer; see zoomableImages.ts */
@@ -430,10 +458,8 @@ kbd {
         transition: scale var(--dur-slow) var(--ease-out);
     }
 
-    @media (prefers-color-scheme: dark) {
-        img.map-image {
-            filter: brightness(0.85) contrast(1.05);
-        }
+    [data-scheme="dark"] & img.map-image {
+        filter: brightness(0.85) contrast(1.05);
     }
 
     .map-open {

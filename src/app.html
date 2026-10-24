@@ -27,6 +27,25 @@
 		<meta name="twitter:description" content="Lemma is a private, fast, and beautifully designed Wikipedia reader for exploring knowledge without the noise." />
 		<meta name="twitter:image" content="%sveltekit.env.PUBLIC_SITE_URL%/og-image.png" />
 		<meta name="twitter:image:alt" content="Lemma — Explore knowledge without the noise" />
+		<!--
+			Reader settings (src/lib/settings.svelte.ts), applied before the first paint so a dark or sepia page never
+			flashes light. Kept to the stored key and the attributes app.css reads.
+		-->
+		<script>
+			(function () {
+				var s = {};
+				try { s = JSON.parse(localStorage.getItem("lemma:settings:v1")) || {}; } catch (e) {}
+				var root = document.documentElement;
+				var theme = ["light", "sepia", "dark"].indexOf(s.theme) >= 0 ? s.theme : "system";
+				var dark = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+				root.dataset.theme = theme;
+				root.dataset.scheme = dark ? "dark" : "light";
+				root.dataset.font = s.font === "serif" ? "serif" : "sans";
+				root.dataset.width = s.width === "narrow" || s.width === "wide" ? s.width : "normal";
+				var sizes = [0.9, 1, 1.1, 1.2, 1.32];
+				root.style.setProperty("--text-scale", String(sizes[s.textSize] || 1));
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

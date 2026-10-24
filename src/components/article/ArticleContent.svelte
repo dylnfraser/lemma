@@ -194,6 +194,8 @@
     .article-body {
         /* fewer lone words on a paragraph's last line (inherited by lists, quotes and captions) */
         text-wrap: pretty;
+        /* sans or serif, as the reader chose (reader settings) */
+        font-family: var(--body-font);
         font-size: 1.0625rem;
         line-height: var(--leading);
         font-variant-numeric: oldstyle-nums proportional-nums;
@@ -220,6 +222,8 @@
 
         :global(p) {
             margin: 0 0 1.15em;
+            /* the body font (app.css sets paragraphs in sans everywhere else) */
+            font-family: inherit;
         }
 
         /* The opening paragraph reads as a standfirst: set in the serif of the headings, a little larger, and on wider
@@ -460,12 +464,10 @@
         }
     }
 
-    @media (prefers-color-scheme: dark) {
-        .article-body :global(img.mw-invert),
-        .article-body :global(img.skin-invert),
-        .wiki-images img.invert-dark {
-            filter: invert(1) hue-rotate(180deg);
-        }
+    :global([data-scheme="dark"]) .article-body :global(img.mw-invert),
+    :global([data-scheme="dark"]) .article-body :global(img.skin-invert),
+    :global([data-scheme="dark"]) .wiki-images img.invert-dark {
+        filter: invert(1) hue-rotate(180deg);
     }
 
     /* ---------- hatnotes ("Main article: …", "For other uses, see …") ---------- */
@@ -1346,7 +1348,7 @@
      * is parsed: same hue, darker; whites become the card colour), and the text on them follows the page's palette.
      * Legend swatches keep their real colour: they're a key, not a background.
      */
-    @media (prefers-color-scheme: dark) {
+    :global([data-scheme="dark"]) {
         .article-body :global([style*="--dark-bg"]:not(.legend-color, .legend-color *)) {
             background: var(--dark-bg) !important;
             color: var(--text-color) !important;

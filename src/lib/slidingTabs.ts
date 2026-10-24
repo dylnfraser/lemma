@@ -1,6 +1,7 @@
 /**
  * A segmented control's highlight that slides to the selected tab instead of jumping. Put it on the tablist; it adds
- * one `.tab-indicator` behind the tabs and moves it to whichever has aria-selected="true", whenever `selected`
+ * one `.tab-indicator` behind the tabs and moves it to whichever has aria-selected="true" (or, for a radio group,
+ * aria-checked="true"), whenever `selected`
  * changes (pass the selected value so Svelte re-runs the update) or the tabs resize. Styles: `.tab-indicator` in
  * app.css; the tabs themselves should have no selected background of their own.
  */
@@ -11,7 +12,7 @@ export function slidingTabs(node: HTMLElement, _selected: unknown) {
   node.prepend(indicator);
 
   function place() {
-    const tab = node.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+    const tab = node.querySelector<HTMLElement>('[role="tab"][aria-selected="true"], [role="radio"][aria-checked="true"]');
     indicator.hidden = !tab;
     if (!tab) return;
     indicator.style.width = `${tab.offsetWidth}px`;

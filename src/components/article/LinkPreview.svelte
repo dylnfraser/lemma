@@ -378,7 +378,7 @@
         padding: 10px;
         background: color-mix(in oklch, var(--secondary) 22%, var(--bg-color));
 
-        @media (prefers-color-scheme: dark) {
+        :global([data-scheme="dark"]) & {
             background: oklch(0.95 0.006 var(--hue));
         }
     }
