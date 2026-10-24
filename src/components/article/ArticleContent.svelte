@@ -50,7 +50,8 @@
             .find((heading) => heading.level === 2 && BACK_MATTER.test(heading.text.trim()))?.id ?? "",
     );
 
-    // The opening paragraph is styled as a standfirst.
+    // The opening paragraph is styled as a standfirst, with a rule under it. (A stub's back matter can follow it
+    // directly; the back matter's own rule is left off then, rather than two rules in a row.)
     let leadIndex = $derived(blocks.findIndex((block) => block.type === "html" && block.kind === "paragraph"));
 
     // Blocks out of view skip rendering (see .skip-offscreen below), but only once the whole article has been laid out
@@ -96,7 +97,7 @@
             {@const collapsed = collapsedSectionIds.has(heading.id)}
             {#if shown}
                 {@const copied = copyStatus?.id === heading.id ? copyStatus : null}
-                <svelte:element this={heading.tag.toLowerCase()} id={heading.id} class="section-heading" class:divided={heading.id === backMatterId} data-heading transition:fold>
+                <svelte:element this={heading.tag.toLowerCase()} id={heading.id} class="section-heading" class:divided={heading.id === backMatterId && i - 1 !== leadIndex} data-heading transition:fold>
                     {#if isFoldableHeadingLevel(heading.level)}
                         <button
                             class="chev"
