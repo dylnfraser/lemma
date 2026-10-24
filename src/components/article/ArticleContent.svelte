@@ -11,6 +11,7 @@
     import Icon from "../icons/Icon.svelte";
     import ImageFan from "./ImageFan.svelte";
     import SourceMix from "./SourceMix.svelte";
+    import type { Assessment } from "$lib/api/wikipedia";
     import { totalSources, type SourceMix as Sources } from "$lib/article/sources";
 
     interface Props {
@@ -20,11 +21,25 @@
         onclick?: (event: MouseEvent) => void;
         /** Wikipedia's TemplateStyles for this article (scoped to .mw-parser-output, which this body carries). */
         styles?: string;
-        /** The kinds of source the footnotes cite, summed up above the reference list. */
+        /** The kinds of source the footnotes cite, summed up above the reference list (with the article's rating and
+            its flagged claims; see SourceMix). */
         sources?: Sources;
+        assessment?: Assessment | null;
+        claimsNeedingSources?: string[];
+        onJump?: (id: string) => void;
     }
 
-    let { blocks, collapsedSectionIds, onToggleSection, onclick, styles = "", sources }: Props = $props();
+    let {
+        blocks,
+        collapsedSectionIds,
+        onToggleSection,
+        onclick,
+        styles = "",
+        sources,
+        assessment = null,
+        claimsNeedingSources = [],
+        onJump,
+    }: Props = $props();
 
     // the summary goes before the first reference list that cites anything (not a list of explanatory notes)
     let sourcesAt = $derived(
@@ -188,7 +203,7 @@
         {:else}
             <!-- spacing lives on this wrapper (not the HTML inside) so folding never jumps by a collapsed margin -->
             {#if shown && i === sourcesAt && sources}
-                <SourceMix {sources} />
+                <SourceMix {sources} {assessment} claims={claimsNeedingSources} {onJump} />
             {/if}
             {#if shown}
                 <div class="block {block.kind}" class:lead={i === leadIndex} transition:fold use:enhanceContent>

@@ -30,7 +30,6 @@
     import ArticleContent from "./ArticleContent.svelte";
     import Icon from "../icons/Icon.svelte";
     import ArticleFooter from "./ArticleFooter.svelte";
-    import ArticleHealth from "./ArticleHealth.svelte";
     import ArticleInfobox from "./ArticleInfobox.svelte";
     import ArticleLanguages from "./ArticleLanguages.svelte";
     import ArticleReadNext from "./ArticleReadNext.svelte";
@@ -94,12 +93,6 @@
         });
         return () => controller.abort();
     });
-
-    // The header's source count jumps to the section holding the first reference list that cites anything.
-    let sourcesTarget = $derived(
-        article.blocks.find((block) => block.type === "html" && block.kind === "references" && block.html.includes("data-source="))
-            ?.sectionIds.at(-1) ?? "",
-    );
     // Set when goToAnchor changes the hash itself, so the hashchange listener doesn't handle that jump twice.
     let ownHashChange: string | null = null;
 
@@ -617,13 +610,6 @@
             {#if description}
                 <p class="description">{description}</p>
             {/if}
-            <ArticleHealth
-                assessment={meta.assessment ?? null}
-                sources={article.sources}
-                claims={article.claimsNeedingSources}
-                {sourcesTarget}
-                onJump={goToAnchor}
-            />
             {#if meta.redirectedFrom && meta.redirectedFrom !== title}
                 <p class="redirected">
                     <Icon name="corner-down-right" size="0.9em" />
@@ -664,6 +650,9 @@
             onToggleSection={toggleSection}
             styles={article.styles}
             sources={article.sources}
+            assessment={meta.assessment ?? null}
+            claimsNeedingSources={article.claimsNeedingSources}
+            onJump={goToAnchor}
         />
 
         {#if article.related.length > 0}
