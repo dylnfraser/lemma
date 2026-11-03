@@ -3,6 +3,7 @@
     import { fetchLastEdited } from "$lib/api/wikipedia";
     import { CITATION_STYLES, formatCitation, type CitationStyle } from "$lib/citation";
     import { isKeyboardClick } from "$lib/focus";
+    import { escapeCloses } from "$lib/layers";
     import { library } from "$lib/library.svelte";
     import { DURATION, EASE_OUT, fold, motion, pop } from "$lib/motion";
     import type { SpokenAudio } from "$lib/article/types";
@@ -120,15 +121,16 @@
         if (citeOpen && citeRoot && !citeRoot.contains(event.target as Node)) citeOpen = false;
     }
 
-    function handleWindowKeydown(event: KeyboardEvent) {
-        if (citeOpen && event.key === "Escape") {
+    $effect(() => {
+        if (!citeOpen) return;
+        return escapeCloses(() => {
             citeOpen = false;
             citeRoot?.querySelector<HTMLButtonElement>(".cite-toggle")?.focus();
-        }
-    }
+        });
+    });
 </script>
 
-<svelte:window onpointerdown={handleWindowPointerDown} onkeydown={handleWindowKeydown} />
+<svelte:window onpointerdown={handleWindowPointerDown} />
 
 <div class="actions">
     <button type="button" class="action-pill save" class:saved class:pop={justSaved && saved} aria-pressed={saved} onclick={toggleSaved}>

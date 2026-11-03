@@ -1,6 +1,7 @@
 <script lang="ts">
     import { afterNavigate } from "$app/navigation";
     import { fade } from "svelte/transition";
+    import { escapeCloses } from "$lib/layers";
     import { DURATION, motion, pop } from "$lib/motion";
     import { closeSearch, isSearchShortcut, searchOverlay, toggleSearch } from "$lib/search/searchOverlay.svelte";
     import Searchbar from "./Searchbar.svelte";
@@ -12,10 +13,12 @@
             event.preventDefault();
             if (event.key === "/" && searchOverlay.open) return;
             toggleSearch();
-        } else if (event.key === "Escape" && searchOverlay.open) {
-            closeSearch();
         }
     }
+
+    $effect(() => {
+        if (searchOverlay.open) return escapeCloses(closeSearch);
+    });
 
     function handleBackdropClick(event: MouseEvent) {
         if (event.target === event.currentTarget) closeSearch();

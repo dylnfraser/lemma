@@ -1,6 +1,7 @@
 <script lang="ts">
     import { tick } from "svelte";
     import { isKeyboardClick } from "$lib/focus";
+    import { escapeCloses } from "$lib/layers";
     import { DURATION, pop } from "$lib/motion";
     import { BODY_FONTS, CITATION_STYLES, LINE_WIDTHS, TEXT_SIZES, THEMES, settings } from "$lib/settings.svelte";
     import { slidingTabs } from "$lib/slidingTabs";
@@ -33,9 +34,9 @@
         if (open && root && !root.contains(event.target as Node)) open = false;
     }
 
-    function handleWindowKeydown(event: KeyboardEvent) {
-        if (open && event.key === "Escape") close();
-    }
+    $effect(() => {
+        if (open) return escapeCloses(close);
+    });
 
     /** Arrow keys move the choice within a radio group (and focus with it), as in a native one. */
     function radioKeys<T>(event: KeyboardEvent, options: readonly T[], current: T, choose: (value: T) => void) {
@@ -49,7 +50,7 @@
     }
 </script>
 
-<svelte:window onpointerdown={handleWindowPointerDown} onkeydown={handleWindowKeydown} />
+<svelte:window onpointerdown={handleWindowPointerDown} />
 
 <span class="reader-settings" bind:this={root}>
     <button

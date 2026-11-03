@@ -2,6 +2,7 @@
     import { tick } from "svelte";
     import type { ArticleLanguage } from "$lib/api/wikipedia";
     import { isKeyboardClick } from "$lib/focus";
+    import { escapeCloses } from "$lib/layers";
     import { DURATION, pop } from "$lib/motion";
     import Icon from "../icons/Icon.svelte";
     import SearchIcon from "../icons/SearchIcon.svelte";
@@ -44,9 +45,9 @@
         if (open && root && !root.contains(event.target as Node)) open = false;
     }
 
-    function handleWindowKeydown(event: KeyboardEvent) {
-        if (open && event.key === "Escape") close();
-    }
+    $effect(() => {
+        if (open) return escapeCloses(close);
+    });
 
     // Up and down move between the filter and the languages, like a menu.
     function handlePanelKeydown(event: KeyboardEvent) {
@@ -62,7 +63,7 @@
     }
 </script>
 
-<svelte:window onpointerdown={handleWindowPointerDown} onkeydown={handleWindowKeydown} />
+<svelte:window onpointerdown={handleWindowPointerDown} />
 
 <span class="languages" bind:this={root}>
     <button

@@ -4,6 +4,7 @@
     import { cubicOut, quintOut } from "svelte/easing";
     import { fetchSummary, type ArticleSummary } from "$lib/api/wikipedia";
     import { getArticlePath, safeDecodeURIComponent } from "$lib/article/articleUtils";
+    import { escapeCloses } from "$lib/layers";
     import { lightbox } from "$lib/lightbox.svelte";
     import { BLUR_PX, motion } from "$lib/motion";
     import { searchOverlay } from "$lib/search/searchOverlay.svelte";
@@ -260,9 +261,9 @@
         if (!(event.target as Element).closest?.(".link-preview")) hideNow();
     }
 
-    function handleKeydown(event: KeyboardEvent) {
-        if (event.key === "Escape" && visible) hideNow();
-    }
+    $effect(() => {
+        if (visible) return escapeCloses(hideNow);
+    });
 
     // the card follows the page closing other overlays (search, viewer) and disappears with them
     $effect(() => {
@@ -312,7 +313,7 @@
     });
 </script>
 
-<svelte:window onscroll={hideNow} onresize={hideNow} onpointerdown={handlePointerDown} onkeydown={handleKeydown} />
+<svelte:window onscroll={hideNow} onresize={hideNow} onpointerdown={handlePointerDown} />
 
 {#if visible && preview?.kind === "reference"}
     <!-- the reference stays readable and its links (sources, archives) clickable; the marker itself is what's announced -->

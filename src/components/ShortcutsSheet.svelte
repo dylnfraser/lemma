@@ -10,6 +10,7 @@
 <script lang="ts">
     import { tick } from "svelte";
     import { fade } from "svelte/transition";
+    import { escapeCloses } from "$lib/layers";
     import { isTypingTarget } from "$lib/search/searchOverlay.svelte";
     import { DURATION, motion, pop } from "$lib/motion";
     import Icon from "./icons/Icon.svelte";
@@ -49,12 +50,11 @@
         return () => returnFocus?.focus?.();
     });
 
+    $effect(() => {
+        if (open) return escapeCloses(() => (open = false));
+    });
+
     function handleKeydown(event: KeyboardEvent) {
-        if (open && event.key === "Escape") {
-            event.preventDefault();
-            open = false;
-            return;
-        }
         if (event.key === "?" && !event.metaKey && !event.ctrlKey && !event.altKey && !isTypingTarget(event.target)) {
             event.preventDefault();
             open = !open;

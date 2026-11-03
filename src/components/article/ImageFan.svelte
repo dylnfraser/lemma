@@ -3,6 +3,7 @@
     import { prefersReducedMotion } from "svelte/motion";
     import type { ArticleImage } from "$lib/article/types";
     import { isKeyboardClick, preventMouseFocus } from "$lib/focus";
+    import { escapeCloses } from "$lib/layers";
     import { lightbox, openLightbox } from "$lib/lightbox.svelte";
     import { BLUR_PX, DURATION, EASE_OUT, motion } from "$lib/motion";
     import { overlayScrollbar } from "$lib/overlayScrollbar";
@@ -158,13 +159,12 @@
         collapse();
     }
 
-    // While another overlay is up, Escape and outside clicks belong to it.
+    // While another overlay is up, outside clicks belong to it (as Escape does: it closes the newest layer).
     const overlayOpen = () => lightbox.open || searchOverlay.open;
 
-    function handleWindowKeydown(event: KeyboardEvent) {
-        if (!expanded || event.key !== "Escape" || overlayOpen()) return;
-        collapse({ focus: grid?.contains(document.activeElement) ?? false });
-    }
+    $effect(() => {
+        if (expanded) return escapeCloses(() => collapse({ focus: grid?.contains(document.activeElement) ?? false }));
+    });
 
     // pointerdown rather than click: the click that expanded the fan must not count as an outside click.
     function handleWindowPointerDown(event: PointerEvent) {
@@ -231,7 +231,7 @@
     }
 </script>
 
-<svelte:window onkeydown={handleWindowKeydown} onpointerdown={handleWindowPointerDown} />
+<svelte:window onpointerdown={handleWindowPointerDown} />
 
 {#if expanded}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_click_events_have_key_events (Escape anywhere stacks the images again; each photo is its own button) -->

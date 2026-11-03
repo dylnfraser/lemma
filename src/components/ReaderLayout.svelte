@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
     import { fade } from "svelte/transition";
+    import { escapeCloses } from "$lib/layers";
     import { layout } from "$lib/layout.svelte";
     import { DURATION, motion, rise } from "$lib/motion";
     import { settings } from "$lib/settings.svelte";
@@ -46,12 +47,16 @@
         outlineOpen = false;
     }
 
-    function handleWindowKeydown(event: KeyboardEvent) {
-        if (event.key === "Escape" && outlineOpen) close();
-    }
+    $effect(() => {
+        if (!outlineOpen) return;
+        return escapeCloses(() => {
+            // focus inside the card would be left on something about to hide: back to the button that opened it
+            const inside = reader?.querySelector(".outline")?.contains(document.activeElement);
+            close();
+            if (inside) reader?.querySelector<HTMLButtonElement>(".outline-toggle")?.focus();
+        });
+    });
 </script>
-
-<svelte:window onkeydown={handleWindowKeydown} />
 
 <div class="reader" class:infobox-in-margin={layout.infoboxInMargin} bind:this={reader}>
     {#if outline}

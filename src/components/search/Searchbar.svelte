@@ -155,6 +155,8 @@
             event.preventDefault();
             if (showOptions) activeIndex = Math.max(activeIndex - 1, 0);
         } else if (event.key === "Escape") {
+            // handled here: the page's other layers leave this press alone
+            event.preventDefault();
             if (onDismiss) {
                 onDismiss();
             } else {

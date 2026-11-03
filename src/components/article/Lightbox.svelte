@@ -22,6 +22,7 @@
     import { fade } from "svelte/transition";
     import { getFilePath, resizeWikimediaThumb } from "$lib/article/articleUtils";
     import { preventMouseFocus } from "$lib/focus";
+    import { escapeCloses } from "$lib/layers";
     import { closeLightbox, lightbox } from "$lib/lightbox.svelte";
     import { BLUR_PX, DURATION, EASE_OUT, motion } from "$lib/motion";
     import ChevronIcon from "../icons/ChevronIcon.svelte";
@@ -251,6 +252,10 @@
         return () => (current = false);
     });
 
+    $effect(() => {
+        if (lightbox.open) return escapeCloses(close);
+    });
+
     // Closing: shrink back into the current image's thumbnail (or just fade if it's gone or off-screen).
     async function close() {
         if (closing) return;
@@ -312,11 +317,7 @@
             ArrowDown: { x: 0, y: -1 },
         };
 
-        if (event.key === "Escape") {
-            event.preventDefault();
-            event.stopPropagation();
-            close();
-        } else if (event.key in arrows && zoomed) {
+        if (event.key in arrows && zoomed) {
             // zoomed in, the arrows look around the picture
             event.preventDefault();
             pan(arrows[event.key].x * KEY_PAN_PX, arrows[event.key].y * KEY_PAN_PX);
