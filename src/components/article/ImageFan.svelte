@@ -86,7 +86,9 @@
 
     /**
      * Downloads and decodes every picture, including those hidden behind the stack, so expanding never waits on the
-     * network or stalls mid-flight decoding one. Started ahead of time (see `preloadNearby`); repeat calls reuse it.
+     * network or stalls mid-flight decoding one. Started when the reader reaches for the stack (pointer or focus), not
+     * when it scrolls into view: a long gallery is megabytes a reader scrolling past shouldn't pay for. The cards on
+     * show load like any picture. Repeat calls reuse it.
      */
     let decoded: Promise<unknown> | null = null;
     function decodeImages() {
@@ -98,20 +100,6 @@
             }),
         );
         return decoded;
-    }
-
-    /** Starts decoding the pictures once the stack comes near the screen. */
-    function preloadNearby(node: HTMLElement) {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (!entries.some((entry) => entry.isIntersecting)) return;
-                decodeImages();
-                observer.disconnect();
-            },
-            { rootMargin: "600px 0px" },
-        );
-        observer.observe(node);
-        return { destroy: () => observer.disconnect() };
     }
 
     /** FLIP: render the grid, then fly each image out from the card it was shown on. */
@@ -289,9 +277,9 @@
             onmousedown={preventMouseFocus}
             onclick={expand}
             onpointerenter={decodeImages}
+            onfocus={decodeImages}
             bind:this={fanButton}
             use:focusWhenToggled
-            use:preloadNearby
         >
             {#each fanned as image, i}
                 {@const t = cardTransform(i)}
