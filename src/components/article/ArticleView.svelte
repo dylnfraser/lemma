@@ -179,13 +179,18 @@
     }
 
     // Reference text for citation previews, read from the parsed article so it works while the list is folded away.
+    // Each list is parsed once, on the first preview into it (Moon's has ~400 entries; a marker like "4–7" reads four).
     const references = new Map<string, string | null>();
+    const referenceLists = new Map<number, Document>();
     function referenceHtml(id: string): string | null {
         if (references.has(id)) return references.get(id)!;
         let html: string | null = null;
-        const block = blocks[anchors[id]];
+        const index = anchors[id];
+        const block = blocks[index];
         if (block?.type === "html") {
-            const item = new DOMParser().parseFromString(block.html, "text/html").getElementById(id);
+            let list = referenceLists.get(index);
+            if (!list) referenceLists.set(index, (list = new DOMParser().parseFromString(block.html, "text/html")));
+            const item = list.getElementById(id);
             html = (item?.querySelector(".reference-text") ?? item)?.innerHTML.trim() || null;
         }
         references.set(id, html);
