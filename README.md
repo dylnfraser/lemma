@@ -1,6 +1,6 @@
 # lemma
 
-Lemma is a lightweight, distraction-free Wikipedia client built with SvelteKit. It strips out Wikipedia's interface clutter to give a calm reading page, with themes and typography the reader can adjust (see [Reader settings](#reader-settings)).
+Lemma is a Wikipedia reader that shows you the article and not much else. It leaves out Wikipedia's editing tools, banners and sidebars, and sets the text so it's comfortable to read, with themes and typography you can adjust (see [Reader settings](#reader-settings)). It's built with SvelteKit.
 
 All requests are made directly from the reader's browser to Wikipedia, without intermediate proxies, tracking, accounts, or API keys. Everything personal (saved articles, history, reading positions, settings) stays in the browser.
 
