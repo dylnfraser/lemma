@@ -84,6 +84,21 @@
     // directly; the back matter's own rule is left off then, rather than two rules in a row.)
     let leadIndex = $derived(blocks.findIndex((block) => block.type === "html" && block.kind === "paragraph"));
 
+    // The blocks showing just before a section heading (an h2), counting folds: they leave the spacing to the heading
+    // (see .before-section). Worked out here rather than with a `:has(+ h2)` rule, which Safari re-checks across the
+    // whole article whenever a section folds.
+    let beforeSection = $derived.by(() => {
+        const indices = new Set<number>();
+        let nextIsSection = false;
+        for (let i = blocks.length - 1; i >= 0; i--) {
+            const block = blocks[i];
+            if (isBlockHiddenByCollapsed(block, collapsedSectionIds)) continue;
+            if (nextIsSection) indices.add(i);
+            nextIsSection = block.type === "heading" && block.heading.tag === "H2";
+        }
+        return indices;
+    });
+
     // Blocks out of view skip rendering (see .skip-offscreen below), but only once the whole article has been laid out
     // and each block's height remembered, so the page keeps its length and every section stays where it is.
     let skipOffscreen = $state(false);
@@ -127,7 +142,7 @@
             {@const collapsed = collapsedSectionIds.has(heading.id)}
             {#if shown}
                 {@const copied = copyStatus?.id === heading.id ? copyStatus : null}
-                <svelte:element this={heading.tag.toLowerCase()} id={heading.id} class="section-heading" class:divided={heading.id === backMatterId && i - 1 !== leadIndex} data-heading transition:fold>
+                <svelte:element this={heading.tag.toLowerCase()} id={heading.id} class="section-heading" class:before-section={beforeSection.has(i)} class:divided={heading.id === backMatterId && i - 1 !== leadIndex} data-heading transition:fold>
                     {#if isFoldableHeadingLevel(heading.level)}
                         <button
                             class="chev"
@@ -165,7 +180,7 @@
             {/if}
         {:else if block.type === "images" && block.images.length > 1}
             {#if shown}
-                <div class="block images" transition:fold>
+                <div class="block images" class:before-section={beforeSection.has(i)} transition:fold>
                     <ImageFan images={block.images} caption={block.caption} />
                 </div>
             {/if}
@@ -173,7 +188,7 @@
             {@const image = block.images[0]}
             {@const caption = image.caption || block.caption}
             {#if shown}
-                <div class="wiki-images" transition:fold>
+                <div class="wiki-images" class:before-section={beforeSection.has(i)} transition:fold>
                     <figure class:sized={image.width && image.height}>
                         <button
                             type="button"
@@ -204,14 +219,14 @@
                 </div>
             {/if}
         {:else if block.kind === "table"}
-            {#if shown}<div class="table-scroll" transition:fold use:enhanceContent>{@html block.html}</div>{/if}
+            {#if shown}<div class="table-scroll" class:before-section={beforeSection.has(i)} transition:fold use:enhanceContent>{@html block.html}</div>{/if}
         {:else}
             <!-- spacing lives on this wrapper (not the HTML inside) so folding never jumps by a collapsed margin -->
             {#if shown && i === sourcesAt && sources}
                 <SourceMix {sources} {assessment} claims={claimsNeedingSources} {onJump} />
             {/if}
             {#if shown}
-                <div class="block {block.kind}" class:lead={i === leadIndex} transition:fold use:enhanceContent>
+                <div class="block {block.kind}" class:lead={i === leadIndex} class:before-section={beforeSection.has(i)} transition:fold use:enhanceContent>
                     {@html block.html}
                 </div>
             {/if}
@@ -925,7 +940,7 @@
 
     /* Whatever comes just before a section rule leaves the spacing to the heading, so the gap above the rule is the
        same after a paragraph, a picture or a table; and nothing pads the very top of the article. */
-    .article-body > :global(:has(+ h2)) {
+    .article-body > :global(.before-section) {
         margin-bottom: 0 !important;
     }
 
