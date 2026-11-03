@@ -67,7 +67,8 @@
         const half = (toolbar?.offsetWidth ?? 200) / 2;
         const x = Math.min(Math.max(rect.left + rect.width / 2, half + 8), window.innerWidth - half - 8);
         const below = coarse || rect.top < 110;
-        position = { x, y: below ? rect.bottom + 10 : rect.top - 10, below };
+        // in page coordinates, so the toolbar scrolls with the text instead of being chased from a scroll handler
+        position = { x: x + window.scrollX, y: (below ? rect.bottom + 10 : rect.top - 10) + window.scrollY, below };
     }
 
     function hide() {
@@ -101,7 +102,7 @@
 </script>
 
 <svelte:document onselectionchange={handleSelectionChange} />
-<svelte:window onscroll={() => position && place()} onresize={() => position && place()} />
+<svelte:window onresize={() => position && place()} />
 
 {#if position}
     <div
@@ -136,7 +137,7 @@
 
 <style>
     .quote-toolbar {
-        position: fixed;
+        position: absolute;
         z-index: 26;
         display: flex;
         align-items: center;
