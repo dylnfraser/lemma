@@ -109,16 +109,17 @@
 
         clearTimeout(debounceTimer);
         activeRequest?.abort();
-        await goto(getArticlePath(trimmedTitle));
+        // the overlay goes as soon as the choice is made (as clicking a result does), not once the article arrives
         onDismiss?.();
+        await goto(getArticlePath(trimmedTitle));
     }
 
     async function searchEverything() {
         if (!trimmedQuery) return;
         clearTimeout(debounceTimer);
         activeRequest?.abort();
-        await goto(getSearchPath(trimmedQuery));
         onDismiss?.();
+        await goto(getSearchPath(trimmedQuery));
     }
 
     // The top suggestion, when it starts with what's been typed: its remaining letters show faintly after the caret

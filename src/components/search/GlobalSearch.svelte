@@ -20,6 +20,21 @@
         if (searchOverlay.open) return escapeCloses(closeSearch);
     });
 
+    // A modal dialog: Tab cycles through the search and its results rather than wandering into the page behind.
+    // (The field's own Tab, taking a suggestion's completion, comes first and claims the press.)
+    function handleDialogKeydown(event: KeyboardEvent) {
+        if (event.key !== "Tab" || event.defaultPrevented) return;
+        const focusable = [...(event.currentTarget as HTMLElement).querySelectorAll<HTMLElement>("input, button, a[href]")].filter(
+            (element) => !element.matches(":disabled") && element.tabIndex >= 0 && element.getClientRects().length > 0,
+        );
+        const first = focusable[0];
+        const last = focusable.at(-1);
+        if (event.shiftKey ? document.activeElement === first : document.activeElement === last) {
+            event.preventDefault();
+            (event.shiftKey ? last : first)?.focus();
+        }
+    }
+
     function handleBackdropClick(event: MouseEvent) {
         if (event.target === event.currentTarget) closeSearch();
     }
@@ -56,6 +71,8 @@
             role="dialog"
             aria-modal="true"
             aria-label="Search Wikipedia"
+            tabindex="-1"
+            onkeydown={handleDialogKeydown}
             transition:pop|global={{ duration: DURATION.base, y: -6 }}
         >
             <Searchbar autofocus initialQuery={searchOverlay.query} onDismiss={closeSearch} />
