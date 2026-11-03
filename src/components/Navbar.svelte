@@ -84,6 +84,13 @@
         background: color-mix(in oklch, var(--page-bg) 80%, transparent);
         border-bottom: 1px solid color-mix(in oklch, var(--secondary) 70%, transparent);
         backdrop-filter: blur(6px);
+
+        /* phones: blurring the text scrolling under the bar is a steady cost on every frame, so the bar is close to
+           opaque instead */
+        @media (pointer: coarse) {
+            background: color-mix(in oklch, var(--page-bg) 94%, transparent);
+            backdrop-filter: none;
+        }
     }
 
     #header {
