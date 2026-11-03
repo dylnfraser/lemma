@@ -97,6 +97,8 @@ export function tintMath(root: Element) {
     if (!src.startsWith(MATH_RENDER_PREFIX) || !/^[\w/:.-]+$/.test(src)) return;
     image.classList.remove("mw-invert", "skin-invert");
     image.classList.add("math-tinted");
+    // the mask fetches it in CORS mode; the image asking the same way lets the two share one download
+    image.setAttribute("crossorigin", "anonymous");
     image.style.setProperty("--math-src", `url("${src}")`);
   });
 }
