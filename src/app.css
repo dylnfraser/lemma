@@ -183,7 +183,8 @@ body *::-webkit-scrollbar-thumb {
     --logo-ink: #402800;
 
     /* derived from the palette above, so they follow light/dark automatically */
-    --muted: color-mix(in oklch, var(--text-color) 62%, var(--page-bg));
+    /* secondary text: as light as it can be while still reading at 4.5:1 (WCAG AA) on every surface it's used on */
+    --muted: color-mix(in oklch, var(--text-color) 68%, var(--page-bg));
     --rule: color-mix(in oklch, var(--secondary) 75%, var(--page-bg));
     /* the hairline drawn just inside an image's edge, so pale pictures don't bleed into the page */
     --image-edge: color-mix(in oklch, var(--text-color) 9%, transparent);
@@ -227,6 +228,8 @@ body *::-webkit-scrollbar-thumb {
         --accent: oklch(0.8 0.13 var(--accent-hue));
         --link-hover: oklch(0.85 0.12 var(--accent-hue));
         --danger: oklch(0.72 0.15 25);
+        /* dark pages need more of the text colour for the same contrast */
+        --muted: color-mix(in oklch, var(--text-color) 74%, var(--page-bg));
     }
 }
 
@@ -677,7 +680,8 @@ figcaption .legend-group {
     gap: 0.1em;
     margin-right: 0.2em;
     font-weight: 600;
-    color: color-mix(in oklch, var(--muted) 80%, var(--page-bg));
+    /* quiet, but no lighter than other secondary text: anything fainter falls below a readable contrast */
+    color: var(--muted);
     text-decoration: none;
 
     &:hover {
@@ -692,7 +696,7 @@ figcaption .legend-group {
 
 /* bookkeeping a reader rarely needs, kept but quiet: when the source was retrieved, and its archived copy */
 .reference-accessdate {
-    color: color-mix(in oklch, var(--muted) 75%, var(--page-bg));
+    color: var(--muted);
 }
 
 a.archived,
@@ -755,8 +759,14 @@ a.identifier.free {
     text-indent: 0;
     text-transform: uppercase;
     vertical-align: 0.1em;
-    color: var(--source-color);
+    /* the kind's colour, deepened toward the text so the small label reads at 4.5:1 on its tint (dark pages need no
+       help) */
+    color: color-mix(in oklch, var(--source-color) 55%, var(--text-color));
     user-select: none;
+
+    [data-scheme="dark"] & {
+        color: var(--source-color);
+    }
 }
 
 .source-tag.academic {
