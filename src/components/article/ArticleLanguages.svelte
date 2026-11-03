@@ -2,6 +2,7 @@
     import { tick } from "svelte";
     import type { ArticleLanguage } from "$lib/api/wikipedia";
     import { isKeyboardClick } from "$lib/focus";
+    import { languageTag } from "$lib/languageTags";
     import { escapeCloses } from "$lib/layers";
     import { DURATION, pop } from "$lib/motion";
     import Icon from "../icons/Icon.svelte";
@@ -127,9 +128,9 @@
             <ul bind:this={list}>
                 {#each shown.slice(0, rendered) as language, i (language.code)}
                     <li style:--i={Math.min(i, 10)} class:cascade={cascade && i < 12}>
-                        <a href={language.url} target="_blank" rel="noopener noreferrer" hreflang={language.code}>
+                        <a href={language.url} target="_blank" rel="noopener noreferrer" hreflang={languageTag(language.code)}>
                             <!-- only the language's own name is in it (the English name beside it isn't) -->
-                            <span class="autonym" lang={language.code}>{language.autonym}</span>
+                            <span class="autonym" lang={languageTag(language.code)}>{language.autonym}</span>
                             {#if language.name !== language.autonym}<span class="name">{language.name}</span>{/if}
                         </a>
                     </li>

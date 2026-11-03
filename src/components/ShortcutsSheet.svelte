@@ -75,10 +75,11 @@
         bind:this={dialog}
         transition:pop={{ duration: DURATION.base }}
     >
-        <header>
+        <!-- a div, not <header>: inside the sheet a header would announce as a second banner beside the page's -->
+        <div class="header">
             <h2 id="shortcuts-title"><Icon name="keyboard" size="1em" /> Keyboard shortcuts</h2>
             <button type="button" class="close" aria-label="Close" onclick={() => (open = false)}><Icon name="x" size="0.85em" /></button>
-        </header>
+        </div>
         {#each groups as group}
             <section>
                 <h3>{group.title}</h3>
@@ -124,7 +125,7 @@
         outline: none;
     }
 
-    header {
+    .header {
         display: flex;
         align-items: center;
         justify-content: space-between;

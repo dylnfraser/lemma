@@ -80,7 +80,7 @@
             class="outline-toggle"
             aria-controls="{uid}-outline"
             aria-expanded={outlineOpen}
-            aria-label={outlineLabel ? `Sections (reading ${outlineLabel})` : "Sections"}
+            aria-label={outlineLabel ? `Contents (reading ${outlineLabel})` : "Contents"}
             onclick={() => (outlineOpen = !outlineOpen)}
         >
             <svg class="progress" viewBox="0 0 20 20" aria-hidden="true">
