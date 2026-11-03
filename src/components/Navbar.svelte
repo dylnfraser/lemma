@@ -137,7 +137,8 @@
         }
     }
 
-    /* the thread of articles read just before this one, faint and fading further the older they are */
+    /* the thread of articles read just before this one, in secondary text (the links don't fade further: any fainter
+       and they'd fall below a readable contrast) */
     .thread {
         display: flex;
         flex: 1;
@@ -158,14 +159,10 @@
             text-overflow: ellipsis;
             color: inherit;
             text-decoration: none;
-            opacity: calc(0.6 + var(--i) * 0.15);
-            transition:
-                color var(--dur-base) var(--ease-out),
-                opacity var(--dur-base) var(--ease-out);
+            transition: color var(--dur-base) var(--ease-out);
 
             &:hover {
                 color: var(--text-color);
-                opacity: 1;
             }
         }
 
