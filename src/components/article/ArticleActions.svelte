@@ -26,14 +26,29 @@
 
     const uid = $props.id();
 
+    /**
+     * Swaps a pill's label ("Save" → "Saved") with the label easing to its new width: the pill fits whichever label is
+     * showing, and the buttons beside it slide over rather than jumping.
+     */
+    async function easeLabel(button: Element | null | undefined, change: () => void) {
+        const swap = button?.querySelector<HTMLElement>(".label-swap");
+        const duration = motion(DURATION.base);
+        if (!swap || !duration) return change();
+        const from = swap.offsetWidth;
+        change();
+        await tick();
+        const to = swap.offsetWidth;
+        if (from !== to) swap.animate([{ width: `${from}px` }, { width: `${to}px` }], { duration, easing: EASE_OUT });
+    }
+
     // ---------- save ----------
 
     let saved = $derived(library.isSaved(title));
     // only animate the bookmark when the reader toggles it, not when the page loads already saved
     let justSaved = $state(false);
 
-    function toggleSaved() {
-        justSaved = library.toggleSaved({ title, description, thumbnail });
+    function toggleSaved(event: MouseEvent) {
+        easeLabel(event.currentTarget as Element, () => (justSaved = library.toggleSaved({ title, description, thumbnail })));
     }
 
     // ---------- listen ----------
@@ -99,7 +114,7 @@
     async function copyCitation() {
         try {
             await navigator.clipboard.writeText(citation);
-            copied = true;
+            easeLabel(citeRoot?.querySelector(".copy"), () => (copied = true));
         } catch {
             // no clipboard access: select the text so it can be copied by hand
             const range = document.createRange();
@@ -108,7 +123,7 @@
             getSelection()?.addRange(range);
         }
         clearTimeout(copyTimer);
-        copyTimer = setTimeout(() => (copied = false), 1800);
+        copyTimer = setTimeout(() => easeLabel(citeRoot?.querySelector(".copy"), () => (copied = false)), 1800);
     }
 
     function handleTabKeydown(event: KeyboardEvent) {
