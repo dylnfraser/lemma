@@ -77,7 +77,7 @@
     }
 
     .res.active {
-        background: color-mix(in oklch, var(--secondary) 38%, transparent);
+        background: var(--hover-fill);
     }
 
     .text {
@@ -135,22 +135,9 @@
         letter-spacing: 0.06em;
     }
 
+    /* a keycap (app.css), shown on the active result */
     .enter {
         flex: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        box-sizing: border-box;
-        height: 1.375rem;
-        min-width: 1.375rem;
-        padding: 0 0.375rem;
-        border: 1px solid var(--rule);
-        border-radius: 6px;
-        background: var(--bg-color);
-        font-family: inherit;
-        font-size: 0.7rem;
-        font-weight: 500;
-        line-height: 1;
         color: var(--muted);
         opacity: 0;
         transition: opacity var(--dur-fast) ease;

@@ -143,9 +143,9 @@
         width: min(19rem, calc(100vw - 2.5rem));
         overflow: hidden;
         border: 1px solid var(--rule);
-        border-radius: 14px;
+        border-radius: var(--radius-panel);
         background: var(--bg-color);
-        box-shadow: 0 18px 40px -18px var(--shadow-color);
+        box-shadow: var(--shadow-popover);
         transform-origin: 1.5rem 0;
         font-style: normal;
         letter-spacing: normal;
@@ -184,7 +184,7 @@
         transition: background-color var(--dur-fast) var(--ease-out);
 
         &:focus-within {
-            background: color-mix(in oklch, var(--secondary) 35%, transparent);
+            background: var(--hover-fill);
         }
 
         input {
@@ -266,7 +266,7 @@
 
         &:hover,
         &:focus-visible {
-            background: color-mix(in oklch, var(--secondary) 34%, transparent);
+            background: var(--hover-fill);
             color: inherit;
 
             .name {

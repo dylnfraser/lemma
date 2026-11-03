@@ -456,7 +456,6 @@
         }
     }
 
-    /* drawn like the palette's keycaps (same border, radius and fill), a touch larger as a click target */
     /* the "/" shortcut: fades out once the field has focus, and isn't shown where there's no keyboard to press it */
     .shortcut-hint {
         flex: none;
@@ -608,7 +607,7 @@
         transition: background-color var(--dur-instant) ease;
 
         &.active {
-            background: color-mix(in oklch, var(--secondary) 38%, transparent);
+            background: var(--hover-fill);
         }
 
         &:hover {
@@ -686,26 +685,6 @@
         @media (pointer: coarse) {
             display: none;
         }
-    }
-
-    /* Fixed-size, flat keycaps: a symmetric box centres on the label's midline. */
-    kbd {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        box-sizing: border-box;
-        height: 1.375rem;
-        min-width: 1.375rem;
-        padding: 0 0.375rem;
-        border: 1px solid var(--rule);
-        border-radius: 6px;
-        background: var(--bg-color);
-        font-family: inherit;
-        font-size: 0.7rem;
-        font-weight: 500;
-        line-height: 1;
-        color: var(--text-color);
-        opacity: 1;
     }
 
     kbd :global(.icon) {

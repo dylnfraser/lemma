@@ -229,9 +229,9 @@
         width: min(calc(19rem / var(--text-scale)), calc(100vw - 1rem));
         padding: 1em;
         border: 1px solid var(--rule);
-        border-radius: 14px;
+        border-radius: var(--radius-panel);
         background: var(--bg-color);
-        box-shadow: 0 18px 40px -18px var(--shadow-color);
+        box-shadow: var(--shadow-popover);
         transform-origin: calc(100% - 1.67em) 0;
         color: var(--text-color);
         /* the panel itself stays one size while the reader tries text sizes */

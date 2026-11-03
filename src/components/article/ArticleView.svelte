@@ -893,7 +893,7 @@
         }
 
         :global(li:hover) {
-            background: color-mix(in oklch, var(--secondary) 28%, transparent);
+            background: var(--hover-fill);
         }
 
         :global(li > a:first-child) {
@@ -978,7 +978,7 @@
             color: var(--muted);
 
             &:hover {
-                background: color-mix(in oklch, var(--secondary) 35%, transparent);
+                background: var(--hover-fill);
                 color: var(--text-color);
             }
         }

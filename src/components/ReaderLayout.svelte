@@ -178,7 +178,7 @@
             padding: 1rem 0.6rem 0 0.4rem;
             background: var(--bg-color);
             border: var(--pill-border);
-            border-radius: 14px;
+            border-radius: var(--radius-panel);
             box-shadow: var(--pill-shadow);
             transform-origin: var(--pill-radius) 100%;
 

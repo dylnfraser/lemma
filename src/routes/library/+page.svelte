@@ -148,11 +148,11 @@
 
     .tabs {
         position: relative;
-        --tab-radius: 8px;
+        --tab-radius: 7px;
         display: flex;
         gap: 0.2rem;
         padding: 0.2rem;
-        border-radius: 10px;
+        border-radius: 9px;
         background: color-mix(in oklch, var(--secondary) 30%, var(--bg-color));
 
         button {
@@ -161,7 +161,7 @@
             gap: 0.35rem;
             padding: 0.35rem 0.8rem;
             border: none;
-            border-radius: 8px;
+            border-radius: 7px;
             background: none;
             font: inherit;
             font-size: 0.85rem;
@@ -187,12 +187,13 @@
     }
 
     .clear {
-        padding: 0.3rem 0.8rem;
+        height: 2.25rem;
+        padding: 0 1.1rem;
         border: 1px solid var(--rule);
         border-radius: 999px;
         background: none;
         font: inherit;
-        font-size: 0.8rem;
+        font-size: 0.85rem;
         font-weight: 550;
         color: var(--muted);
         cursor: pointer;
@@ -207,9 +208,9 @@
         }
 
         &.confirming {
-            color: oklch(0.55 0.17 25);
-            border-color: color-mix(in oklch, oklch(0.55 0.17 25) 45%, var(--rule));
-            background: color-mix(in oklch, oklch(0.55 0.17 25) 7%, transparent);
+            color: var(--danger);
+            border-color: color-mix(in oklch, var(--danger) 45%, var(--rule));
+            background: color-mix(in oklch, var(--danger) 7%, transparent);
         }
     }
 
@@ -258,9 +259,11 @@
         flex: none;
         width: 48px;
         height: 48px;
-        border-radius: 9px;
+        border-radius: 8px;
         object-fit: cover;
         background: var(--secondary);
+        outline: 1px solid var(--image-edge);
+        outline-offset: -1px;
     }
 
     .placeholder {
@@ -356,7 +359,7 @@
             color var(--dur-fast);
 
         &:hover {
-            background: color-mix(in oklch, var(--secondary) 35%, transparent);
+            background: var(--hover-fill);
             color: var(--text-color);
         }
 

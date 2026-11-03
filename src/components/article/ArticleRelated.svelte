@@ -113,7 +113,7 @@
 
         @media (hover: hover) {
             &:hover {
-                background: color-mix(in oklch, var(--secondary) 40%, transparent);
+                background: var(--hover-fill);
             }
         }
 

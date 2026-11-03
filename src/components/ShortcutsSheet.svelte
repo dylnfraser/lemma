@@ -156,7 +156,7 @@
         cursor: pointer;
 
         &:hover {
-            background: color-mix(in oklch, var(--secondary) 35%, transparent);
+            background: var(--hover-fill);
             color: var(--text-color);
         }
     }
@@ -195,18 +195,11 @@
         margin: 0;
     }
 
+    /* the shared keycaps (app.css), a size up and with a little depth, as the sheet is about them */
     kbd {
-        display: inline-grid;
-        place-items: center;
-        box-sizing: border-box;
         min-width: 1.5rem;
         height: 1.5rem;
-        padding: 0 0.35rem;
-        border: 1px solid var(--rule);
         border-bottom-width: 2px;
-        border-radius: 6px;
-        background: var(--page-bg);
-        font: inherit;
         font-size: 0.75rem;
         font-weight: 600;
     }

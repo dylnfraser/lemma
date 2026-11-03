@@ -325,9 +325,9 @@
         width: min(30rem, calc(100vw - 2.5rem));
         padding: 0.6rem;
         border: 1px solid var(--rule);
-        border-radius: 12px;
+        border-radius: var(--radius-panel);
         background: var(--bg-color);
-        box-shadow: 0 18px 40px -18px var(--shadow-color);
+        box-shadow: var(--shadow-popover);
         transform-origin: 1.5rem 0;
         color: var(--text-color);
 

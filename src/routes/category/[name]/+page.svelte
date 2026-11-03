@@ -235,21 +235,23 @@
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
-            padding: 0.3rem 0.75rem;
+            padding: 0.25rem 0.75rem;
             border: 1px solid var(--rule);
             border-radius: 999px;
             font-size: 0.82rem;
             color: inherit;
             text-decoration: none;
-            transition: border-color var(--dur-fast);
+            transition:
+                color var(--dur-base) var(--ease-out),
+                border-color var(--dur-base) var(--ease-out);
 
             :global(.icon) {
                 color: var(--muted);
             }
 
             &:hover {
-                border-color: var(--secondary);
                 color: var(--link-hover);
+                border-color: color-mix(in oklch, var(--accent) 40%, var(--rule));
             }
         }
     }
@@ -271,7 +273,7 @@
             transition: background-color var(--dur-fast);
 
             &:hover {
-                background: color-mix(in oklch, var(--secondary) 28%, transparent);
+                background: var(--hover-fill);
 
                 .title {
                     color: var(--link-hover);
@@ -292,6 +294,8 @@
             border-radius: 8px;
             object-fit: cover;
             background: var(--secondary);
+            outline: 1px solid var(--image-edge);
+            outline-offset: -1px;
             transition: scale var(--dur-base) var(--ease-out);
         }
 
@@ -381,19 +385,20 @@
             font: inherit;
             font-size: 0.85rem;
             font-weight: 550;
-            color: inherit;
+            color: var(--muted);
             cursor: pointer;
             transition:
+                color var(--dur-fast),
                 border-color var(--dur-fast),
                 scale var(--dur-instant) var(--ease-out);
 
-            &:hover {
+            &:hover:not(:disabled) {
+                color: var(--text-color);
                 border-color: var(--secondary);
             }
 
             &:disabled {
                 cursor: progress;
-                opacity: 0.7;
             }
         }
     }

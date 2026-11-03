@@ -1020,7 +1020,7 @@
         @media (hover: hover) {
             &:hover {
                 color: var(--text-color);
-                background: color-mix(in oklch, var(--secondary) 40%, transparent);
+                background: var(--hover-fill);
             }
         }
 
@@ -1056,7 +1056,7 @@
         @media (hover: hover) {
             &:hover {
                 color: var(--text-color);
-                background: color-mix(in oklch, var(--secondary) 40%, transparent);
+                background: var(--hover-fill);
             }
         }
 

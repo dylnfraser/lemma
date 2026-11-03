@@ -271,11 +271,13 @@
             font-size: 0.82rem;
             color: inherit;
             text-decoration: none;
-            transition: border-color var(--dur-fast);
+            transition:
+                color var(--dur-base) var(--ease-out),
+                border-color var(--dur-base) var(--ease-out);
 
             &:hover {
-                border-color: var(--secondary);
                 color: var(--link-hover);
+                border-color: color-mix(in oklch, var(--accent) 40%, var(--rule));
             }
         }
     }

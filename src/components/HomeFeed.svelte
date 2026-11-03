@@ -160,7 +160,7 @@
         transition: background-color var(--dur-base) var(--ease-out);
 
         &:hover {
-            background: color-mix(in oklch, var(--secondary) 26%, transparent);
+            background: var(--hover-fill);
 
             .title {
                 color: var(--link-hover);

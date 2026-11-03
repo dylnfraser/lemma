@@ -383,11 +383,11 @@
         overflow: hidden;
         box-sizing: border-box;
         border: 1px solid var(--rule);
-        border-radius: 12px;
+        border-radius: var(--radius-panel);
         background: var(--bg-color);
         box-shadow:
             0 1px 2px color-mix(in oklch, var(--shadow-color) 70%, transparent),
-            0 18px 40px -18px var(--shadow-color);
+            var(--shadow-popover);
         color: var(--text-color);
         text-decoration: none;
         transform-origin: var(--origin-x, 50%) 0;

@@ -347,7 +347,7 @@
 
         &:hover {
             color: var(--text-color);
-            background: color-mix(in oklch, var(--secondary) 40%, transparent);
+            background: var(--hover-fill);
         }
 
         /* folded branches point at where they'd open (right), open ones down */

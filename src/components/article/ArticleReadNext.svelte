@@ -187,6 +187,8 @@
         border-radius: 8px;
         object-fit: cover;
         background: var(--secondary);
+        outline: 1px solid var(--image-edge);
+        outline-offset: -1px;
         transition: scale var(--dur-base) var(--ease-out);
     }
 
@@ -291,10 +293,10 @@
 
         a {
             display: inline-block;
-            padding: 0.25rem 0.7rem;
+            padding: 0.25rem 0.75rem;
             border: 1px solid var(--rule);
             border-radius: 999px;
-            font-size: 0.8rem;
+            font-size: 0.82rem;
             color: inherit;
             text-decoration: none;
             transition:
