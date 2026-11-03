@@ -106,11 +106,17 @@ const BACKGROUND = /background(?:-color)?\s*:\s*([^;!]+)/i;
  * counterparts too. Only opaque backgrounds that are clearly light (for dark mode) or glaring (for both) are touched.
  */
 export function markComputedDarkBackgrounds(root: Element) {
+  // Every colour is read before any is written: a write between reads would make the next read recompute the styles
+  // (thousands of times over a page of big tables). Writes only restyle the element written to, so reading them all
+  // up front sees the same colours.
+  const found: [HTMLElement, Rgb][] = [];
   for (const element of root.querySelectorAll<HTMLElement>("table, caption, tr, th, td, div")) {
     if (element.style.getPropertyValue("--dark-bg") || element.closest(".legend-color")) continue;
     const match = getComputedStyle(element).backgroundColor.match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?/);
     if (!match || (match[4] !== undefined && Number(match[4]) < 0.5)) continue;
-    const rgb: Rgb = [Number(match[1]), Number(match[2]), Number(match[3])];
+    found.push([element, [Number(match[1]), Number(match[2]), Number(match[3])]]);
+  }
+  for (const [element, rgb] of found) {
     const { l, c } = rgbToOklch(...rgb);
     if (c > VIVID_CHROMA) markVariants(element, rgb);
     else if (l >= 0.8) element.style.setProperty("--dark-bg", darkVariant(rgb));
