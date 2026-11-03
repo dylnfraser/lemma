@@ -13,23 +13,25 @@
         </header>
 
         <p>
-            Lemma is a private, fast Wikipedia reader built for calm, focused browsing. It strips away visual clutter and
-            presents articles in a clean custom layout with strong typography and lightweight navigation.
+            Lemma is a Wikipedia reader. It shows you the article and leaves out most of everything else: no edit links,
+            banners or sidebars, just the text, its pictures and its sources, set in type that’s comfortable to read for a
+            while.
         </p>
 
         <section>
             <h2>Why it exists</h2>
             <p>
-                Lemma is designed for quick lookups, deeper reading, and browsing Wikipedia without the usual noise. It’s
-                meant to feel private, fast, and pleasant enough that reading becomes the default.
+                Wikipedia is wonderful, but its pages are busy, and a lot of what’s on them is there for editors rather
+                than readers. Lemma is for the reading side: looking something up quickly, or settling in with a long
+                article and following wherever the links take you.
             </p>
         </section>
 
         <section>
             <h2>How it works</h2>
             <p>
-                Lemma fetches articles straight from Wikipedia’s public endpoints in your browser, with no API key, backend
-                proxy, or server-side cache, then renders just the readable content in a distraction-free reader.
+                Your browser fetches each article straight from Wikipedia: there’s no Lemma server fetching them for you,
+                no account and no tracking. The articles you save, your history and your settings stay in this browser.
             </p>
             <p>It’s built with SvelteKit, Svelte 5, Vite, TypeScript, and Bun.</p>
         </section>
