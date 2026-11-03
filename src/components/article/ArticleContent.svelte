@@ -1307,7 +1307,7 @@
             font-size: 0.8rem;
             line-height: 1.5;
             text-align: center;
-            text-wrap: pretty;
+            /* wrapping is inherited from .article-body: pretty, except in Safari */
             color: var(--muted);
 
             :global(a) {

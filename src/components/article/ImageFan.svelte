@@ -374,7 +374,7 @@
         font-size: 0.8rem;
         line-height: 1.5;
         text-align: center;
-        text-wrap: pretty;
+        /* wrapping is inherited from the article: pretty, except in Safari (see .article-body) */
         color: var(--muted);
     }
 
@@ -486,7 +486,7 @@
         font-size: 0.8rem;
         line-height: 1.5;
         text-align: center;
-        text-wrap: pretty;
+        /* wrapping is inherited from the article: pretty, except in Safari (see .article-body) */
         color: var(--muted);
     }
 </style>
