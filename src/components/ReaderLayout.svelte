@@ -211,7 +211,8 @@
             inset: 0;
             z-index: 24;
             border: none;
-            background: rgb(0 0 0 / 12%);
+            /* the page veiled in its own colour, as behind the shortcuts sheet, so it reads in dark mode too */
+            background: color-mix(in oklch, var(--page-bg) 55%, transparent);
 
             /* a full-screen layer shouldn't take part in the global press-scale */
             &:active {

@@ -259,9 +259,9 @@
         }
 
         border-top-color: var(--rule);
-        font-size: 0.7rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
+        font-size: 0.72rem;
+        font-weight: 650;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--muted);
     }
@@ -285,9 +285,9 @@
         align-items: center;
         gap: 0.3rem;
         margin-bottom: 0.4rem;
-        font-size: 0.68rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
+        font-size: 0.72rem;
+        font-weight: 650;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--muted);
     }

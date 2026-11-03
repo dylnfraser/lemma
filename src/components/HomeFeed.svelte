@@ -139,7 +139,7 @@
         display: block;
         margin: 0 0 0.15rem;
         font-family: default-sans;
-        font-size: 0.68rem;
+        font-size: 0.72rem;
         font-weight: 650;
         letter-spacing: 0.08em;
         text-transform: uppercase;

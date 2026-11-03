@@ -164,7 +164,7 @@
     h3 {
         margin: 1rem 0 0.4rem;
         font-family: default-sans;
-        font-size: 0.7rem;
+        font-size: 0.72rem;
         font-weight: 650;
         letter-spacing: 0.08em;
         text-transform: uppercase;

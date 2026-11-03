@@ -482,9 +482,9 @@
     }
 
     .reference-label {
-        font-size: 0.7rem;
+        font-size: 0.72rem;
         font-weight: 650;
-        letter-spacing: 0.07em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--muted);
     }

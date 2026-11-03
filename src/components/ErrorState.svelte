@@ -65,7 +65,7 @@
 
     .word {
         animation: fade-in var(--dur-fade) var(--ease-out) backwards;
-        animation-delay: calc(var(--i) * 12ms + 150ms);
+        animation-delay: calc(var(--i) * var(--stagger) / 4 + var(--stagger) * 3);
     }
 
     /* quiet text links, separated by dots, arriving once the message has */
@@ -78,7 +78,7 @@
         margin-top: 1.75rem;
 
         animation: enter var(--dur-slow) var(--ease-out) backwards;
-        animation-delay: calc(var(--after) * 12ms + 450ms);
+        animation-delay: calc(var(--after) * var(--stagger) / 4 + var(--stagger) * 10);
     }
 
     .separator {

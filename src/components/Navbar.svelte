@@ -166,7 +166,7 @@
         .thread-arrow {
             flex: none;
             animation: fade-in var(--dur-base) var(--ease-out) backwards;
-            animation-delay: calc(var(--i) * 25ms);
+            animation-delay: calc(var(--i) * var(--stagger) / 2);
         }
 
         a {
@@ -193,7 +193,7 @@
         font-weight: 550;
         color: var(--text-color);
         animation: fade-in var(--dur-base) var(--ease-out) backwards;
-        animation-delay: calc(var(--i) * 25ms);
+        animation-delay: calc(var(--i) * var(--stagger) / 2);
     }
 
     .thread-more {
@@ -246,6 +246,16 @@
         &:hover {
             color: var(--text-color);
             border-color: var(--secondary);
+        }
+
+        /* pressed like the bar's other buttons */
+        &:active {
+            scale: 0.94;
+        }
+
+        /* the keycap follows the button's colour */
+        kbd {
+            color: inherit;
         }
 
         @media (max-width: 600px) {
