@@ -195,6 +195,9 @@ export async function fetchArticle(title: string, options: RequestOptions = {}):
     page: title,
     prop: "text|langlinks|categories|properties|indicators|revid",
     redirects: "1",
+    // the "edit" links by each heading and the parser's report, which Lemma would only strip out again
+    disableeditsection: "1",
+    disablelimitreport: "1",
     // cacheable for a few minutes, by the browser and by Wikipedia's edge servers: an article someone opened recently
     // comes back noticeably faster than one Wikipedia has to look up again
     maxage: "300",

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import {
   fetchArticle,
@@ -36,6 +37,30 @@ describe("fetchArticle", () => {
     expect(params.get("page")).toBe("Turing");
     expect(params.get("redirects")).toBe("1");
     expect([...new Headers(init?.headers).keys()]).toEqual([]);
+  });
+
+  // src/app.html starts this request early when the page opens on an article; the app's own request only picks that
+  // download up if the two URLs are identical
+  it("asks for exactly the URL app.html starts downloading early", async () => {
+    const html = readFileSync("src/app.html", "utf8");
+    const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((match) => match[1]).find((body) => body.includes(`"preload"`));
+    expect(script).toBeDefined();
+
+    const preloaded = (path: string) => {
+      const link = { rel: "", as: "", crossOrigin: "", href: "" };
+      const document = { createElement: () => link, head: { appendChild: () => {} } };
+      new Function("location", "document", script!)({ pathname: path }, document);
+      return link.href;
+    };
+    const requested = async (title: string) => {
+      const fetcher = mockFetch(json({ parse: { title, text: { "*": "<p>Hi</p>" } } }));
+      await fetchArticle(title, { fetch: fetcher });
+      return String(fetcher.mock.calls[0][0]);
+    };
+
+    expect(preloaded("/wiki/Alan_Turing")).toBe(await requested("Alan_Turing"));
+    expect(preloaded("/wiki/C%2B%2B")).toBe(await requested("C++"));
+    expect(preloaded("/search")).toBe("");
   });
 
   it("returns the resolved title and redirect fragment", async () => {
