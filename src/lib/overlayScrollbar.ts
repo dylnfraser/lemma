@@ -20,33 +20,49 @@ export function overlayScrollbar(node: HTMLElement, enabled = true) {
   node.after(track);
   node.classList.add("overlay-scrolled");
 
+  // Geometry, measured only when sizes change; scrolling just moves the thumb from these (no layout reads per frame).
+  let range = 0;
+  let trackWidth = 0;
   let thumbSize = 0;
   let idleTimer: ReturnType<typeof setTimeout>;
   let frame = 0;
+  let layoutFrame = 0;
+  let dragFrame = 0;
   let dragStart: { pointerX: number; scrollLeft: number } | null = null;
+  let dragX = 0;
 
-  const range = () => node.scrollWidth - node.clientWidth;
-
-  function measure() {
-    frame = 0;
-    const scrollable = range() > 1;
+  function layout() {
+    layoutFrame = 0;
+    // reads first, then writes, so this costs one layout rather than several
+    range = node.scrollWidth - node.clientWidth;
+    const scrollable = range > 1;
     track.hidden = !scrollable;
     if (!scrollable) return;
     // the track runs along the element's bottom edge, inset by its side padding (so it lines up with the content)
     const style = getComputedStyle(node);
     const insetLeft = Number.parseFloat(style.paddingLeft) || 0;
     const insetRight = Number.parseFloat(style.paddingRight) || 0;
-    track.style.left = `${node.offsetLeft + insetLeft}px`;
-    track.style.top = `${node.offsetTop + node.offsetHeight - track.offsetHeight}px`;
-    track.style.width = `${node.clientWidth - insetLeft - insetRight}px`;
-    const trackWidth = track.clientWidth;
+    const top = node.offsetTop + node.offsetHeight - track.offsetHeight;
+    const left = node.offsetLeft + insetLeft;
+    trackWidth = node.clientWidth - insetLeft - insetRight;
     thumbSize = Math.max(MIN_THUMB, (trackWidth * node.clientWidth) / node.scrollWidth);
+    track.style.left = `${left}px`;
+    track.style.top = `${top}px`;
+    track.style.width = `${trackWidth}px`;
     thumb.style.width = `${thumbSize}px`;
-    thumb.style.transform = `translateX(${(node.scrollLeft / range()) * (trackWidth - thumbSize)}px)`;
+    position();
+  }
+
+  function position() {
+    frame = 0;
+    if (range > 1) thumb.style.transform = `translateX(${(node.scrollLeft / range) * (trackWidth - thumbSize)}px)`;
   }
 
   const schedule = () => {
-    if (!frame) frame = requestAnimationFrame(measure);
+    if (!frame) frame = requestAnimationFrame(position);
+  };
+  const scheduleLayout = () => {
+    if (!layoutFrame) layoutFrame = requestAnimationFrame(layout);
   };
 
   function wake() {
@@ -68,10 +84,17 @@ export function overlayScrollbar(node: HTMLElement, enabled = true) {
     dragStart = { pointerX: event.clientX, scrollLeft: node.scrollLeft };
   }
 
+  // pointer moves can outnumber frames: scroll once per frame, to the latest position
   function drag(event: PointerEvent) {
     if (!dragStart) return;
-    const perPixel = range() / (track.clientWidth - thumbSize);
-    node.scrollTo({ left: dragStart.scrollLeft + (event.clientX - dragStart.pointerX) * perPixel, behavior: "instant" });
+    dragX = event.clientX;
+    if (dragFrame) return;
+    dragFrame = requestAnimationFrame(() => {
+      dragFrame = 0;
+      if (!dragStart) return;
+      const perPixel = range / Math.max(1, trackWidth - thumbSize);
+      node.scrollTo({ left: dragStart.scrollLeft + (dragX - dragStart.pointerX) * perPixel, behavior: "instant" });
+    });
   }
 
   function endDrag() {
@@ -98,14 +121,20 @@ export function overlayScrollbar(node: HTMLElement, enabled = true) {
   thumb.addEventListener("pointermove", drag);
   thumb.addEventListener("pointerup", endDrag);
   thumb.addEventListener("pointercancel", endDrag);
-  const observer = new ResizeObserver(schedule);
+  // the element's size, its parent's (where the track is placed) and its contents' (pictures loading change how far it
+  // scrolls)
+  const observer = new ResizeObserver(scheduleLayout);
   observer.observe(node);
-  measure();
+  if (node.parentElement) observer.observe(node.parentElement);
+  for (const child of node.children) observer.observe(child);
+  layout();
 
   return {
     destroy() {
       observer.disconnect();
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(layoutFrame);
+      cancelAnimationFrame(dragFrame);
       clearTimeout(idleTimer);
       node.removeEventListener("scroll", handleScroll);
       node.classList.remove("overlay-scrolled");
