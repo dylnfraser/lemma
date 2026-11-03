@@ -361,7 +361,8 @@
         const controller = new AbortController();
         const root = document.documentElement;
         const entered = new Promise((resolve) => setTimeout(resolve, TINT_AFTER_MS));
-        Promise.all([sampleTint(resizeWikimediaThumb(leadPhoto.src, 120), controller.signal), entered]).then(([tint]) => {
+        // sampled once the page has settled, so its download doesn't compete with the lead image's
+        entered.then(() => (controller.signal.aborted ? null : sampleTint(resizeWikimediaThumb(leadPhoto.src, 120), controller.signal))).then((tint) => {
             if (!tint || controller.signal.aborted) return;
             // the short way round the colour wheel
             const delta = ((tint.hue - BASE_HUE + 540) % 360) - 180;

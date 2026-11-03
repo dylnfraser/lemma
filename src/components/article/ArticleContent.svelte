@@ -48,6 +48,10 @@
             : -1,
     );
 
+    // A picture among the first few blocks is on screen as the article opens: it loads straight away, and first.
+    const LEAD_BLOCKS = 4;
+    let leadImageIndex = $derived(blocks.slice(0, LEAD_BLOCKS).findIndex((block) => block.type === "images"));
+
     /** Adds the article's template CSS to the page while it's shown. textContent keeps it inert as markup. */
     function templateStyles(_node: HTMLElement, css: string) {
         const element = document.createElement("style");
@@ -188,7 +192,8 @@
                                 height={image.height}
                                 class:invert-dark={image.invertInDarkMode}
                                 class:light-backing={image.lightBacking}
-                                loading="lazy"
+                                loading={i === leadImageIndex ? "eager" : "lazy"}
+                                fetchpriority={i === leadImageIndex ? "high" : "auto"}
                                 decoding="async"
                             />
                         </button>

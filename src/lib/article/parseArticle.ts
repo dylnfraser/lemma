@@ -265,6 +265,8 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
     normalizeMediaUrls(infoboxTable);
     convertPronunciations(infoboxTable);
     tidyPlayers(infoboxTable);
+    // its first picture is usually the article's lead image, at the top of the page: fetched ahead of the rest
+    infoboxTable.querySelector("img")?.setAttribute("fetchpriority", "high");
     markInlineIcons(infoboxTable);
     groupLegends(infoboxTable);
     markLightBackings(infoboxTable);
