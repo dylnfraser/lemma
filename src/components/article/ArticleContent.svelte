@@ -1212,7 +1212,7 @@
     .article-body :global(ul.external-links .site) {
         margin-left: 0.15em;
         font-size: 0.78em;
-        color: color-mix(in oklch, var(--muted) 85%, var(--page-bg));
+        color: var(--muted);
         white-space: nowrap;
     }
 

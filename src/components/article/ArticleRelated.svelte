@@ -146,7 +146,8 @@
         background: color-mix(in oklch, var(--secondary) 40%, transparent);
         font-size: 0.72rem;
         font-weight: 600;
-        color: var(--muted);
+        /* a shade darker than other secondary text: it sits on a tinted pill */
+        color: color-mix(in oklch, var(--muted), var(--text-color));
         font-variant-numeric: tabular-nums;
     }
 
