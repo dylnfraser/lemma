@@ -120,7 +120,13 @@
     .reading,
     .today .item {
         animation: enter var(--dur-slow) var(--ease-out) backwards;
-        animation-delay: calc(var(--i, 0) * var(--stagger) + 150ms);
+        animation-delay: calc(var(--i, 0) * var(--stagger) + var(--after, 0ms));
+    }
+
+    /* the placeholder waits for the search above it to settle in; the feed replacing it follows straight on, so
+       there's no empty moment between the two */
+    .feed[role="status"] {
+        --after: calc(var(--stagger) * 3);
     }
 
     .today {
