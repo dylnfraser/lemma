@@ -361,18 +361,27 @@
 
         :global(sup.reference.follows-citation::before) {
             content: ",";
-            color: color-mix(in oklch, var(--muted) 70%, var(--page-bg));
+            color: var(--muted);
         }
 
         :global(sup.reference .cite-bracket) {
             display: none;
         }
 
+        /* quiet, but no fainter than other secondary text (fainter falls below a readable contrast) */
         :global(sup.reference a) {
-            color: color-mix(in oklch, var(--muted) 75%, var(--page-bg));
+            position: relative;
+            color: var(--muted);
             text-decoration: none;
             font-weight: 550;
             transition: color var(--dur-fast) ease;
+        }
+
+        /* a number is a few pixels wide: an invisible margin around it makes it something a finger can hit */
+        :global(sup.reference a::after) {
+            content: "";
+            position: absolute;
+            inset: -0.9em -0.5em;
         }
 
         :global(sup.reference a:hover) {
