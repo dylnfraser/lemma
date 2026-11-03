@@ -636,6 +636,7 @@
                 {thumbnail}
                 spoken={article.spoken}
                 revisionId={meta.revisionId ?? null}
+                lastEdited={activity?.lastEdited ?? null}
             >
                 {#if meta.languages.length > 0}
                     <ArticleLanguages languages={meta.languages} />

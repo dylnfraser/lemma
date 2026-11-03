@@ -329,11 +329,6 @@ export async function fetchEditActivity(title: string, options: RequestOptions =
   }
 }
 
-/** When the article was last edited (see fetchEditActivity). */
-export async function fetchLastEdited(title: string, options: RequestOptions = {}): Promise<Date | null> {
-  return (await fetchEditActivity(title, options))?.lastEdited ?? null;
-}
-
 /** Where a reader can see an article's contributors, as CC BY-SA attribution asks. */
 export function getWikipediaHistoryUrl(title: string): string {
   const url = new URL("/w/index.php", WIKIPEDIA_ORIGIN);
@@ -362,7 +357,7 @@ function metadataText(value: unknown): string {
 }
 
 /**
- * Who made an image and under which license, for the viewer's credit line. Best-effort like `fetchLastEdited`: any
+ * Who made an image and under which license, for the viewer's credit line. Best-effort like `fetchEditActivity`: any
  * failure resolves to null.
  */
 export async function fetchImageCredit(fileName: string, options: RequestOptions = {}): Promise<ImageCredit | null> {

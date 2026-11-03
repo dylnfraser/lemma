@@ -4,7 +4,6 @@ import {
   fetchArticle,
   fetchEditActivity,
   fetchImageCredit,
-  fetchLastEdited,
   fetchRelatedArticles,
   fetchSummary,
   getWikipediaHistoryUrl,
@@ -148,12 +147,14 @@ describe("searchArticles", () => {
   });
 });
 
-describe("fetchLastEdited", () => {
-  it("asks for the latest revision's timestamp, following redirects", async () => {
+describe("fetchEditActivity: last edited", () => {
+  it("asks for the latest revisions' timestamps, following redirects", async () => {
     const fetcher = mockFetch(
       json({ query: { pages: [{ title: "Alan Turing", revisions: [{ timestamp: "2026-10-12T08:30:00Z" }] }] } }),
     );
-    await expect(fetchLastEdited("Turing", { fetch: fetcher })).resolves.toEqual(new Date("2026-10-12T08:30:00Z"));
+    await expect(fetchEditActivity("Turing", { fetch: fetcher })).resolves.toMatchObject({
+      lastEdited: new Date("2026-10-12T08:30:00Z"),
+    });
 
     const params = new URL(String(fetcher.mock.calls[0][0])).searchParams;
     expect(params.get("prop")).toBe("revisions");
@@ -162,9 +163,9 @@ describe("fetchLastEdited", () => {
   });
 
   it("resolves to null instead of throwing", async () => {
-    await expect(fetchLastEdited("A", { fetch: mockFetch(json({ query: { pages: [{ missing: true }] } })) })).resolves.toBeNull();
-    await expect(fetchLastEdited("A", { fetch: mockFetch(new Response("", { status: 503 })), retries: 0 })).resolves.toBeNull();
-    await expect(fetchLastEdited("A", { fetch: mockFetch(new TypeError("Failed to fetch")) })).resolves.toBeNull();
+    await expect(fetchEditActivity("A", { fetch: mockFetch(json({ query: { pages: [{ missing: true }] } })) })).resolves.toBeNull();
+    await expect(fetchEditActivity("A", { fetch: mockFetch(new Response("", { status: 503 })), retries: 0 })).resolves.toBeNull();
+    await expect(fetchEditActivity("A", { fetch: mockFetch(new TypeError("Failed to fetch")) })).resolves.toBeNull();
   });
 });
 

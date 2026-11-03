@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { tick } from "svelte";
-    import { fetchLastEdited } from "$lib/api/wikipedia";
+    import { tick, untrack } from "svelte";
     import { CITATION_STYLES, formatCitation, type CitationStyle } from "$lib/citation";
     import { isKeyboardClick } from "$lib/focus";
     import { escapeCloses } from "$lib/layers";
@@ -18,11 +17,13 @@
         thumbnail: string;
         spoken: SpokenAudio | null;
         revisionId: number | null;
+        /** When the article was last edited (for the citation's date), once the page has fetched it. */
+        lastEdited?: Date | null;
         /** More pills for the end of the row (the article's languages, its place on a map). */
         children?: Snippet;
     }
 
-    let { title, description, thumbnail, spoken, revisionId, children }: Props = $props();
+    let { title, description, thumbnail, spoken, revisionId, lastEdited = null, children }: Props = $props();
 
     const uid = $props.id();
 
@@ -91,6 +92,15 @@
         });
     }
     let revised = $state<Date | null>(null);
+    // the date can arrive while the citation is showing, and add a line to it
+    $effect(() => {
+        const next = lastEdited;
+        untrack(() => {
+            if (next === revised) return;
+            if (citeOpen) easeHeight(() => (revised = next));
+            else revised = next;
+        });
+    });
     let copied = $state(false);
     let copyTimer: ReturnType<typeof setTimeout>;
     let citeRoot = $state<HTMLElement>();
@@ -103,8 +113,6 @@
         citeOpen = !citeOpen;
         copied = false;
         if (!citeOpen) return;
-        // the date arrives after the panel opens, and can add a line
-        if (!revised) fetchLastEdited(title).then((date) => easeHeight(() => (revised = date)));
         if (isKeyboardClick(event)) {
             await tick();
             citeRoot?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]')?.focus();
