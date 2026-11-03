@@ -1,6 +1,6 @@
 <script lang="ts">
     import { flip } from "svelte/animate";
-    import { getArticlePath } from "$lib/article/articleUtils";
+    import { getArticlePath, LIBRARY_THUMB_WIDTH, resizeWikimediaThumb } from "$lib/article/articleUtils";
     import { library, type LibraryEntry } from "$lib/library.svelte";
     import { DURATION, cubicOut, motion, rise } from "$lib/motion";
     import LibraryEmpty from "../../components/LibraryEmpty.svelte";
@@ -84,7 +84,8 @@
                     >
                         <a href={getArticlePath(entry.title)}>
                             {#if entry.thumbnail}
-                                <img src={entry.thumbnail} alt="" loading="lazy" decoding="async" />
+                                <!-- resized here too: entries saved earlier asked for a width Wikimedia no longer serves -->
+                                <img src={resizeWikimediaThumb(entry.thumbnail, LIBRARY_THUMB_WIDTH)} alt="" loading="lazy" decoding="async" />
                             {:else}
                                 <span class="placeholder" aria-hidden="true">{entry.title.slice(0, 1)}</span>
                             {/if}

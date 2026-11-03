@@ -41,6 +41,8 @@ export const EDIT_AFFORDANCE_SELECTOR = [
 ].join(", ");
 
 export const IMAGE_TARGET_WIDTH = 960;
+/** Library thumbnails (shown at 48px): a width Wikimedia serves. */
+export const LIBRARY_THUMB_WIDTH = 120;
 const WIKIMEDIA_THUMB_HOSTS = new Set(["upload.wikimedia.org", "thumb.wikimedia.org"]);
 
 export function normalizeImageSrc(src: string): string {

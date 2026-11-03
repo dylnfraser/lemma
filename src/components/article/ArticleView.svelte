@@ -17,7 +17,13 @@
     import { getCollapsibleHeadingIds } from "$lib/article/articleNavigation";
     import { collectText, findTextRanges, normalizeQuery } from "$lib/article/findText";
     import { isTypingTarget } from "$lib/search/searchOverlay.svelte";
-    import { getArticlePath, isFoldableHeadingLevel, resizeWikimediaThumb, safeDecodeURIComponent } from "$lib/article/articleUtils";
+    import {
+        getArticlePath,
+        isFoldableHeadingLevel,
+        LIBRARY_THUMB_WIDTH,
+        resizeWikimediaThumb,
+        safeDecodeURIComponent,
+    } from "$lib/article/articleUtils";
     import { openStreetMapUrl } from "$lib/article/mapsAndMath";
     import type { ArticleMeta, ParsedArticle } from "$lib/article/types";
     import { sampleTint } from "$lib/imageTint";
@@ -66,7 +72,7 @@
     // a small picture for the reader's history and saved list
     // svelte-ignore state_referenced_locally
     const firstImage = article.infobox?.images[0] ?? blocks.find((block) => block.type === "images")?.images[0];
-    const thumbnail = firstImage ? resizeWikimediaThumb(firstImage.src, 160) : "";
+    const thumbnail = firstImage ? resizeWikimediaThumb(firstImage.src, LIBRARY_THUMB_WIDTH) : "";
     const headingsById = new Map(headings.map((heading) => [heading.id, heading]));
     const collapsedSections = new SvelteSet<string>();
     const collapsedOutline = new SvelteSet<string>(getCollapsibleHeadingIds(headings));
