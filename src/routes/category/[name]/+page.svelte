@@ -118,7 +118,7 @@
             <ul class="subcategories">
                 {#each subcategories as subcategory, i (subcategory)}
                     <li style:--i={i % 30}>
-                        <a href={getCategoryPath(subcategory)}><Icon name="folder" size="0.9em" />{subcategory}</a>
+                        <a class="chip" href={getCategoryPath(subcategory)}><Icon name="folder" size="0.9em" />{subcategory}</a>
                     </li>
                 {/each}
             </ul>
@@ -231,28 +231,9 @@
         flex-wrap: wrap;
         gap: 0.4rem;
 
-        a {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.25rem 0.75rem;
-            border: 1px solid var(--rule);
-            border-radius: 999px;
-            font-size: 0.82rem;
-            color: inherit;
-            text-decoration: none;
-            transition:
-                color var(--dur-base) var(--ease-out),
-                border-color var(--dur-base) var(--ease-out);
-
-            :global(.icon) {
-                color: var(--muted);
-            }
-
-            &:hover {
-                color: var(--link-hover);
-                border-color: color-mix(in oklch, var(--accent) 40%, var(--rule));
-            }
+        /* chips (app.css) with a folder icon */
+        a :global(.icon) {
+            color: var(--muted);
         }
     }
 

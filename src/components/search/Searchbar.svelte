@@ -341,7 +341,8 @@
             content: "";
             position: absolute;
             inset: 4px;
-            border: 2px solid currentColor;
+            /* the same stroke as the results' spinner */
+            border: 1.5px solid currentColor;
             border-right-color: transparent;
             border-radius: 50%;
             opacity: 0;

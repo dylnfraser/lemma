@@ -182,7 +182,7 @@
                 aria-label="Cite this page"
                 transition:pop
             >
-                <div class="tabs" role="tablist" use:slidingTabs={style} aria-label="Citation style">
+                <div class="tabs segmented" role="tablist" use:slidingTabs={style} aria-label="Citation style">
                     {#each CITATION_STYLES as option}
                         <button
                             type="button"
@@ -357,35 +357,15 @@
         }
     }
 
+    /* a segmented control (app.css) */
     .tabs {
-        position: relative;
-        --tab-radius: 7px;
-        display: flex;
         gap: 0.2rem;
         padding: 0.2rem;
-        border-radius: 9px;
-        background: color-mix(in oklch, var(--secondary) 30%, var(--bg-color));
 
         button {
             flex: 1;
             padding: 0.3rem 0;
-            border: none;
-            border-radius: 7px;
-            background: none;
-            font: inherit;
             font-size: 0.78rem;
-            font-weight: 550;
-            color: var(--muted);
-            cursor: pointer;
-            /* above the sliding highlight */
-            position: relative;
-            z-index: 1;
-            transition: color var(--dur-base) var(--ease-out);
-
-            &:hover,
-            &[aria-selected="true"] {
-                color: var(--text-color);
-            }
         }
     }
 

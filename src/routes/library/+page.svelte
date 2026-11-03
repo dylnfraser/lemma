@@ -53,7 +53,7 @@
     </header>
 
     <div class="toolbar">
-        <div class="tabs" role="tablist" use:slidingTabs={tab} aria-label="Library">
+        <div class="tabs segmented" role="tablist" use:slidingTabs={tab} aria-label="Library">
             <button type="button" role="tab" aria-selected={tab === "saved"} onclick={() => ((tab = "saved"), (confirmingClear = false))}>
                 <Icon name="bookmark" size="0.9em" /> Saved <span class="count">{library.saved.length}</span>
             </button>
@@ -147,36 +147,16 @@
     }
 
     .tabs {
-        position: relative;
-        --tab-radius: 7px;
-        display: flex;
+        /* a segmented control (app.css) */
         gap: 0.2rem;
         padding: 0.2rem;
-        border-radius: 9px;
-        background: color-mix(in oklch, var(--secondary) 30%, var(--bg-color));
 
         button {
             display: inline-flex;
             align-items: center;
             gap: 0.35rem;
             padding: 0.35rem 0.8rem;
-            border: none;
-            border-radius: 7px;
-            background: none;
-            font: inherit;
             font-size: 0.85rem;
-            font-weight: 550;
-            color: var(--muted);
-            cursor: pointer;
-            /* above the sliding highlight */
-            position: relative;
-            z-index: 1;
-            transition: color var(--dur-base) var(--ease-out);
-
-            &:hover,
-            &[aria-selected="true"] {
-                color: var(--text-color);
-            }
         }
 
         .count {

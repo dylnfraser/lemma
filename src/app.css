@@ -885,6 +885,59 @@ a.identifier.free {
  * The highlight behind a segmented control's selected tab (see slidingTabs.ts). It slides between tabs; the tabs sit
  * above it and only change their text colour.
  */
+/* Link chips: the small rounded links listing categories, subcategories and the articles a file is used in. */
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    font-size: 0.82rem;
+    color: inherit;
+    text-decoration: none;
+    transition:
+        color var(--dur-base) var(--ease-out),
+        border-color var(--dur-base) var(--ease-out);
+
+    &:hover {
+        color: var(--link-hover);
+        border-color: color-mix(in oklch, var(--accent) 40%, var(--rule));
+    }
+}
+
+/*
+ * Segmented controls (reader settings, citation styles, the library's tabs): a tinted track whose choices sit above the
+ * sliding .tab-indicator. Each use sets only its size (gap, padding, font size).
+ */
+.segmented {
+    position: relative;
+    --tab-radius: 7px;
+    display: flex;
+    border-radius: calc(var(--tab-radius) + 2px);
+    background: color-mix(in oklch, var(--secondary) 30%, var(--bg-color));
+
+    > button {
+        /* above the sliding highlight */
+        position: relative;
+        z-index: 1;
+        border: none;
+        border-radius: var(--tab-radius);
+        background: none;
+        font: inherit;
+        font-weight: 550;
+        color: var(--muted);
+        cursor: pointer;
+        transition: color var(--dur-base) var(--ease-out);
+
+        &:hover,
+        &[aria-selected="true"],
+        &[aria-checked="true"] {
+            color: var(--text-color);
+        }
+    }
+}
+
 .tab-indicator {
     position: absolute;
     z-index: 0;

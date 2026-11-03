@@ -87,7 +87,7 @@
         <ul class="categories">
             {#each shownCategories as category}
                 <li>
-                    <a href={getCategoryPath(category)}>{category}</a>
+                    <a class="chip" href={getCategoryPath(category)}>{category}</a>
                 </li>
             {/each}
             {#if categories.length > CATEGORY_PREVIEW}
@@ -290,33 +290,16 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.4rem;
-
-        a {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border: 1px solid var(--rule);
-            border-radius: 999px;
-            font-size: 0.82rem;
-            color: inherit;
-            text-decoration: none;
-            transition:
-                color var(--dur-base) var(--ease-out),
-                border-color var(--dur-base) var(--ease-out);
-
-            &:hover {
-                color: var(--link-hover);
-                border-color: color-mix(in oklch, var(--accent) 40%, var(--rule));
-            }
-        }
     }
 
+    /* sized like the chips beside it (app.css) */
     .more {
-        padding: 0.25rem 0.7rem;
+        padding: 0.25rem 0.75rem;
         border: 1px dashed var(--rule);
         border-radius: 999px;
         background: none;
         font: inherit;
-        font-size: 0.8rem;
+        font-size: 0.82rem;
         font-weight: 600;
         color: var(--muted);
         cursor: pointer;

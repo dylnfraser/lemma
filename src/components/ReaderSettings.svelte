@@ -116,7 +116,7 @@
 
             <div class="setting">
                 <span class="label" id="{uid}-font">Font</span>
-                <div class="segments" role="radiogroup" aria-labelledby="{uid}-font" use:slidingTabs={settings.font}>
+                <div class="segments segmented" role="radiogroup" aria-labelledby="{uid}-font" use:slidingTabs={settings.font}>
                     {#each BODY_FONTS as font}
                         {@const checked = settings.font === font}
                         <button
@@ -135,7 +135,7 @@
 
             <div class="setting">
                 <span class="label" id="{uid}-width">Line width</span>
-                <div class="segments" role="radiogroup" aria-labelledby="{uid}-width" use:slidingTabs={settings.width}>
+                <div class="segments segmented" role="radiogroup" aria-labelledby="{uid}-width" use:slidingTabs={settings.width}>
                     {#each LINE_WIDTHS as width}
                         {@const checked = settings.width === width}
                         <button
@@ -153,7 +153,7 @@
 
             <div class="setting">
                 <span class="label" id="{uid}-citations">Citations</span>
-                <div class="segments" role="radiogroup" aria-labelledby="{uid}-citations" use:slidingTabs={settings.citations}>
+                <div class="segments segmented" role="radiogroup" aria-labelledby="{uid}-citations" use:slidingTabs={settings.citations}>
                     {#each CITATION_STYLES as style}
                         {@const checked = settings.citations === style}
                         <button
@@ -345,6 +345,7 @@
         align-items: center;
         gap: 0.56em;
         padding: 0.22em;
+        /* the segmented controls' track (app.css) */
         border-radius: 9px;
         background: color-mix(in oklch, var(--secondary) 30%, var(--bg-color));
     }
@@ -407,35 +408,15 @@
 
     /* ---------- font and width: segmented, with a sliding highlight (as in Cite) ---------- */
 
+    /* a segmented control (app.css) */
     .segments {
-        position: relative;
-        --tab-radius: 7px;
-        display: flex;
         gap: 0.22em;
         padding: 0.22em;
-        border-radius: 9px;
-        background: color-mix(in oklch, var(--secondary) 30%, var(--bg-color));
 
         button {
             flex: 1;
             padding: 0.44em 0;
-            border: none;
-            border-radius: 7px;
-            background: none;
-            font: inherit;
             font-size: 0.86em;
-            font-weight: 550;
-            color: var(--muted);
-            cursor: pointer;
-            /* above the sliding highlight */
-            position: relative;
-            z-index: 1;
-            transition: color var(--dur-base) var(--ease-out);
-
-            &:hover,
-            &[aria-checked="true"] {
-                color: var(--text-color);
-            }
         }
 
         /* each choice's name is set in it ("Mixed" in both: a serif capital, sans after) */

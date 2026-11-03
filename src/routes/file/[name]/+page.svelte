@@ -116,7 +116,7 @@
             <h2>Used in</h2>
             <ul class="used-in">
                 {#each file.usedIn as article}
-                    <li><a href={getArticlePath(article)}>{article}</a></li>
+                    <li><a class="chip" href={getArticlePath(article)}>{article}</a></li>
                 {/each}
             </ul>
         {/if}
@@ -262,24 +262,6 @@
         margin: 0;
         padding: 0;
         list-style: none;
-
-        a {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border: 1px solid var(--rule);
-            border-radius: 999px;
-            font-size: 0.82rem;
-            color: inherit;
-            text-decoration: none;
-            transition:
-                color var(--dur-base) var(--ease-out),
-                border-color var(--dur-base) var(--ease-out);
-
-            &:hover {
-                color: var(--link-hover);
-                border-color: color-mix(in oklch, var(--accent) 40%, var(--rule));
-            }
-        }
     }
 
     .error {
