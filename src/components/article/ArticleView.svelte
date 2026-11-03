@@ -600,7 +600,9 @@
     {/snippet}
 
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions (delegates clicks on same-page links in the body and infobox) -->
-    <article bind:this={articleElement} lang="en" class:disambiguation={meta.disambiguation} onclick={handleArticleClick}>
+    <!-- article links preload on press, not hover: prose is dense with links, and passing over them shouldn't download
+         every article (a card that shows preloads its own; see LinkPreview) -->
+    <article bind:this={articleElement} lang="en" data-sveltekit-preload-data="tap" class:disambiguation={meta.disambiguation} onclick={handleArticleClick}>
         <header class="article-header">
             {#if meta.disambiguation}
                 <p class="kicker">Disambiguation</p>

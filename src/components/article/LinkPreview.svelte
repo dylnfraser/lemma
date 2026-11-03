@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
+    import { preloadData } from "$app/navigation";
     import { cubicOut, quintOut } from "svelte/easing";
     import { fetchSummary, type ArticleSummary } from "$lib/api/wikipedia";
     import { getArticlePath, safeDecodeURIComponent } from "$lib/article/articleUtils";
@@ -7,8 +8,9 @@
     import { BLUR_PX, motion } from "$lib/motion";
     import { searchOverlay } from "$lib/search/searchOverlay.svelte";
 
-    // Hover previews for article links, like Wikipedia's own: the summary starts loading as soon as the pointer lands
-    // on a link, but the card only appears after a short pause so sweeping across text doesn't flash cards.
+    // Hover previews for article links, like Wikipedia's own: the summary starts loading once the pointer settles on a
+    // link, and the card appears after a slightly longer pause, so sweeping across text neither flashes cards nor
+    // downloads every link it crosses. A card that shows also preloads its article, so following the link is instant.
     // Also previews citations: hovering a footnote marker shows the reference it points to.
     let {
         currentTitle,
@@ -19,7 +21,11 @@
         getReference?: (id: string) => string | null;
     } = $props();
 
+    // pointer resting this long on a link is a reader looking at it, not passing over it
+    const INTENT_MS = 100;
     const SHOW_DELAY_MS = 350;
+    // from one card straight to another: the first lifts away (LIFT_MS) before the next drops in
+    const SWITCH_DELAY_MS = 160;
     const HIDE_DELAY_MS = 200;
     const CARD_WIDTH = 340;
     const GAP = 10;
@@ -54,6 +60,7 @@
     let visible = $state(false);
     let activeLink: HTMLAnchorElement | null = null;
     let showTimer: ReturnType<typeof setTimeout>;
+    let intentTimer: ReturnType<typeof setTimeout>;
     let hideTimer: ReturnType<typeof setTimeout>;
 
     let banner = $derived(
@@ -185,26 +192,40 @@
         if (activeLink === link && visible) return;
         activeLink = link;
         clearTimeout(showTimer);
+        clearTimeout(intentTimer);
 
-        // start loading now, during the pause
-        const pending: Promise<Content | null> = reference
-            ? Promise.resolve({ kind: "reference", ...reference })
-            : load(title!).then((result) => (result ? { kind: "article", ...result } : null));
-        showTimer = setTimeout(async () => {
-            const result = await pending;
-            if (activeLink !== link || !result || lightbox.open || searchOverlay.open) return;
-            place(link, result, pointer?.y);
-        }, SHOW_DELAY_MS);
+        // Another link's card is up: it goes now rather than pointing at the wrong link until this one is ready.
+        const switching = visible;
+        if (switching) visible = false;
+
+        // load during the pause, once the pointer has settled
+        let pending: Promise<Content | null> | undefined;
+        const start = () =>
+            (pending ??= reference
+                ? Promise.resolve({ kind: "reference", ...reference })
+                : load(title!).then((result) => (result ? { kind: "article", ...result } : null)));
+        intentTimer = setTimeout(start, INTENT_MS);
+        showTimer = setTimeout(
+            async () => {
+                const result = await start();
+                if (activeLink !== link || !result || lightbox.open || searchOverlay.open) return;
+                place(link, result, pointer?.y);
+                if (result.kind === "article") preloadData(link.href).catch(() => {});
+            },
+            switching ? SWITCH_DELAY_MS : SHOW_DELAY_MS,
+        );
     }
 
     function hideSoon() {
         clearTimeout(showTimer);
+        clearTimeout(intentTimer);
         clearTimeout(hideTimer);
         hideTimer = setTimeout(hideNow, HIDE_DELAY_MS);
     }
 
     function hideNow() {
         clearTimeout(showTimer);
+        clearTimeout(intentTimer);
         clearTimeout(hideTimer);
         activeLink = null;
         visible = false;
