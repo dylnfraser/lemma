@@ -29,6 +29,22 @@
         );
     });
 
+    // Opening the panel shows its first rows at once and adds the rest a few dozen a frame. Each name is in its own
+    // script and marked with its language (for screen readers, and the right glyphs), and styling a few hundred of those
+    // in one go stalled Safari for a few hundred milliseconds the first time the panel opened.
+    const FIRST_ROWS = 24;
+    const ROWS_PER_FRAME = 40;
+    let rendered = $state(FIRST_ROWS);
+    $effect(() => {
+        if (!open) return;
+        rendered = FIRST_ROWS;
+        let frame = requestAnimationFrame(function more() {
+            rendered += ROWS_PER_FRAME;
+            if (rendered < languages.length) frame = requestAnimationFrame(more);
+        });
+        return () => cancelAnimationFrame(frame);
+    });
+
     async function toggle(event: MouseEvent) {
         open = !open;
         filter = "";
@@ -109,7 +125,7 @@
             </label>
 
             <ul bind:this={list}>
-                {#each shown as language, i (language.code)}
+                {#each shown.slice(0, rendered) as language, i (language.code)}
                     <li style:--i={Math.min(i, 10)} class:cascade={cascade && i < 12}>
                         <a href={language.url} target="_blank" rel="noopener noreferrer" hreflang={language.code}>
                             <!-- only the language's own name is in it (the English name beside it isn't) -->
@@ -245,6 +261,12 @@
     /* only the rows that show without scrolling cascade in: animating all of a long list (300 languages) at once
        stalls the opening, especially in Safari. Only on opening, too: filtering shouldn't replay it on the rows that
        move up into the first twelve. */
+    /* rows scrolled out of the list skip rendering (see `rendered` above) */
+    li {
+        content-visibility: auto;
+        contain-intrinsic-size: auto 2.1rem;
+    }
+
     li.cascade {
         animation: enter var(--dur-base) var(--ease-out) backwards;
         animation-delay: calc(var(--i) * var(--stagger) * 0.4 + var(--stagger));
