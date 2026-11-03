@@ -619,6 +619,12 @@
         &.closing {
             opacity: 0;
         }
+
+        /* Touch screens, where the picture is dragged away with a finger: the blur is redrawn on every frame while the
+           backdrop fades, and its cost grows with its radius, so a lighter one keeps the drag smooth */
+        @media (pointer: coarse) {
+            backdrop-filter: blur(6px) saturate(1.1);
+        }
     }
 
     /* Opening, everything but the picture fades in around it (the picture itself flies out of its thumbnail fully
