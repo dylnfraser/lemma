@@ -1342,17 +1342,15 @@
         cursor: zoom-in;
     }
 
-    /* on hover it grows a touch, in place */
+    /* on hover it grows a touch, in place (its shadow grows with it: only the transform animates, which needs no
+       repainting, where a changing shadow repaints the whole picture's surroundings every frame) */
     .wiki-images .zoomable img {
-        transition:
-            transform var(--dur-slow) var(--ease-out),
-            box-shadow var(--dur-slow) var(--ease-out);
+        transition: transform var(--dur-slow) var(--ease-out);
     }
 
     @media (hover: hover) {
         .wiki-images .zoomable:is(:hover, :focus-visible) img {
             transform: scale(1.02);
-            box-shadow: 0 16px 36px -16px var(--shadow-color);
         }
     }
 
