@@ -62,16 +62,17 @@ const MIN_ARTICLE_IMAGE_SIZE = 64;
 /**
  * Wikipedia's parser output is the trust boundary: it's sanitized here (scripts, event handlers,
  * embeds, forms, styles and unsafe URLs removed) before anything is parsed or rendered.
+ *
+ * The sanitizer hands back the body of the document it parsed and cleaned, rather than turning it back into a string
+ * for a second parse. That document is inert (DOMPurify builds it with DOMParser): images don't load and nothing
+ * executes while we work on it.
  */
-function sanitizeArticleHtml(html: string): string {
+function parseDocument(html: string): HTMLElement {
   return DOMPurify.sanitize(html, {
     FORBID_TAGS: ["style", "link", "form", "input", "button", "textarea", "select", "iframe", "object", "embed"],
-  });
-}
-
-function parseDocument(html: string): Document {
-  // DOMParser documents are inert: images don't load and nothing executes while we work on them.
-  return new DOMParser().parseFromString(sanitizeArticleHtml(html), "text/html");
+    RETURN_DOM: true,
+    // typed as any node; with RETURN_DOM (and no whole document asked for) it's the document's <body>
+  }) as HTMLElement;
 }
 
 /**
@@ -235,11 +236,12 @@ export function markBreakableNoWrapRuns(root: HTMLElement) {
   }
 }
 
-export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
+/** The article, prepared in a few stages, each a slice of the work: see parseArticleInStages. */
+function* parseStages(pageContent: WikipediaPageContent): Generator<void, ParsedArticle> {
   // collected from the raw HTML: the sanitizer removes <style>
   const styles = extractTemplateStyles(pageContent.text);
-  const document = parseDocument(pageContent.text);
-  const root = document.body;
+  const root = parseDocument(pageContent.text);
+  yield;
 
   // Maps, coordinates and formulas are converted throughout (infobox included) before anything is lifted out.
   const coordinates = findArticleCoordinates(root);
@@ -273,6 +275,8 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
     infobox = parseInfobox(infoboxTable, toArticleImage);
   }
 
+  yield;
+
   const related = extractRelatedTopics(root);
   removeClutter(root);
   // before links are rewritten: sources are told apart partly by where their links point
@@ -296,6 +300,8 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
   markInlineIcons(root);
   groupLegends(root);
   markLightBackings(root);
+
+  yield;
 
   // Galleries become image blocks, so they stack into a fan like any other image group. Each photo's caption is its
   // gallery text rather than a figcaption.
@@ -462,4 +468,34 @@ export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
     sources,
     claimsNeedingSources,
   };
+}
+
+/** Prepares an article for reading, all at once. */
+export function parseArticle(pageContent: WikipediaPageContent): ParsedArticle {
+  const stages = parseStages(pageContent);
+  for (;;) {
+    const step = stages.next();
+    if (step.done) return step.value;
+  }
+}
+
+/** Gives the browser a turn: to paint, run an animation frame or respond to the reader. */
+const yieldToBrowser = (): Promise<void> =>
+  typeof scheduler !== "undefined" && "yield" in scheduler
+    ? scheduler.yield()
+    : new Promise((resolve) => setTimeout(resolve, 0));
+
+/**
+ * Prepares an article in stages, letting the browser take a turn between them: sanitizing a long article, tidying it
+ * and splitting it into blocks each take a slice of time, and as one block of work they froze the page (and its loading
+ * animation) for a few hundred milliseconds on a phone. The last pause comes before the article is handed over, so
+ * putting it on screen is a turn of its own too.
+ */
+export async function parseArticleInStages(pageContent: WikipediaPageContent): Promise<ParsedArticle> {
+  const stages = parseStages(pageContent);
+  for (;;) {
+    const step = stages.next();
+    await yieldToBrowser();
+    if (step.done) return step.value;
+  }
 }

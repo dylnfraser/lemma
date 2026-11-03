@@ -1,5 +1,5 @@
 import { fetchArticle } from "$lib/api/wikipedia";
-import { parseArticle } from "$lib/article/parseArticle";
+import { parseArticleInStages } from "$lib/article/parseArticle";
 import type { ArticleMeta, ParsedArticle } from "$lib/article/types";
 import type { PageLoad } from "./$types";
 
@@ -31,8 +31,9 @@ export const load: PageLoad = async ({ params, fetch }) => {
 
   let parsed: Promise<ParsedArticleData> | undefined;
   const article = () =>
-    (parsed ??= content.then((content) => ({
-      article: parseArticle(content),
+    (parsed ??= content.then(async (content) => ({
+      // in stages, so the page (and the skeleton's animation) keeps moving while it's prepared
+      article: await parseArticleInStages(content),
       redirectFragment: content.redirectFragment ?? "",
       meta: {
         redirectedFrom: content.redirectedFrom ?? "",

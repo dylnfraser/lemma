@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { markBreakableNoWrapRuns, markCitationRuns, parseArticle } from "./parseArticle";
+import { markBreakableNoWrapRuns, markCitationRuns, parseArticle, parseArticleInStages } from "./parseArticle";
 import {
   DUPLICATE_HEADINGS,
   EDIT_AFFORDANCES,
@@ -168,6 +168,19 @@ describe("parseArticle", () => {
     expect(article.stats.words).toBeGreaterThan(70);
     expect(article.stats.words).toBeLessThan(110);
     expect(article.stats.readingMinutes).toBe(1);
+  });
+});
+
+describe("parseArticleInStages", () => {
+  it("prepares the same article as parseArticle, giving the browser turns along the way", async () => {
+    for (const text of [ORDINARY_ARTICLE, INFOBOX_ARTICLE, GALLERY_ARTICLE, EXTRAS_ARTICLE]) {
+      let turns = 0;
+      const counting = setInterval(() => turns++, 0);
+      const staged = await parseArticleInStages({ title: "Pi", text });
+      clearInterval(counting);
+      expect(staged).toEqual(parse(text));
+      expect(turns).toBeGreaterThan(0);
+    }
   });
 });
 
