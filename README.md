@@ -1,8 +1,31 @@
 # lemma
 
-Lemma is a lightweight, distraction-free Wikipedia client built with SvelteKit. It strips out Wikipedia's default interface clutter to deliver a clean reading experience with customizable themes and typography (see [Reader settings](#reader-settings)), article metrics, and streamlined navigation.
+Lemma is a lightweight, distraction-free Wikipedia client built with SvelteKit. It strips out Wikipedia's interface clutter to give a calm reading page, with themes and typography the reader can adjust (see [Reader settings](#reader-settings)).
 
-All requests are made directly from the reader's browser to Wikipedia, without intermediate proxies, tracking, or API keys.
+All requests are made directly from the reader's browser to Wikipedia, without intermediate proxies, tracking, accounts, or API keys. Everything personal (saved articles, history, reading positions, settings) stays in the browser.
+
+## Features
+
+**Reading**
+
+* A contents sidebar that follows along as you read, with sections that fold (on phones, a floating button showing the current section).
+* Previews on hover: an article's summary for links, the full reference for footnotes.
+* The infobox beside the text on wide screens, and images that stack into a fan and open in a full-screen viewer.
+* Tidy back matter: references tagged by kind of source (academic, book, news, government, website), with a summary of the article's source mix and its "citation needed" flags; compact back-links, archive and identifier links; year lists in two columns.
+* Select text to copy it as a quote, or as a link that opens the article at that passage.
+* Read next and related topics, the article in other languages, its categories, and when it was last edited.
+
+**Getting around**
+
+* Search from anywhere (<kbd>/</kbd> or <kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>K</kbd>), with suggestions as you type and full results at `/search`.
+* Keyboard shortcuts for reading (<kbd>J</kbd>/<kbd>K</kbd> between sections, <kbd>[</kbd>/<kbd>]</kbd> to fold, <kbd>S</kbd> to save, <kbd>T</kbd> to the top); <kbd>?</kbd> lists them.
+* Category and image pages inside Lemma, and a trail in the navbar of the articles just read.
+* The home page shows today's featured article and picture, what people are reading, and a random article.
+
+**Keeping**
+
+* Save articles, and find them with your reading history in the library (`/library`). Reopening an article returns to where you stopped.
+* Cite an article (APA, MLA, Chicago, BibTeX), linked to the exact revision you read; listen to its spoken version where Wikipedia has one; print it.
 
 ## Tech Stack
 
