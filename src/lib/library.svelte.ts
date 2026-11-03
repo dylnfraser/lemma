@@ -54,7 +54,10 @@ function read(): Stored {
 
 const state = $state<Stored>(read());
 
+let writePending = false;
+
 function write() {
+  writePending = false;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
@@ -62,7 +65,23 @@ function write() {
   }
 }
 
+/**
+ * Writes once the browser is idle: reading positions are saved each time scrolling pauses, and storing the whole
+ * library then would take its turn on the scroll path. Several saves before then make one write.
+ */
+function writeSoon() {
+  if (writePending) return;
+  writePending = true;
+  if (typeof requestIdleCallback === "function") requestIdleCallback(() => writePending && write(), { timeout: 2000 });
+  else setTimeout(() => writePending && write(), 200);
+}
+
 if (typeof window !== "undefined") {
+  // leaving or hiding the page: anything still waiting is written now
+  const flush = () => writePending && write();
+  window.addEventListener("pagehide", flush);
+  document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && flush());
+
   window.addEventListener("storage", (event) => {
     if (event.key !== STORAGE_KEY) return;
     const next = read();
@@ -126,7 +145,7 @@ export const library = {
         .slice(0, titles.length - MAX_POSITIONS)
         .forEach((old) => delete state.positions[old]);
     }
-    write();
+    writeSoon();
   },
 
   clearPosition(title: string) {
