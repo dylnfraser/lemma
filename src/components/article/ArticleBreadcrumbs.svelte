@@ -28,8 +28,8 @@
 
     // The entry the marker sits on: the current section, or (while it's inside a folded branch) the nearest heading
     // above it that's showing, so the marker never blinks out between folds.
+    let byId = $derived(new Map(headings.map((heading) => [heading.id, heading])));
     let markedId = $derived.by(() => {
-        const byId = new Map(headings.map((heading) => [heading.id, heading]));
         const active = byId.get(activeId);
         if (!active) return "";
         if (!isHeadingHiddenByCollapsed(active, collapsedIds)) return active.id;
@@ -42,20 +42,30 @@
     // The headings showing once any folding settles (rows on their way out don't count).
     let visibleIds = $derived(headings.filter((heading) => !isHeadingHiddenByCollapsed(heading, collapsedIds)).map((heading) => heading.id));
 
+    // The rows' spacing, measured when sizes change (fonts, text size, folding) rather than on every section change.
+    let rows = { top: 0, pitch: 0, height: 0 };
+    function measureRows() {
+        const first = track?.querySelector<HTMLElement>(".breadcrumb-row");
+        const link = first?.querySelector<HTMLElement>(".breadcrumb");
+        if (!first || !link) rows = { top: 0, pitch: 0, height: 0 };
+        // the first row is top-level and so never folds: its spacing is the settled spacing
+        else {
+            const height = link.offsetHeight;
+            rows = { top: first.offsetTop, pitch: height + (Number.parseFloat(getComputedStyle(first).marginBottom) || 0), height };
+        }
+        placeIndicator();
+    }
+
     // Where the marker should be, worked out from where its row will end up rather than where it is mid-animation:
     // every row has the same height, so that's its place in the list times the row pitch. The marker can then glide
     // straight there alongside the folding rows instead of chasing its row frame by frame.
     function placeIndicator() {
         const index = visibleIds.indexOf(markedId);
-        const first = track?.querySelector<HTMLElement>(".breadcrumb-row");
-        const link = first?.querySelector<HTMLElement>(".breadcrumb");
-        if (index < 0 || !first || !link) {
+        if (index < 0 || !rows.pitch) {
             indicator = null;
             return;
         }
-        // the first row is top-level and so never folds: its spacing is the settled spacing
-        const pitch = link.offsetHeight + (Number.parseFloat(getComputedStyle(first).marginBottom) || 0);
-        const next = { y: first.offsetTop + index * pitch, height: link.offsetHeight };
+        const next = { y: rows.top + index * rows.pitch, height: rows.height };
         if (next.y !== indicator?.y || next.height !== indicator?.height) indicator = next;
         if (!indicatorReady) requestAnimationFrame(() => (indicatorReady = true));
     }
@@ -83,9 +93,9 @@
         untrack(placeIndicator);
     });
 
-    // Text size can change the row pitch (fonts loading, zoom).
+    // Text size can change the row pitch (fonts loading, zoom). The observer also takes the first measurement.
     $effect(() => {
-        const observer = new ResizeObserver(() => placeIndicator());
+        const observer = new ResizeObserver(() => measureRows());
         observer.observe(track);
         return () => observer.disconnect();
     });
@@ -95,12 +105,14 @@
         if (!indicator || !list) return;
         const { y, height } = indicator;
         untrack(() => {
+            // hidden (a closed card on small screens): no smooth scroll to run unseen, just be in place when it opens
+            const hidden = list.checkVisibility?.({ visibilityProperty: true }) === false;
             const padding = 40;
             const top = track.offsetTop + y - list.scrollTop;
             let by = 0;
             if (top < padding) by = top - padding;
             else if (top + height > list.clientHeight - padding) by = top + height - (list.clientHeight - padding);
-            if (by) list.scrollBy({ top: by, behavior: prefersReducedMotion.current ? "instant" : "smooth" });
+            if (by) list.scrollBy({ top: by, behavior: hidden || prefersReducedMotion.current ? "instant" : "smooth" });
         });
     });
 </script>
