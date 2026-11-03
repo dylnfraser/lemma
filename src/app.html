@@ -8,6 +8,9 @@
 		<link rel="icon" href="%sveltekit.assets%/favicon.svg" />
 		<link rel="preload" href="%sveltekit.assets%/font/switzer.woff2" as="font" type="font/woff2" crossorigin />
 		<link rel="preload" href="%sveltekit.assets%/font/rowan.woff2" as="font" type="font/woff2" crossorigin />
+		<!-- articles come from Wikipedia and their pictures from Wikimedia: open those connections while the app loads -->
+		<link rel="preconnect" href="https://en.wikipedia.org" crossorigin />
+		<link rel="preconnect" href="https://upload.wikimedia.org" />
 
 		<!--
 			Social metadata lives here rather than in a layout because article pages are rendered in the browser:
@@ -45,6 +48,35 @@
 				root.dataset.citations = s.citations === "subtle" || s.citations === "hidden" ? s.citations : "show";
 				var sizes = [0.9, 1, 1.1, 1.2, 1.32];
 				root.style.setProperty("--text-scale", String(sizes[s.textSize] || 1));
+			})();
+		</script>
+		<!--
+			Opening an article directly: start downloading it now rather than once the app has loaded. The app's own
+			request (fetchArticle in src/lib/api/wikipedia.ts) is for exactly this URL, so it picks up this download
+			instead of making another; keep the two in step.
+		-->
+		<script>
+			(function () {
+				var match = location.pathname.match(/^\/wiki\/([^/]+)$/);
+				if (!match) return;
+				var title;
+				try { title = decodeURIComponent(match[1]); } catch (e) { return; }
+				var params = new URLSearchParams({
+					action: "parse",
+					page: title,
+					prop: "text|langlinks|categories|properties|indicators|revid",
+					redirects: "1",
+					maxage: "300",
+					smaxage: "300",
+					format: "json",
+					origin: "*",
+				});
+				var link = document.createElement("link");
+				link.rel = "preload";
+				link.as = "fetch";
+				link.crossOrigin = "anonymous";
+				link.href = "https://en.wikipedia.org/w/api.php?" + params;
+				document.head.appendChild(link);
 			})();
 		</script>
 		%sveltekit.head%

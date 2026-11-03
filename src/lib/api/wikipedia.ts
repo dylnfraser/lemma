@@ -184,6 +184,10 @@ export async function searchArticles(query: string, options: RequestOptions = {}
   }));
 }
 
+/**
+ * An article's HTML and details. src/app.html starts this same request early when the page opens on an article, so the
+ * URL (parameters and their order) must stay the same as the one built there.
+ */
 export async function fetchArticle(title: string, options: RequestOptions = {}): Promise<WikipediaPageContent> {
   const url = new URL("/w/api.php", WIKIPEDIA_ORIGIN);
   url.search = new URLSearchParams({
