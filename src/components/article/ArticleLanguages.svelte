@@ -14,6 +14,8 @@
     const uid = $props.id();
     let open = $state(false);
     let filter = $state("");
+    // the first rows cascade in when the panel opens, and not again as filtering moves rows up
+    let cascade = $state(false);
     let root = $state<HTMLElement>();
     let input = $state<HTMLInputElement>();
     let list = $state<HTMLElement>();
@@ -30,6 +32,7 @@
     async function toggle(event: MouseEvent) {
         open = !open;
         filter = "";
+        cascade = open;
         if (open && isKeyboardClick(event)) {
             await tick();
             input?.focus();
@@ -94,6 +97,7 @@
                 <input
                     bind:this={input}
                     bind:value={filter}
+                    oninput={() => (cascade = false)}
                     type="search"
                     placeholder="Find a language"
                     aria-label="Find a language"
@@ -106,7 +110,7 @@
 
             <ul bind:this={list}>
                 {#each shown as language, i (language.code)}
-                    <li style:--i={Math.min(i, 10)}>
+                    <li style:--i={Math.min(i, 10)} class:cascade={cascade && i < 12}>
                         <a href={language.url} target="_blank" rel="noopener noreferrer" hreflang={language.code}>
                             <!-- only the language's own name is in it (the English name beside it isn't) -->
                             <span class="autonym" lang={language.code}>{language.autonym}</span>
@@ -176,6 +180,13 @@
         border-bottom: 1px solid var(--rule);
         color: var(--muted);
 
+        /* the filter's focus shows on its row, as the search field's does */
+        transition: background-color var(--dur-fast) var(--ease-out);
+
+        &:focus-within {
+            background: color-mix(in oklch, var(--secondary) 35%, transparent);
+        }
+
         input {
             flex: 1;
             min-width: 0;
@@ -232,10 +243,11 @@
     }
 
     /* only the rows that show without scrolling cascade in: animating all of a long list (300 languages) at once
-       stalls the opening, especially in Safari */
-    li:nth-child(-n + 12) {
+       stalls the opening, especially in Safari. Only on opening, too: filtering shouldn't replay it on the rows that
+       move up into the first twelve. */
+    li.cascade {
         animation: enter var(--dur-base) var(--ease-out) backwards;
-        animation-delay: calc(var(--i) * 18ms + 60ms);
+        animation-delay: calc(var(--i) * var(--stagger) * 0.4 + var(--stagger));
     }
 
     a {

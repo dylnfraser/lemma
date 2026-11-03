@@ -55,23 +55,25 @@
     let style = $state<CitationStyle>("APA");
     let citePanel = $state<HTMLElement>();
 
-    /** Switches citation style; the panel eases to the new citation's height rather than snapping. */
-    async function selectStyle(next: CitationStyle) {
-        if (next === style) return;
+    /** Makes a change to the citation, with the panel easing to its new height rather than snapping. */
+    async function easeHeight(change: () => void) {
         const panel = citePanel;
         const duration = motion(DURATION.base);
-        if (!panel || !duration) {
-            style = next;
-            copied = false;
-            return;
-        }
+        if (!panel || !duration) return change();
         // measure the panel before and after the new citation renders, then ease from one height to the other
         const from = panel.offsetHeight;
-        style = next;
-        copied = false;
+        change();
         await tick();
         const to = panel.offsetHeight;
         if (from !== to) panel.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration, easing: EASE_OUT });
+    }
+
+    function selectStyle(next: CitationStyle) {
+        if (next === style) return;
+        easeHeight(() => {
+            style = next;
+            copied = false;
+        });
     }
     let revised = $state<Date | null>(null);
     let copied = $state(false);
@@ -86,7 +88,8 @@
         citeOpen = !citeOpen;
         copied = false;
         if (!citeOpen) return;
-        if (!revised) fetchLastEdited(title).then((date) => (revised = date));
+        // the date arrives after the panel opens, and can add a line
+        if (!revised) fetchLastEdited(title).then((date) => easeHeight(() => (revised = date)));
         if (isKeyboardClick(event)) {
             await tick();
             citeRoot?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]')?.focus();
