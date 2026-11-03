@@ -165,15 +165,23 @@
     const sectionHeadings = () =>
         (headingElements ??= articleElement.getElementsByClassName("section-heading") as HTMLCollectionOf<HTMLElement>);
 
+    // The last heading scrolled past the offset. They're in page order, so it's found by halving: a handful of position
+    // reads per scroll frame, however many sections the article has.
     function updateActiveHeading() {
-        let id = headings[0]?.id ?? "";
-
-        for (const element of sectionHeadings()) {
-            if (element.getBoundingClientRect().top > ACTIVE_OFFSET) break;
-            id = element.id;
+        const elements = sectionHeadings();
+        let low = 0;
+        let high = elements.length - 1;
+        let found = -1;
+        while (low <= high) {
+            const middle = (low + high) >> 1;
+            if (elements[middle].getBoundingClientRect().top <= ACTIVE_OFFSET) {
+                found = middle;
+                low = middle + 1;
+            } else {
+                high = middle - 1;
+            }
         }
-
-        setActiveHeading(id, true);
+        setActiveHeading(found >= 0 ? elements[found].id : (headings[0]?.id ?? ""), true);
     }
 
     function scheduleActiveUpdate() {
