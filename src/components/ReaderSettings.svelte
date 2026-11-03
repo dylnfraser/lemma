@@ -312,24 +312,24 @@
         transition: box-shadow var(--dur-base) var(--ease-out);
 
         &.light {
-            background: oklch(0.975 0.0075 75);
-            color: oklch(0.3 0.064 75);
+            background: var(--light-page);
+            color: var(--light-text);
         }
 
         &.sepia {
-            background: oklch(0.935 0.03 80);
-            color: oklch(0.31 0.06 60);
+            background: var(--sepia-page);
+            color: var(--sepia-text);
         }
 
         &.dark {
-            background: oklch(0.2 0.005 75);
-            color: oklch(0.8 0.05 75);
+            background: var(--dark-page);
+            color: var(--dark-text);
         }
 
         /* "Auto": half light, half dark */
         &.system {
-            background: linear-gradient(135deg, oklch(0.975 0.0075 75) 50%, oklch(0.2 0.005 75) 50%);
-            color: oklch(0.55 0.04 75);
+            background: linear-gradient(135deg, var(--light-page) 50%, var(--dark-page) 50%);
+            color: color-mix(in oklch, var(--light-text), var(--dark-text));
         }
     }
 

@@ -127,8 +127,16 @@ body *::-webkit-scrollbar-thumb {
     }
 
 
-    --page-bg: oklch(0.975 0.0075 var(--hue));
-    --text-color: oklch(0.3 0.064 var(--hue));
+    /* Each theme's page and text, named so the theme picker's swatches can show every theme whatever the current one */
+    --light-page: oklch(0.975 0.0075 var(--hue));
+    --light-text: oklch(0.3 0.064 var(--hue));
+    --sepia-page: oklch(0.935 0.03 80);
+    --sepia-text: oklch(0.31 0.06 60);
+    --dark-page: oklch(0.2 0.005 var(--hue));
+    --dark-text: oklch(0.8 0.05 var(--hue));
+
+    --page-bg: var(--light-page);
+    --text-color: var(--light-text);
     --secondary: oklch(0.85 0.02 var(--hue));
     --bg-color: white;
     --shadow-color: oklch(0.65 0.05 var(--hue) / 25%);
@@ -147,6 +155,8 @@ body *::-webkit-scrollbar-thumb {
     --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
     /* Everything that arrives does it the same way: fading in from a slight blur, and (for blocks) a short rise.
        Lists and groups arrive one item after another, --stagger apart. See the `enter` and `fade-in` keyframes. */
+    /* --blur and --rise document the values: the keyframes and a few transitions write them out (as BLUR_PX in JS),
+       because Safari doesn't reliably animate custom properties inside them */
     --blur: 4px;
     --rise: 6px;
     --stagger: 45ms;
@@ -191,8 +201,8 @@ body *::-webkit-scrollbar-thumb {
 
     /* paper: warmer and darker than the light page, the cards a shade lighter than it */
     &[data-theme="sepia"] {
-        --page-bg: oklch(0.935 0.03 80);
-        --text-color: oklch(0.31 0.06 60);
+        --page-bg: var(--sepia-page);
+        --text-color: var(--sepia-text);
         --secondary: oklch(0.82 0.04 75);
         --bg-color: oklch(0.96 0.024 82);
         --shadow-color: oklch(0.5 0.06 65 / 22%);
@@ -209,8 +219,8 @@ body *::-webkit-scrollbar-thumb {
         --source-news: oklch(0.76 0.12 60);
         --source-government: oklch(0.72 0.11 310);
         --source-web: oklch(0.68 0.02 var(--hue));
-        --page-bg: oklch(0.2 0.005 var(--hue));
-        --text-color: oklch(0.8 0.05 var(--hue));
+        --page-bg: var(--dark-page);
+        --text-color: var(--dark-text);
         --secondary: oklch(0.35 0.02 var(--hue));
         --bg-color: oklch(0.23 0.006 var(--hue));
         --shadow-color: oklch(0.1 0.02 var(--hue) / 35%);
